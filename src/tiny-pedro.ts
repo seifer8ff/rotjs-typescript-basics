@@ -12,7 +12,7 @@ export class TinyPedro implements Actor {
     private path: Point[];
 
     constructor(private game: Game, public position: Point) {
-        this.glyph = new Glyph("p", "#00f", "");
+        this.glyph = new Glyph("p", {foregroundColor: "#00f", backgroundColor: ""});
         this.type = ActorType.TinyPedro;
     }
 

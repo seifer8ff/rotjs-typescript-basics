@@ -1,10 +1,11 @@
 import { Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { Game } from "./game";
+import { UserInterface } from "./user-interface";
 import { Tile, TileType } from "./tile";
 import { Point } from "./point";
 
-export class Map {
+export class MapDungeon {
     private map: { [key: string]: Tile };
 
     constructor(private game: Game) {
@@ -38,17 +39,26 @@ export class Map {
         return result;
     }
 
+    getTile(x: number, y: number): Tile {
+        return this.map[this.coordinatesToKey(x, y)];
+    }
+
     getTileType(x: number, y: number): TileType {
         return this.map[this.coordinatesToKey(x, y)].type;
     }
 
+    getTileGlyph(x: number, y: number): Tile {
+        return this.map[this.coordinatesToKey(x, y)];
+    }
+
     isPassable(x: number, y: number): boolean {
-        return this.coordinatesToKey(x, y) in this.map;
+        return this.map[this.coordinatesToKey(x, y)]?.type !== Tile.water.type;
+        // return this.coordinatesToKey(x, y) in this.map;
     }
 
     draw(): void {
         for (let key in this.map) {
-            this.game.draw(this.keyToPoint(key), this.map[key].glyph);
+            this.game.userInterface.draw(this.keyToPoint(key), [this.map[key].glyph]);
         }
     }
 
@@ -63,6 +73,7 @@ export class Map {
 
     private diggerCallback(x: number, y: number, wall: number): void {
         if (wall) {
+            this.map[this.coordinatesToKey(x, y)] = Tile.water;
             return;
         }
         this.map[this.coordinatesToKey(x, y)] = Tile.floor;

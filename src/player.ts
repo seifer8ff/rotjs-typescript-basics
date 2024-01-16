@@ -10,18 +10,33 @@ export class Player implements Actor {
     type: ActorType;
     private keyMap: { [key: number]: number }
 
+    // constructor(private game: Game, public position: Point) {
+    //     this.glyph = new Glyph("@", "#ff0");
+    //     this.type = ActorType.Player;
+
+    //     this.keyMap = {};
+    //     this.keyMap[KEYS.VK_NUMPAD8] = 0; // up
+    //     this.keyMap[KEYS.VK_NUMPAD9] = 1;
+    //     this.keyMap[KEYS.VK_NUMPAD6] = 2; // right
+    //     this.keyMap[KEYS.VK_NUMPAD3] = 3;
+    //     this.keyMap[KEYS.VK_NUMPAD2] = 4; // down
+    //     this.keyMap[KEYS.VK_NUMPAD1] = 5;
+    //     this.keyMap[KEYS.VK_NUMPAD4] = 6; // left
+    //     this.keyMap[KEYS.VK_NUMPAD7] = 7;
+    // }
+
     constructor(private game: Game, public position: Point) {
-        this.glyph = new Glyph("@", "#ff0");
+        this.glyph = new Glyph("@");
         this.type = ActorType.Player;
 
         this.keyMap = {};
-        this.keyMap[KEYS.VK_NUMPAD8] = 0; // up
+        this.keyMap[KEYS.VK_W] = 0; // up
         this.keyMap[KEYS.VK_NUMPAD9] = 1;
-        this.keyMap[KEYS.VK_NUMPAD6] = 2; // right
+        this.keyMap[KEYS.VK_D] = 2; // right
         this.keyMap[KEYS.VK_NUMPAD3] = 3;
-        this.keyMap[KEYS.VK_NUMPAD2] = 4; // down
+        this.keyMap[KEYS.VK_S] = 4; // down
         this.keyMap[KEYS.VK_NUMPAD1] = 5;
-        this.keyMap[KEYS.VK_NUMPAD4] = 6; // left
+        this.keyMap[KEYS.VK_A] = 6; // left
         this.keyMap[KEYS.VK_NUMPAD7] = 7;
     }
 
@@ -46,6 +61,7 @@ export class Player implements Actor {
         } else {
             validInput = code === KEYS.VK_NUMPAD5; // Wait a turn
         }
+        this.game.userInterface.rescale(this.position.x, this.position.y);
         return validInput;
     }
 }

@@ -2,15 +2,18 @@ import { Path } from "rot-js";
 import { Game } from "./game";
 import { Actor, ActorType } from "./actor";
 import { Point } from "./point";
-import { Glyph } from "./glyph";
+import { Glyph, GlyphColor } from "./glyph";
 
 export class Pedro implements Actor {
+    static glyphColor: GlyphColor = {
+        foregroundColor: "#f00"
+    }
     glyph: Glyph;
     type: ActorType;
     private path: Point[];
 
     constructor(private game: Game, public position: Point) {
-        this.glyph = new Glyph("P", "#f00", "");
+        this.glyph = new Glyph("P", Pedro.glyphColor);
         this.type = ActorType.Pedro;
     }
 

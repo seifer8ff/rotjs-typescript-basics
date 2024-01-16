@@ -3,7 +3,24 @@ const path = require('path');
 module.exports = {
 entry: './src/app.ts',
 module: {
-    rules:[{
+    rules:[
+        // {
+        //     test: /\.(png|jpg|gif)$/i,
+        //     use: [
+        //       {
+        //         loader: 'url-loader',
+        //         options: {
+        //           limit: 8192,
+        //         }
+        //       },
+        //     ],
+        //    type: 'javascript/auto'
+        //   },
+          {
+            test: /\.png/,
+            type: 'asset/resource'
+          },
+          {
             test: /\.tsx?$/,
             use: 'ts-loader',
             exclude: /node_modules/
