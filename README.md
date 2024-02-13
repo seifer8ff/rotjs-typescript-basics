@@ -14,25 +14,25 @@ After cloning the repository:
 
 - Install necessary packages
 
-    ```powershell
-    npm install
-    ```
+  ```powershell
+  npm install
+  ```
 
 - To build the application run:
 
-    ```powershell
-    npm run build
-    ```
+  ```powershell
+  npm run build
+  ```
 
 - To run multiple npm scripts cross platform in parallel run the following command:
 
-    ```powershell
-    # if globally installed
-    concurrently npm:watch npm:serve
+  ```powershell
+  # if globally installed
+  concurrently npm:watch npm:serve
 
-    # if locally installed
-    npx concurrently npm:watch npm:serve
-    ```
+  # if locally installed
+  npx concurrently npm:watch npm:serve
+  ```
 
 ## Initial Project setup
 
@@ -40,56 +40,69 @@ If you're interested here is my initial project setup:
 
 - Init npm and install necessary packages
 
-    ```powershell
-    npm init -y
-    npm install --save-dev typescript@4.6.4 ts-loader@9.3.0 rot-js@2.0.3 webpack@5.72.1 webpack-cli@4.9.2 http-server@14.1.0 concurrently@7.2.1
-    ```
+  ```powershell
+  npm init -y
+  npm install --save-dev typescript@4.6.4 ts-loader@9.3.0 rot-js@2.0.3 webpack@5.72.1 webpack-cli@4.9.2 http-server@14.1.0 concurrently@7.2.1
+  ```
 
 - Create **Webpack** configuration `webpack.config.js`:
 
-    ```javascript
-    const path = require('path');
+  ```javascript
+  const path = require("path");
 
-    module.exports = {
-    entry: './src/app.ts',
+  module.exports = {
+    entry: "./src/app.ts",
     module: {
-        rules:[{
-            test: /\.tsx?$/,
-            use: 'ts-loader',
-            exclude: /node_modules/
-        }]
+      rules: [
+        {
+          test: /\.tsx?$/,
+          use: "ts-loader",
+          exclude: /node_modules/,
+        },
+      ],
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js']
+      extensions: [".ts", ".tsx", ".js"],
     },
     output: {
-        filename: 'app.js',
-        path: path.resolve(__dirname, 'dist')
+      filename: "app.js",
+      path: path.resolve(__dirname, "dist"),
     },
-    mode: 'development'
-    };
-    ```
+    mode: "development",
+  };
+  ```
 
 - Webpack will get the sources from `src/app.ts` and collect everything in `dist/app.js` file
 - Create **TypeScript** configuration `tsconfig.json`:
 
-    ```json
-    {
-        "compilerOptions": {
-            "target": "es5"
-        },
-        "include": [
-            "src/*"
-        ]
-    }
-    ```
+  ```json
+  {
+    "compilerOptions": {
+      "target": "es5"
+    },
+    "include": ["src/*"]
+  }
+  ```
 
 - Update the **scripts**-section of the `package.json` file:
 
-    ```json
-    "scripts": {
-        "build": "webpack",
-        "watch": "webpack --watch",
-        "serve": "http-server --port=8085 -c-1"
-    }
-    ```
+  ```json
+  "scripts": {
+      "build": "webpack",
+      "watch": "webpack --watch",
+      "serve": "http-server --port=8085 -c-1"
+  }
+  ```
+
+## Development Guide
+
+This project uses rot.js as the game framework, and pixijs for rendering and handling sprites.
+
+- sprite sheets are generated using pixijs AssetPack.
+- Add new sprites to the appropriate sub-folder within raw-assets, then run
+
+```powershell
+    npm run build:assets
+```
+
+Find the rebuilt sprite sheets in public/assets

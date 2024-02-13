@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
+    "build:assets": "assetpack -c .assetpack/.assetpack.js",
     "watch": "webpack --watch",
     "serve": "http-server --port=8085 -c-1",
     "dev": "concurrently npm:watch npm:serve"
@@ -21,6 +22,15 @@
   },
   "homepage": "https://github.com/Mizar999/rotjs-typescript-basics#readme",
   "devDependencies": {
+    "@assetpack/cli": "^0.8.0",
+    "@assetpack/core": "^0.8.0",
+    "@assetpack/plugin-compress": "^0.8.0",
+    "@assetpack/plugin-ffmpeg": "^0.8.0",
+    "@assetpack/plugin-json": "^0.8.0",
+    "@assetpack/plugin-manifest": "^0.8.0",
+    "@assetpack/plugin-mipmap": "^0.8.0",
+    "@assetpack/plugin-texture-packer": "^0.8.0",
+    "@assetpack/plugin-webfont": "^0.8.0",
     "@types/lodash": "^4.14.202",
     "concurrently": "^7.6.0",
     "http-server": "^14.1.0",
@@ -32,6 +42,6 @@
   },
   "dependencies": {
     "lodash": "^4.17.21",
-    "pixi.js": "^7.3.3"
+    "pixi.js": "^7.4.0"
   }
 }

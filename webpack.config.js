@@ -16,10 +16,14 @@ module: {
         //     ],
         //    type: 'javascript/auto'
         //   },
-          {
-            test: /\.png/,
-            type: 'asset/resource'
-          },
+          // {
+          //   test: /\.png/,
+          //   type: 'asset/resource'
+          // },
+          // {
+          //   test: /\.json/,
+          //   type: 'asset/resource'
+          // },
           {
             test: /\.tsx?$/,
             use: 'ts-loader',
