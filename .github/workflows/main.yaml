@@ -1,0 +1,54 @@
+name: Build Project and Publish to itch.io
+on:
+  release:
+    types: [published]
+env:
+  ITCH_USERNAME: seifer8ff
+  ITCH_GAME_ID: build-it-yourself
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm run build:assets --if-present
+
+      # 👇 Store the dist folder
+      - uses: actions/upload-artifact@v3
+        with:
+          name: app-build
+          path: dist
+  deploy:
+    needs: [build]
+    name: Deploy - Itch.io
+    strategy:
+      fail-fast: true
+      matrix:
+        channel:
+          - windows
+          - webgl
+    runs-on: ubuntu-latest
+    steps:
+      # 👇 Get the dist folder
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.channel }}
+          path: build/${{ matrix.channel }}
+      - uses: KikimoraGames/itch-publish@v0.0.3
+        with:
+          butlerApiKey: ${{secrets.BUTLER_API_KEY}}
+          gameData: ./dist/
+          itchUsername: ${{env.ITCH_USERNAME}}
+          itchGameId: ${{ env.ITCH_GAME_ID }}
+          buildChannel: ${{ matrix.channel }}
