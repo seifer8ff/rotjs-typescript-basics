@@ -26,7 +26,7 @@ jobs:
       # 👇 Store the dist folder
       - uses: actions/upload-artifact@v3
         with:
-          name: app-build
+          name: webgl
           path: dist
   deploy:
     needs: [build]
@@ -35,7 +35,6 @@ jobs:
       fail-fast: true
       matrix:
         channel:
-          - windows
           - webgl
         entry:
           - app.js
