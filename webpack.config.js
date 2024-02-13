@@ -25,11 +25,16 @@ module: {
           //   test: /\.json/,
           //   type: 'asset/resource'
           // },
-          {
+        // {
+        //     test: /\.css$/,
+        //     use: ['style-loader', 'css-loader']
+        // },
+        {
             test: /\.tsx?$/,
             use: 'ts-loader',
             exclude: /node_modules/
-    }]
+        }
+    ]
 },
 resolve: {
     extensions: ['.ts', '.tsx', '.js']
@@ -39,8 +44,25 @@ output: {
     path: path.resolve(__dirname, 'dist')
 },
 plugins: [new HtmlWebpackPlugin({
-    filename: "index.html",
-    // template: "./index.html"
+    title: "Simulated World",
+    templateContent: `
+    <html>
+        <head>
+            <title>Simulated World</title>
+            <meta name="description" content="Test project using rotjs and pixijs to build a simulated world to settle.">
+            <meta charset="utf-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <meta name="description" content="Your game description goes here.">            
+        </head>
+        <body>
+            <div id="gameContainer">
+                <div id="canvasContainer"></div>
+                <div id="textContainer"></div>
+            </div>
+        </body>
+    </html>
+    `
 })],
 mode: 'development'
 };
