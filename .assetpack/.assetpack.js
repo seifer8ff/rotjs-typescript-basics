@@ -7,7 +7,7 @@ import { webfont } from '@assetpack/plugin-webfont';
 
 export default {
     entry: './raw-assets',
-    output: './dist/assets/',
+    output: './public',
     cache: false,
     plugins: {
         webfont: webfont(),
@@ -22,7 +22,7 @@ export default {
             },
         }),
         manifest: pixiManifest({
-            output: './dist/assets/assets-manifest.json'
-        }),
+            output: 'public/assets-manifest.json'
+        })
     },
 };

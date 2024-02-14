@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 
 module.exports = {
@@ -43,26 +44,33 @@ output: {
     filename: 'app.js',
     path: path.resolve(__dirname, 'dist')
 },
-plugins: [new HtmlWebpackPlugin({
+plugins: [
+    new HtmlWebpackPlugin({
     title: "Simulated World",
     templateContent: `
-    <html>
-        <head>
-            <title>Simulated World</title>
-            <meta name="description" content="Test project using rotjs and pixijs to build a simulated world to settle.">
-            <meta charset="utf-8">
-            <meta http-equiv="X-UA-Compatible" content="IE=edge">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <meta name="description" content="Your game description goes here.">            
-        </head>
-        <body>
-            <div id="gameContainer">
-                <div id="canvasContainer"></div>
-                <div id="textContainer"></div>
-            </div>
-        </body>
-    </html>
-    `
-})],
+        <html>
+            <head>
+                <title>Simulated World</title>
+                <meta name="description" content="Test project using rotjs and pixijs to build a simulated world to settle.">
+                <meta charset="utf-8">
+                <meta http-equiv="X-UA-Compatible" content="IE=edge">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <meta name="description" content="Your game description goes here.">            
+            </head>
+            <body>
+                <div id="gameContainer">
+                    <div id="canvasContainer"></div>
+                    <div id="textContainer"></div>
+                </div>
+            </body>
+        </html>
+        `
+    }),
+    new CopyWebpackPlugin(
+        { 
+            patterns: [ { from: "./public", to: "./dist/public" } ] 
+        }
+    )
+],
 mode: 'development'
 };

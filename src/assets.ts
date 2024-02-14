@@ -65,13 +65,11 @@ export async function InitAssets() {
   initPixiOptions();
   console.log("init assets");
   // Load assets manifest
-  assetsManifest = await FetchAssetsManifest(
-    "../dist/assets/assets-manifest.json"
-  );
+  assetsManifest = await FetchAssetsManifest("public/assets-manifest.json");
   console.log("assets manifest length: " + assetsManifest.bundles.length);
 
   // Init PixiJS assets with this asset manifest
-  await Assets.init({ manifest: assetsManifest, basePath: "../dist/assets" });
+  await Assets.init({ manifest: assetsManifest, basePath: "public" });
 
   // Load an initial bundle (can use for loading screen in future)
   await LoadBundles("default");
