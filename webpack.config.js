@@ -46,11 +46,11 @@ output: {
 },
 plugins: [
     new HtmlWebpackPlugin({
-    title: "Simulated World",
+    title: "Sim World",
     templateContent: `
         <html>
             <head>
-                <title>Simulated World</title>
+                <title>Sim World</title>
                 <meta name="description" content="Test project using rotjs and pixijs to build a simulated world to settle.">
                 <meta charset="utf-8">
                 <meta http-equiv="X-UA-Compatible" content="IE=edge">

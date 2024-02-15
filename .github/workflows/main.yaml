@@ -4,7 +4,7 @@ on:
     types: [published]
 env:
   ITCH_USERNAME: seifer8ff
-  ITCH_GAME_ID: build-it-yourself
+  ITCH_GAME_ID: sim-world
 jobs:
   build:
     runs-on: ubuntu-latest
