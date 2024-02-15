@@ -68,7 +68,7 @@ plugins: [
     }),
     new CopyWebpackPlugin(
         { 
-            patterns: [ { from: "./public", to: "./dist/public" } ] 
+            patterns: [ { from: "./public", to: "public" } ] 
         }
     )
 ],
