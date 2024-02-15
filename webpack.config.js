@@ -26,10 +26,10 @@ module: {
           //   test: /\.json/,
           //   type: 'asset/resource'
           // },
-        // {
-        //     test: /\.css$/,
-        //     use: ['style-loader', 'css-loader']
-        // },
+        {
+            test: /\.css$/,
+            use: ['style-loader', 'css-loader']
+        },
         {
             test: /\.tsx?$/,
             use: 'ts-loader',

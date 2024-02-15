@@ -6,10 +6,13 @@ html {
 body {
   width: 100%;
   height: 100%;
+  height: 100%;
   margin: 0px auto;
   font-size: 1.5em;
   background-color: #222323;
   color: #eee;
+  overflow: hidden;
+  position: relative;
 }
 
 canvas {
@@ -20,7 +23,22 @@ canvas {
   image-rendering: -webkit-optimize-contrast;
   -ms-interpolation-mode: nearest-neighbor;
   image-rendering: pixelated;
-  border: 1px solid lightslategray;
+  overflow: hidden;
+  border: 2px solid lightslategray;
+  box-sizing: border-box;
+}
+
+#gameContainer {
+  overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+#canvasContainer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* #gameContainer {
