@@ -213,6 +213,7 @@ export class Camera {
   };
 
   private handleZoom = (e: WheelEvent) => {
+    e.preventDefault();
     const scaleSpeed = 0.1;
 
     const pivotX = this.ui.gameDisplay.stage.pivot.x;
