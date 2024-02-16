@@ -113,7 +113,7 @@ export class Game {
 
   destroyBox(actor: Actor, x: number, y: number): void {
     switch (this.map.getTileType(x, y)) {
-      case TileType.Shrub:
+      case TileType.Plant:
       case TileType.CutTree:
         this.map.setTile(x, y, Tile.treeStump);
         if (this.treePoint.x == x && this.treePoint.y == y) {
@@ -287,10 +287,10 @@ export class Game {
     switch (actor.type) {
       case TileType.Player:
         return `Player`;
-      case TileType.Person:
-        return `%c{${actor.tile.color}}Person%c{}`;
-      case TileType.Animal:
-        return `%c{${actor.tile.color}}Animal%c{}`;
+      case TileType.Entity:
+        return `%c{${actor.tile.color}}Entity%c{}`;
+      case TileType.Plant:
+        return `%c{${actor.tile.color}}Plant%c{}`;
       default:
         return "unknown actor";
     }

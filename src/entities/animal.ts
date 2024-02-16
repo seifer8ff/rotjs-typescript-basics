@@ -63,10 +63,10 @@ export class Animal implements Actor {
 
     // no goal
     // generate new goal
-    const shrubTarget = this.game.getRandomPlantPositions(TileType.Shrub, 1)[0];
-    if (shrubTarget) {
+    const plantTarget = this.game.getRandomPlantPositions(TileType.Plant, 1)[0];
+    if (plantTarget) {
       // console.log("found shrub target, planning out intermediary");
-      this.goal = new HarvestAction(this.game, this, shrubTarget);
+      this.goal = new HarvestAction(this.game, this, plantTarget);
       // plan out intermediary actions to reach goal
       this.plan();
       return;

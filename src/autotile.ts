@@ -1,4 +1,4 @@
-import { MapTileType } from "./map-world";
+import { TileType } from "./tile";
 
 export class Autotile {
   static NW = Math.pow(2, 0);
@@ -10,54 +10,104 @@ export class Autotile {
   static S = Math.pow(2, 6);
   static SE = Math.pow(2, 7);
 
+  // static BITMASK = {
+  //   2: 1,
+  //   8: 2,
+  //   10: 3,
+  //   11: 4,
+  //   16: 5,
+  //   18: 6,
+  //   22: 7,
+  //   24: 8,
+  //   26: 9,
+  //   27: 10,
+  //   30: 11,
+  //   31: 12,
+  //   64: 13,
+  //   66: 14,
+  //   72: 15,
+  //   74: 16,
+  //   75: 17,
+  //   80: 18,
+  //   82: 19,
+  //   86: 20,
+  //   88: 21,
+  //   90: 22,
+  //   91: 23,
+  //   94: 24,
+  //   95: 25,
+  //   104: 26,
+  //   106: 27,
+  //   107: 28,
+  //   120: 29,
+  //   122: 30,
+  //   123: 31,
+  //   126: 32,
+  //   127: 33,
+  //   208: 34,
+  //   210: 35,
+  //   214: 36,
+  //   216: 37,
+  //   218: 38,
+  //   219: 39,
+  //   222: 40,
+  //   223: 41,
+  //   248: 42,
+  //   250: 43,
+  //   251: 44,
+  //   254: 45,
+  //   255: 46,
+  //   0: 47,
+  // };
+
   static BITMASK = {
-    2: 1,
-    8: 2,
-    10: 3,
-    11: 4,
-    16: 5,
-    18: 6,
-    22: 7,
-    24: 8,
-    26: 9,
-    27: 10,
-    30: 11,
-    31: 12,
-    64: 13,
-    66: 14,
-    72: 15,
-    74: 16,
-    75: 17,
-    80: 18,
+    2: 44,
+    8: 45,
+    10: 39,
+    11: 38,
+    16: 43,
+    18: 41,
+    22: 40,
+    24: 33,
+    26: 31,
+    27: 30,
+    30: 29,
+    31: 28,
+    64: 42,
+    66: 32,
+    72: 37,
+    74: 27,
+    75: 25,
+    80: 35,
     82: 19,
-    86: 20,
+    86: 18,
     88: 21,
-    90: 22,
+    90: 15,
     91: 23,
-    94: 24,
-    95: 25,
-    104: 26,
-    106: 27,
-    107: 28,
-    120: 29,
-    122: 30,
-    123: 31,
-    126: 32,
-    127: 33,
+    94: 42,
+    95: 12,
+    104: 36,
+    106: 26,
+    107: 24,
+    120: 21,
+    122: 5,
+    123: 6,
+    126: 5,
+    127: 4,
     208: 34,
-    210: 35,
-    214: 36,
-    216: 37,
-    218: 38,
-    219: 39,
-    222: 40,
-    223: 41,
-    248: 42,
-    250: 43,
-    251: 44,
-    254: 45,
-    255: 46,
-    0: 47,
+    210: 17,
+    214: 16,
+    216: 22,
+    218: 11,
+    219: 10,
+    222: 9,
+    223: 8,
+    248: 20,
+    250: 3,
+    251: 2,
+    254: 1,
+    255: 47,
+    0: 46,
   };
 
   // static BITMASK = {
@@ -111,7 +161,7 @@ export class Autotile {
   // };
 
   public static autotileLookup(
-    mapObject: { [pos: string]: MapTileType },
+    mapObject: { [pos: string]: TileType },
     x_boundary: number,
     y_boundary: number,
     x: number,
@@ -126,7 +176,7 @@ export class Autotile {
     const pos = `${x},${y}`;
 
     // just return 0 for walls and handle it later
-    if (!mapObject[pos] || mapObject[pos] == MapTileType.wall) return 0;
+    if (!mapObject[pos] || mapObject[pos] == TileType.Wall) return 0;
 
     if (y > 0 && mapObject[`${x},${y - 1}`]) {
       n = true;
@@ -163,8 +213,8 @@ export class Autotile {
     return Autotile.BITMASK[sum];
   }
 
-  public static autotile(mapObject: { [pos: string]: MapTileType }): {
-    [pos: string]: MapTileType;
+  public static autotile(mapObject: { [pos: string]: TileType }): {
+    [pos: string]: TileType;
   } {
     console.log("autotile rawMapObj: ", mapObject);
     const tiles = {};

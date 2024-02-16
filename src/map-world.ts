@@ -8,13 +8,8 @@ import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
 
-export enum MapTileType {
-  wall, // walkable tile of any kind
-  floor, // impassable tile of any kind
-}
-
 export class MapWorld {
-  private rawMap: { [key: string]: MapTileType };
+  private rawMap: { [key: string]: TileType };
   private map: { [key: string]: Tile };
 
   constructor(private game: Game) {
@@ -39,14 +34,14 @@ export class MapWorld {
     this.autotileMap(this.rawMap);
   }
 
-  autotileMap(rawMap: { [key: string]: MapTileType }) {
+  autotileMap(rawMap: { [key: string]: TileType }) {
     console.log("rawMap to start with: ", rawMap);
     const autotileMap = Autotile.autotile(rawMap);
     let tileIndex;
     let tile;
     Object.keys(autotileMap).forEach((pos) => {
       tileIndex = autotileMap[pos];
-      if (tileIndex == MapTileType.wall) {
+      if (tileIndex == TileType.Wall) {
         tile = Tile.water;
       } else {
         tile = Tile.Tilesets[this.game.biome][Season.Spring][tileIndex];
@@ -167,10 +162,10 @@ export class MapWorld {
   private cellularCallback(x: number, y: number, wall: number): void {
     // wall meaning impassible
     if (wall) {
-      this.rawMap[this.coordinatesToKey(x, y)] = MapTileType.wall;
+      this.rawMap[this.coordinatesToKey(x, y)] = TileType.Wall;
       return;
     }
     // this.map[this.coordinatesToKey(x, y)] = Tile.floor;
-    this.rawMap[this.coordinatesToKey(x, y)] = MapTileType.floor;
+    this.rawMap[this.coordinatesToKey(x, y)] = TileType.Floor;
   }
 }

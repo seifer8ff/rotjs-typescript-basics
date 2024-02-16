@@ -71,10 +71,10 @@ export class MapDungeon {
   }
 
   private diggerCallback(x: number, y: number, wall: number): void {
-    if (wall) {
-      this.map[this.coordinatesToKey(x, y)] = Tile.water;
-      return;
-    }
-    this.map[this.coordinatesToKey(x, y)] = Tile.floor;
+    // if (wall) {
+    //   this.map[this.coordinatesToKey(x, y)] = Tile.water;
+    //   return;
+    // }
+    // this.map[this.coordinatesToKey(x, y)] = Tile.floor;
   }
 }
