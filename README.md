@@ -1,6 +1,6 @@
 # Sim World
 
-A prototype of a colony management game, in which the environment (plants, climate, weather) is deeply simulated. The entities living in this world will be powered by the latest LLM AI, and will populate, build, and maintain the environment over many generations. 
+A prototype of a colony management game, in which the environment (plants, climate, weather) is deeply simulated. The entities living in this world will be powered by the latest LLM AI, and will populate, build, and maintain the environment over many generations.
 
 ## How to run
 
@@ -11,8 +11,9 @@ After cloning the repository:
   ```powershell
   npm ci
   ```
-  
+
 - To build the assets, run:
+
   ```powershell
   npm run build:assets
   ```
@@ -52,4 +53,8 @@ This project uses rot.js as the game framework, and pixijs for rendering and han
 
 Find the rebuilt sprite sheets in public/sprites.
 
+For sprite manipulation:
 
+- https://wareya.github.io/webtyler/
+
+- https://www.piskelapp.com/

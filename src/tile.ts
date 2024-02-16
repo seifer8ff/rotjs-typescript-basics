@@ -9,6 +9,30 @@ export const enum TileType {
   TreeStump,
 }
 
+export enum Season {
+  Spring = "SPRING",
+  Summer = "SUMMER",
+  Fall = "FALL",
+  Winter = "SPRING",
+}
+
+export type Biome = "grassland" | "desert";
+
+export interface TilesetMeta {
+  name: string; // basic identifier for the tileset
+  prefix: string; // filename prefix to append the tileNumber to: grass_spring_ -> grass_spring_00
+  color: string;
+  season: Season;
+}
+
+export interface Tileset {
+  [tilesetIdentifier: string]: {
+    [season: string]: {
+      [tileName: string]: Tile;
+    };
+  };
+}
+
 export class Tile {
   static readonly size = 16;
   static readonly player = new Tile(TileType.Player, "player_01", "#D2D2D2");
@@ -20,7 +44,7 @@ export class Tile {
   );
   static readonly floor = new Tile(
     TileType.Floor,
-    "grassland_spring_578",
+    "grassland_spring_ground_00",
     "#C19A6B"
   );
   static readonly water = new Tile(
@@ -43,6 +67,17 @@ export class Tile {
     "TODO tree stump",
     "#FF4AE7"
   );
+
+  static readonly AutoTilesets: TilesetMeta[] = [
+    {
+      name: "grassland",
+      prefix: "grassland_spring_ground_",
+      color: "#d3ffd8",
+      season: Season.Spring,
+    },
+  ];
+
+  static Tilesets: Tileset = {};
 
   constructor(
     public readonly type: TileType,

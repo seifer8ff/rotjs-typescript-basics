@@ -2,20 +2,29 @@ import { Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { FOV } from "rot-js/lib/index";
 import { Game } from "./game";
-import { Tile, TileType } from "./tile";
+import { Season, Tile, TileType } from "./tile";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
+import { Autotile } from "./autotile";
+
+export enum MapTileType {
+  wall, // walkable tile of any kind
+  floor, // impassable tile of any kind
+}
 
 export class MapWorld {
+  private rawMap: { [key: string]: MapTileType };
   private map: { [key: string]: Tile };
 
   constructor(private game: Game) {
     this.map = {};
+    this.rawMap = {};
   }
 
   generateMap(width: number, height: number): void {
     this.map = {};
+    this.rawMap = {};
 
     let cellular = new RotJsMap.Cellular(width, height);
 
@@ -27,6 +36,29 @@ export class MapWorld {
       cellular.create(this.cellularCallback.bind(this));
     }
     cellular.connect(this.cellularCallback.bind(this), 0);
+    this.autotileMap(this.rawMap);
+  }
+
+  autotileMap(rawMap: { [key: string]: MapTileType }) {
+    console.log("rawMap to start with: ", rawMap);
+    const autotileMap = Autotile.autotile(rawMap);
+    let tileIndex;
+    let tile;
+    Object.keys(autotileMap).forEach((pos) => {
+      tileIndex = autotileMap[pos];
+      if (tileIndex == MapTileType.wall) {
+        tile = Tile.water;
+      } else {
+        tile = Tile.Tilesets[this.game.biome][Season.Spring][tileIndex];
+      }
+
+      if (!tile) {
+        console.log(
+          `AUTOTILE ERROR: ${this.game.biome} ${Season.Spring} ${tileIndex}`
+        );
+      }
+      this.map[pos] = tile;
+    });
   }
 
   setTile(x: number, y: number, tile: Tile): void {
@@ -37,6 +69,7 @@ export class MapWorld {
     let buffer: Point[] = [];
     let result: Point[] = [];
     for (let key in this.map) {
+      // console.log("this.map[key]", key, this.map[key]);
       if (this.map[key].type === type) {
         buffer.push(this.keyToPoint(key));
       }
@@ -134,9 +167,10 @@ export class MapWorld {
   private cellularCallback(x: number, y: number, wall: number): void {
     // wall meaning impassible
     if (wall) {
-      this.map[this.coordinatesToKey(x, y)] = Tile.water;
+      this.rawMap[this.coordinatesToKey(x, y)] = MapTileType.wall;
       return;
     }
-    this.map[this.coordinatesToKey(x, y)] = Tile.floor;
+    // this.map[this.coordinatesToKey(x, y)] = Tile.floor;
+    this.rawMap[this.coordinatesToKey(x, y)] = MapTileType.floor;
   }
 }

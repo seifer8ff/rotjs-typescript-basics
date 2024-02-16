@@ -1,11 +1,17 @@
 import { Assets, AssetsManifest } from "pixi.js";
 import * as PIXI from "pixi.js";
+import { Tile, TilesetMeta, TileType } from "./tile";
 
 /** List of assets grouped in bundles, for dynamic loading */
 let assetsManifest: AssetsManifest = { bundles: [] };
 
 /** Store bundles already loaded */
 const loadedBundles: string[] = [];
+
+const tileFormat = new Intl.NumberFormat("en", {
+  minimumIntegerDigits: 2,
+  useGrouping: false,
+});
 
 /** Check if a bundle exists in assetManifest  */
 function CheckBundleExists(bundle: string) {
@@ -81,6 +87,8 @@ export async function InitAssets() {
   // Assets.backgroundLoadBundle(allBundles);
 
   await Assets.backgroundLoadBundle(allBundles);
+  console.log("about to process tilesets into tiles");
+  ProcessTilesetsIntoTiles();
 }
 
 export function initPixiOptions(): void {
@@ -88,4 +96,50 @@ export function initPixiOptions(): void {
   PIXI.BaseTexture.defaultOptions.anisotropicLevel = 0;
   PIXI.BaseTexture.defaultOptions.mipmap = PIXI.MIPMAP_MODES.ON;
   PIXI.BaseTexture.defaultOptions.wrapMode = PIXI.WRAP_MODES.CLAMP;
+}
+
+export function ProcessTilesetsIntoTiles() {
+  console.log("process tilesets into tiles");
+  // for each tileset, create new Tile 0 through 47
+  Object.keys(Tile.AutoTilesets).forEach((tilesetId: string) => {
+    generateTileset(Tile.AutoTilesets[tilesetId]);
+  });
+  console.log("end result: ", Tile.Tilesets);
+}
+
+export function generateTileset(tilesetMeta: TilesetMeta) {
+  console.log(tilesetMeta);
+  let tilesetUrl;
+  for (let i = 1; i < 48; i++) {
+    tilesetUrl = `${tilesetMeta.prefix}${tileFormat.format(i)}`;
+    addTileToTileset(
+      tilesetMeta,
+      i,
+      new Tile(
+        TileType.Floor,
+        `${tilesetMeta.prefix}${tileFormat.format(i)}`,
+        tilesetMeta.color
+      )
+    );
+  }
+}
+
+function addTileToTileset(
+  tilesetMeta: TilesetMeta,
+  tileIndex: number,
+  tile: Tile
+) {
+  // add entry for tileset if it doesn't already exist.
+  // it could exist already if other seasons have been added
+  if (!Tile.Tilesets[tilesetMeta.name]) {
+    Tile.Tilesets[tilesetMeta.name] = {};
+  }
+
+  // add entry for season if it doesn't already exist
+  if (!Tile.Tilesets[tilesetMeta.name][tilesetMeta.season]) {
+    Tile.Tilesets[tilesetMeta.name][tilesetMeta.season] = {};
+  }
+
+  // add the generated tile to the tileset object
+  Tile.Tilesets[tilesetMeta.name][tilesetMeta.season][tileIndex] = tile;
 }

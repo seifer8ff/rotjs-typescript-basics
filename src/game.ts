@@ -8,7 +8,7 @@ import { Actor } from "./entities/actor";
 import { Person } from "./entities/person";
 import { GameState } from "./game-state";
 import { InputUtility } from "./input-utility";
-import { Tile, TileType } from "./tile";
+import { Biome, Tile, TileType } from "./tile";
 import { MapWorld } from "./map-world";
 import { UserInterface } from "./user-interface";
 import { Animal } from "./entities/animal";
@@ -28,11 +28,14 @@ export class Game {
   public renderer: Renderer;
   public userInterface: UserInterface;
   public isPaused = false;
+  public biome: Biome = "grassland";
 
   private scheduler: Action;
   private treePoint: Point;
 
   constructor() {
+    // RNG.setSeed(1234);
+
     // sensible default
     let width = 100;
     let height = 100;
