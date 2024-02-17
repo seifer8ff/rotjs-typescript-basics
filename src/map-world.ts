@@ -2,75 +2,168 @@ import { Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { FOV } from "rot-js/lib/index";
 import { Game } from "./game";
-import { Season, Tile, TileType } from "./tile";
+import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
-
-export enum MapTileType {
-  wall, // walkable tile of any kind
-  floor, // impassable tile of any kind
-}
+import Simplex from "rot-js/lib/noise/simplex";
 
 export class MapWorld {
-  private rawMap: { [key: string]: MapTileType };
-  private map: { [key: string]: Tile };
+  private biomeMap: { [key: string]: Biome };
+  private tileMap: { [key: string]: Tile };
+  private heightMap: { [key: string]: number };
+  private landHeight: number;
+  private grasslandHeight: number;
+  private valleyScaleFactor: number;
+  private edgePadding: number;
+  private islandMask: number;
 
   constructor(private game: Game) {
-    this.map = {};
-    this.rawMap = {};
+    this.tileMap = {};
+    this.biomeMap = {};
+    this.heightMap = {};
+    this.landHeight = 0.46;
+    this.grasslandHeight = 0.55;
+    this.valleyScaleFactor = 1.5;
+    this.edgePadding = 0;
+    this.islandMask = 0.3;
   }
 
   generateMap(width: number, height: number): void {
-    this.map = {};
-    this.rawMap = {};
+    this.tileMap = {};
+    this.biomeMap = {};
+    this.heightMap = {}; // between 0 and 1
 
-    let cellular = new RotJsMap.Cellular(width, height);
+    const noise = new Simplex();
 
-    /* cells with 1/2 probability */
-    cellular.randomize(0.51);
-
-    /* generate and show four generations */
-    for (var i = 0; i < 5; i++) {
-      cellular.create(this.cellularCallback.bind(this));
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        this.heightMap[this.coordinatesToKey(x, y)] = this.getHeight(
+          x,
+          y,
+          width,
+          height,
+          noise
+        );
+        this.biomeMap[this.coordinatesToKey(x, y)] = this.getBiome(x, y);
+      }
     }
-    cellular.connect(this.cellularCallback.bind(this), 0);
-    this.autotileMap(this.rawMap);
+
+    this.autotileMap(this.biomeMap);
   }
 
-  autotileMap(rawMap: { [key: string]: MapTileType }) {
+  lerp(x: number, y: number, a: number): number {
+    return x * (1 - a) + y * a;
+  }
+
+  getHeight(
+    x: number,
+    y: number,
+    mapWidth: number,
+    mapHeight: number,
+    noise: Simplex
+  ): number {
+    // randomize the edge padding to prevent a squared-off look
+    const randomizedEdgePadding = this.edgePadding + RNG.getUniformInt(0, 2);
+
+    // if near the edge of the map, return a lower height
+    if (
+      x < randomizedEdgePadding ||
+      x >= mapWidth - randomizedEdgePadding ||
+      y < randomizedEdgePadding ||
+      y >= mapHeight - randomizedEdgePadding
+    ) {
+      return this.landHeight / 2;
+    }
+
+    let noiseX = x / mapWidth - 0.5;
+    let noiseY = y / mapHeight - 0.5;
+
+    // add different octaves of frequency
+    // some small hills, some large, etc
+    // 1 / octave * this.getScaledNoise(noise, octave * noiseX, octave * noiseY)
+    let height = 0.333 * this.getScaledNoise(noise, 3 * noiseX, 3 * noiseY);
+    height += 0.1667 * this.getScaledNoise(noise, 6 * noiseX, 6 * noiseY);
+    height += 0.06667 * this.getScaledNoise(noise, 15 * noiseX, 15 * noiseY);
+    height += 0.045 * this.getScaledNoise(noise, 22 * noiseX, 22 * noiseY);
+    height = height / (0.3 + 0.1667 + 0.067 + 0.045); // scale to between 0 and 1
+
+    height = Math.pow(height, this.valleyScaleFactor); // reshape valleys/mountains
+
+    // reduce height near edges of map
+    const dx = (2 * x) / mapWidth - 1;
+    const dy = (2 * y) / mapHeight - 1;
+    const d = 1 - (1 - Math.pow(dx, 2)) * (1 - Math.pow(dy, 2));
+    height = this.lerp(height, 1 - d, this.islandMask);
+
+    return height;
+  }
+
+  getScaledNoise(noise: Simplex, x: number, y: number): number {
+    return (noise.get(x, y) + 1) / 2;
+  }
+
+  getBiome(x: number, y: number): Biome {
+    const heightVal = this.heightMap[this.coordinatesToKey(x, y)];
+
+    if (heightVal > this.grasslandHeight) {
+      if (heightVal > this.landHeight + 0.23) {
+        return Tile.Biomes.grassland;
+      }
+
+      // if (heightVal > this.landHeight + 0.19) {
+      //   return Tile.Biomes.forestgrass;
+      // }
+
+      return Tile.Biomes.grassland;
+    }
+
+    if (heightVal > this.landHeight) {
+      if (heightVal > (this.grasslandHeight - this.landHeight) / 2) {
+        return Tile.Biomes.dirt;
+      }
+      return Tile.Biomes.sand;
+    }
+
+    if (heightVal > this.landHeight / 2) {
+      return Tile.Biomes.ocean;
+    }
+
+    return Tile.Biomes.oceandeep;
+  }
+
+  autotileMap(rawMap: { [key: string]: Biome }) {
     console.log("rawMap to start with: ", rawMap);
     const autotileMap = Autotile.autotile(rawMap);
     let tileIndex;
-    let tile;
+    let biome: BiomeType;
+    let season: Season;
+    let tile: Tile;
+
     Object.keys(autotileMap).forEach((pos) => {
       tileIndex = autotileMap[pos];
-      if (tileIndex == MapTileType.wall) {
-        tile = Tile.water;
-      } else {
-        tile = Tile.Tilesets[this.game.biome][Season.Spring][tileIndex];
-      }
+      biome = rawMap[pos].biome;
+      season = rawMap[pos].season;
+      tile = Tile.Tilesets[biome][season][tileIndex];
 
       if (!tile) {
-        console.log(
-          `AUTOTILE ERROR: ${this.game.biome} ${Season.Spring} ${tileIndex}`
-        );
+        console.log(`AUTOTILE ERROR: ${biome} - ${season} - ${tileIndex}`);
       }
-      this.map[pos] = tile;
+      this.tileMap[pos] = tile;
     });
   }
 
   setTile(x: number, y: number, tile: Tile): void {
-    this.map[this.coordinatesToKey(x, y)] = tile;
+    this.tileMap[this.coordinatesToKey(x, y)] = tile;
   }
 
-  getRandomTilePositions(type: TileType, quantity: number = 1): Point[] {
+  getRandomTilePositions(biomeType: BiomeType, quantity: number = 1): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
-    for (let key in this.map) {
+    for (let key in this.tileMap) {
       // console.log("this.map[key]", key, this.map[key]);
-      if (this.map[key].type === type) {
+      if (this.tileMap[key].biomeType === biomeType) {
         buffer.push(this.keyToPoint(key));
       }
     }
@@ -84,31 +177,27 @@ export class MapWorld {
   }
 
   getTile(x: number, y: number): Tile {
-    return this.map[this.coordinatesToKey(x, y)];
+    return this.tileMap[this.coordinatesToKey(x, y)];
   }
 
   getTileType(x: number, y: number): TileType {
-    return this.map[this.coordinatesToKey(x, y)].type;
+    return this.tileMap[this.coordinatesToKey(x, y)].type;
   }
-
-  // getTileGlyph(x: number, y: number): Tile {
-  //   return this.map[this.coordinatesToKey(x, y)];
-  // }
 
   isPassable(x: number, y: number): boolean {
     return (
-      this.coordinatesToKey(x, y) in this.map &&
-      this.map[this.coordinatesToKey(x, y)]?.type !== Tile.water.type
+      this.coordinatesToKey(x, y) in this.tileMap &&
+      this.tileMap[this.coordinatesToKey(x, y)]?.biomeType !==
+        Tile.Biomes.ocean.biome
     );
-    // return this.coordinatesToKey(x, y) in this.map;
   }
 
   draw(): void {
     // TODO: only redraw the sprites thathave changed...
     // or change to only render the sprites around the viewport...
     this.game.renderer.clearScene();
-    for (let key in this.map) {
-      const tile = this.map[key];
+    for (let key in this.tileMap) {
+      const tile = this.tileMap[key];
       this.game.userInterface.draw(this.keyToPoint(key), Layer.TERRAIN, [
         tile.sprite,
       ]);
@@ -127,8 +216,8 @@ export class MapWorld {
       3,
       (xPos, yPos, r, visibility) => {
         key = xPos + "," + yPos;
-        bgTile = this.map[key];
-        if (this.map[key] == null) {
+        bgTile = this.tileMap[key];
+        if (this.tileMap[key] == null) {
           return;
         }
         console.log("r= " + r);
@@ -149,8 +238,8 @@ export class MapWorld {
 
   private lightPasses(x, y): boolean {
     var key = x + "," + y;
-    if (key in this.map) {
-      return this.map[key] != Tile.water;
+    if (key in this.tileMap) {
+      return this.tileMap[key] != Tile.water;
     }
     return false;
   }
@@ -162,15 +251,5 @@ export class MapWorld {
   private keyToPoint(key: string): Point {
     let parts = key.split(",");
     return new Point(parseInt(parts[0]), parseInt(parts[1]));
-  }
-
-  private cellularCallback(x: number, y: number, wall: number): void {
-    // wall meaning impassible
-    if (wall) {
-      this.rawMap[this.coordinatesToKey(x, y)] = MapTileType.wall;
-      return;
-    }
-    // this.map[this.coordinatesToKey(x, y)] = Tile.floor;
-    this.rawMap[this.coordinatesToKey(x, y)] = MapTileType.floor;
   }
 }

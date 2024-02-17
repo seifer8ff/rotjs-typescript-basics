@@ -40,7 +40,6 @@ export class UserInterface {
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
       antialias: false,
-      backgroundColor: "red",
     };
 
     this.gameDisplay = new PIXI.Application(this.gameDisplayOptions);
@@ -137,6 +136,7 @@ export class UserInterface {
       pixiSprite.anchor.set(0.5);
       pixiSprite.position.x = position.x * Tile.size;
       pixiSprite.position.y = position.y * Tile.size;
+      pixiSprite.cullable = true;
       if (tint) {
         pixiSprite.tint = tint || "0xFFFFFF";
       }

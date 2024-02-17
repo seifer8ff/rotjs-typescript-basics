@@ -8,12 +8,13 @@ import { Actor } from "./entities/actor";
 import { Person } from "./entities/person";
 import { GameState } from "./game-state";
 import { InputUtility } from "./input-utility";
-import { Biome, Tile, TileType } from "./tile";
-import { MapWorld } from "./map-world";
+import { BiomeType, Tile, TileType } from "./tile";
+import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
 import { Animal } from "./entities/animal";
 import { Renderer } from "./renderer";
 import Action from "rot-js/lib/scheduler/action";
+import { MapWorld } from "./map-world";
 
 export class Game {
   public entityCount = 5;
@@ -28,7 +29,7 @@ export class Game {
   public renderer: Renderer;
   public userInterface: UserInterface;
   public isPaused = false;
-  public biome: Biome = "grassland";
+  public biome: BiomeType = "grassland";
 
   private scheduler: Action;
   private treePoint: Point;
@@ -113,7 +114,7 @@ export class Game {
 
   destroyBox(actor: Actor, x: number, y: number): void {
     switch (this.map.getTileType(x, y)) {
-      case TileType.Shrub:
+      case TileType.Plant:
       case TileType.CutTree:
         this.map.setTile(x, y, Tile.treeStump);
         if (this.treePoint.x == x && this.treePoint.y == y) {
@@ -157,7 +158,7 @@ export class Game {
     return this.map.getTileType(x, y);
   }
 
-  getRandomTilePositions(type: TileType, quantity: number = 1): Point[] {
+  getRandomTilePositions(type: BiomeType, quantity: number = 1): Point[] {
     return this.map.getRandomTilePositions(type, quantity);
   }
 
@@ -287,10 +288,10 @@ export class Game {
     switch (actor.type) {
       case TileType.Player:
         return `Player`;
-      case TileType.Person:
-        return `%c{${actor.tile.color}}Person%c{}`;
-      case TileType.Animal:
-        return `%c{${actor.tile.color}}Animal%c{}`;
+      case TileType.Entity:
+        return `%c{${actor.tile.color}}Entity%c{}`;
+      case TileType.Plant:
+        return `%c{${actor.tile.color}}Plant%c{}`;
       default:
         return "unknown actor";
     }
@@ -299,7 +300,7 @@ export class Game {
   private generatePlants(): void {
     this.plants = [];
     let positions = this.map.getRandomTilePositions(
-      TileType.Floor,
+      Tile.Biomes.grassland.biome,
       this.treeCount
     );
     for (let position of positions) {
@@ -309,14 +310,17 @@ export class Game {
   }
 
   private generatePlayer(): void {
-    const pos = this.map.getRandomTilePositions(TileType.Floor, 1)[0];
+    const pos = this.map.getRandomTilePositions(
+      Tile.Biomes.grassland.biome,
+      1
+    )[0];
     this.player = new Player(this, pos);
   }
 
   private generateBeings(): void {
     this.entities = [];
     let positions = this.map.getRandomTilePositions(
-      TileType.Floor,
+      Tile.Biomes.grassland.biome,
       this.entityCount
     );
     // this.player = new Player(this, positions.splice(0, 1)[0]);

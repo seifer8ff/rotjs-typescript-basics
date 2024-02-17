@@ -51,7 +51,17 @@ This project uses rot.js as the game framework, and pixijs for rendering and han
     npm run build:assets
 ```
 
-Find the rebuilt sprite sheets in public/sprites.
+# Generating an autotile set of sprites from an RPGMaker style sprite sheet
+
+- Navigate to https://wareya.github.io/webtyler/
+- Upload an RPGMaker style sprite sheet
+- Download the 47 count set of sprites (labeled for GameMaker Studio 2)
+- Open Piskel app or navigate to https://www.piskelapp.com/
+- Import the sprite sheet as a sprite sheet, with frame size 16x16
+- Export as a zip, with a prefix ending in \_ (numbers will be appended to the prefix by the export process)
+- Copy \_00 (the base tile) and name the copy <prefix>\_47
+- Copy the set of sprites to the appropriate directory within raw-assets
+- run npm run build:assets to process the sprites into a sprite sheet
 
 For sprite manipulation:
 
