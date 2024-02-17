@@ -5,6 +5,7 @@ import { Tile } from "./tile";
 import { UserInterface } from "./user-interface";
 import { KEYS, DIRS } from "rot-js";
 import { InputUtility } from "./input-utility";
+import TinyGesture from "tinygesture";
 
 export class Camera {
   public viewport = {
@@ -106,29 +107,40 @@ export class Camera {
         this.viewport.width,
         this.viewport.height
       );
+
+    const gesture = new TinyGesture(this.ui.gameCanvasContainer);
+
+    gesture.on("pinch", (event) => {
+      event.preventDefault();
+      this.handlePinchZoom(gesture);
+    });
+    gesture.on("panmove", (event) => {
+      this.handlePointerDrag(gesture);
+    });
+
     this.ui.gameCanvasContainer.addEventListener("wheel", this.handleZoom, {
       passive: false,
     });
-    this.ui.gameCanvasContainer.addEventListener(
-      "pointerdown",
-      this.handlePointerDown,
-      { passive: false }
-    );
-    this.ui.gameCanvasContainer.addEventListener(
-      "pointerup",
-      this.handlePointerUp,
-      { passive: false }
-    );
-    this.ui.gameCanvasContainer.addEventListener(
-      "pointercancel",
-      this.handlePointerOut,
-      { passive: false }
-    );
-    this.ui.gameCanvasContainer.addEventListener(
-      "pointerout",
-      this.handlePointerOut,
-      { passive: false }
-    );
+    // this.ui.gameCanvasContainer.addEventListener(
+    //   "pointerdown",
+    //   this.handlePointerDown,
+    //   { passive: false }
+    // );
+    // this.ui.gameCanvasContainer.addEventListener(
+    //   "pointerup",
+    //   this.handlePointerUp,
+    //   { passive: false }
+    // );
+    // this.ui.gameCanvasContainer.addEventListener(
+    //   "pointercancel",
+    //   this.handlePointerOut,
+    //   { passive: false }
+    // );
+    // this.ui.gameCanvasContainer.addEventListener(
+    //   "pointerout",
+    //   this.handlePointerOut,
+    //   { passive: false }
+    // );
     window.addEventListener("keydown", this.handleInput.bind(this), {
       passive: false,
     });
@@ -169,48 +181,65 @@ export class Camera {
     return validInput;
   }
 
-  private handlePointerDown = (e: MouseEvent) => {
-    // console.log(`handle pointer down`);
-    this.mouseX = e.clientX;
-    this.mouseY = e.clientY;
-    this.isPanning = true;
+  // private handlePointerDown = (e: MouseEvent) => {
+  //   // console.log(`handle pointer down`);
+  //   this.mouseX = e.clientX;
+  //   this.mouseY = e.clientY;
+  //   this.isPanning = true;
 
-    this.ui.gameCanvasContainer.addEventListener(
-      "pointermove",
-      this.handlePointerDrag,
-      { passive: false }
-    );
-  };
+  //   this.ui.gameCanvasContainer.addEventListener(
+  //     "pointermove",
+  //     this.handlePointerDrag,
+  //     { passive: false }
+  //   );
+  // };
 
-  private handlePointerUp = (e: MouseEvent) => {
-    // console.log("handle pointer up");
-    this.ui.gameCanvasContainer.removeEventListener(
-      "pointermove",
-      this.handlePointerDrag
-    );
-    this.isPanning = false;
-  };
+  // private handlePointerUp = (e: MouseEvent) => {
+  //   // console.log("handle pointer up");
+  //   this.ui.gameCanvasContainer.removeEventListener(
+  //     "pointermove",
+  //     this.handlePointerDrag
+  //   );
+  //   this.isPanning = false;
+  // };
 
-  private handlePointerOut = (e: MouseEvent) => {
-    this.ui.gameCanvasContainer.removeEventListener(
-      "pointermove",
-      this.handlePointerDrag
-    );
-    this.isPanning = false;
-  };
+  // private handlePointerOut = (e: MouseEvent) => {
+  //   this.ui.gameCanvasContainer.removeEventListener(
+  //     "pointermove",
+  //     this.handlePointerDrag
+  //   );
+  //   this.isPanning = false;
+  // };
 
-  private handlePointerDrag = (e: DragEvent) => {
+  private handlePointerDrag = (g: TinyGesture) => {
     // update dx and dy BEFORE updating this.mouseX
-    const dx = e.clientX - this.mouseX;
-    const dy = e.clientY - this.mouseY;
+    // const dx = e.clientX - this.mouseX;
+    // const dy = e.clientY - this.mouseY;
 
-    // update current mouse position for next run of function
-    this.mouseX = e.clientX;
-    this.mouseY = e.clientY;
+    // // update current mouse position for next run of function
+    // this.mouseX = e.clientX;
+    // this.mouseY = e.clientY;
 
-    this.ui.gameDisplay.stage.position.x += dx;
-    this.ui.gameDisplay.stage.position.y += dy;
+    // this.ui.gameDisplay.stage.position.x += g.velocityX;
+    // this.ui.gameDisplay.stage.position.y += g.velocityY;
+    this.ui.gameDisplay.stage.pivot.x -=
+      g.velocityX / this.ui.gameDisplay.stage.scale.x;
+    this.ui.gameDisplay.stage.pivot.y -=
+      g.velocityY / this.ui.gameDisplay.stage.scale.x;
   };
+
+  // private handlePointerDrag = (e: DragEvent) => {
+  //   // update dx and dy BEFORE updating this.mouseX
+  //   const dx = e.clientX - this.mouseX;
+  //   const dy = e.clientY - this.mouseY;
+
+  //   // update current mouse position for next run of function
+  //   this.mouseX = e.clientX;
+  //   this.mouseY = e.clientY;
+
+  //   this.ui.gameDisplay.stage.position.x += dx;
+  //   this.ui.gameDisplay.stage.position.y += dy;
+  // };
 
   private handleZoom = (e: WheelEvent) => {
     e.preventDefault();
@@ -238,6 +267,108 @@ export class Camera {
       null,
       pivotX, // keeep existing pivot
       pivotY
+    );
+  };
+
+  // private handlePinchZoom = (g: TinyGesture, e: TouchEvent) => {
+  //   e.preventDefault();
+  //   const scaleSpeed = 0.1;
+
+  //   const pivotX = this.ui.gameDisplay.stage.pivot.x;
+  //   const pivotY = this.ui.gameDisplay.stage.pivot.y;
+  //   let scale = this.ui.gameDisplay.stage.scale.x;
+  //   let scaledX = (e.x - this.ui.gameDisplay.stage.x) / scale;
+  //   let scaledY = (e.y - this.ui.gameDisplay.stage.y) / scale;
+
+  //   // modify the scale based on the scroll delta
+  //   scale += -1 * Math.max(-1, Math.min(1, e.deltaY)) * scaleSpeed * scale;
+  //   // clamp to reasonable values
+  //   scale = Math.max(0.4, Math.min(10, scale));
+
+  //   // update the scale and position of the stage
+  //   this.ui.gameDisplay.stage.setTransform(
+  //     -scaledX * scale + e.x, // position
+  //     -scaledY * scale + e.y,
+  //     scale, // scale
+  //     scale,
+  //     null, // rotation
+  //     null, // skew
+  //     null,
+  //     pivotX, // keeep existing pivot
+  //     pivotY
+  //   );
+  // };
+
+  // private handlePinchZoom = (g: TinyGesture) => {
+  //   const scaleSpeed = 0.1;
+
+  //   const pivotX = this.ui.gameDisplay.stage.pivot.x;
+  //   const pivotY = this.ui.gameDisplay.stage.pivot.y;
+
+  //   // const pivotX = g.touchStartX - g.touchMoveX;
+  //   // const pivotY = g.touchStartY - g.touchMoveY;
+
+  //   let scale = this.ui.gameDisplay.stage.scale.x;
+  //   scale = g.scale;
+  //   scale += -1 * Math.max(-1, Math.min(1, g.velocityY)) * scaleSpeed * scale;
+  //   let scaledX = (g.touchMoveX - this.ui.gameDisplay.stage.x) / scale;
+  //   let scaledY = (g.touchMoveY - this.ui.gameDisplay.stage.y) / scale;
+
+  //   // modify the scale based on the scroll delta
+  //   // scale += -1 * Math.max(-1, Math.min(1, g.velocityY)) * scaleSpeed * scale;
+  //   // scale += Math.max(-1, Math.min(1, g.velocityY)) * scaleSpeed * scale; // Invert the sign of the scale modification
+  //   // clamp to reasonable values
+  //   // scale = Math.max(0.4, Math.min(10, scale));
+
+  //   // update the scale and position of the stage
+  //   this.ui.gameDisplay.stage.setTransform(
+  //     -scaledX * scale + g.touchMoveX, // position
+  //     -scaledY * scale + g.touchMoveY,
+  //     scale, // scale
+  //     scale,
+  //     null, // rotation
+  //     null, // skew
+  //     null,
+  //     pivotX, // keeep existing pivot
+  //     pivotY
+  //   );
+  // };
+
+  private handlePinchZoom = (g: TinyGesture) => {
+    const scaleSpeed = 0.1;
+
+    const pivotX = this.ui.gameDisplay.stage.pivot.x;
+    const pivotY = this.ui.gameDisplay.stage.pivot.y;
+
+    const posX = this.ui.gameDisplay.stage.position.x;
+    const posY = this.ui.gameDisplay.stage.position.y;
+
+    // const pivotX = g.touchStartX - g.touchMoveX;
+    // const pivotY = g.touchStartY - g.touchMoveY;
+
+    let scale = this.ui.gameDisplay.stage.scale.x;
+    scale = g.scale;
+    scale += -1 * Math.max(1, Math.min(1, g.velocityY)) * scaleSpeed * scale;
+    let scaledX = (g.touchMoveX - pivotX) / scale;
+    let scaledY = (g.touchMoveY - pivotY) / scale;
+
+    // modify the scale based on the scroll delta
+    // scale += -1 * Math.max(-1, Math.min(1, g.velocityY)) * scaleSpeed * scale;
+    // scale += Math.max(-1, Math.min(1, g.velocityY)) * scaleSpeed * scale; // Invert the sign of the scale modification
+    // clamp to reasonable values
+    // scale = Math.max(0.4, Math.min(10, scale));
+
+    // update the scale and position of the stage
+    this.ui.gameDisplay.stage.setTransform(
+      posX,
+      posY,
+      scale, // scale
+      scale,
+      null, // rotation
+      null, // skew
+      null,
+      -scaledX * scale + g.touchMoveX, // position
+      -scaledY * scale + g.touchMoveY
     );
   };
 }

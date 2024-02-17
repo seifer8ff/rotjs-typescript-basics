@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.21",
-    "pixi.js": "^7.4.0"
+    "pixi.js": "^7.4.0",
+    "tinygesture": "^3.0.0"
   }
 }
