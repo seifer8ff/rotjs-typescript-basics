@@ -1,6 +1,6 @@
 import { Assets, AssetsManifest } from "pixi.js";
 import * as PIXI from "pixi.js";
-import { Tile, TilesetMeta, TileType } from "./tile";
+import { Tile, Biome, TileType } from "./tile";
 
 /** List of assets grouped in bundles, for dynamic loading */
 let assetsManifest: AssetsManifest = { bundles: [] };
@@ -101,45 +101,42 @@ export function initPixiOptions(): void {
 export function ProcessTilesetsIntoTiles() {
   console.log("process tilesets into tiles");
   // for each tileset, create new Tile 0 through 47
-  Object.keys(Tile.AutoTilesets).forEach((tilesetId: string) => {
-    generateTileset(Tile.AutoTilesets[tilesetId]);
+  Object.keys(Tile.Biomes).forEach((tilesetId: string) => {
+    generateTileset(Tile.Biomes[tilesetId]);
   });
   console.log("end result: ", Tile.Tilesets);
 }
 
-export function generateTileset(tilesetMeta: TilesetMeta) {
+export function generateTileset(tilesetMeta: Biome) {
   console.log(tilesetMeta);
   let tilesetUrl;
   for (let i = 1; i < 48; i++) {
-    tilesetUrl = `${tilesetMeta.prefix}${tileFormat.format(i)}`;
+    tilesetUrl = `${tilesetMeta.autotilePrefix}${tileFormat.format(i)}`;
     addTileToTileset(
       tilesetMeta,
       i,
       new Tile(
         TileType.Floor,
-        `${tilesetMeta.prefix}${tileFormat.format(i)}`,
-        tilesetMeta.color
+        `${tilesetMeta.autotilePrefix}${tileFormat.format(i)}`,
+        tilesetMeta.color,
+        tilesetMeta.biome
       )
     );
   }
 }
 
-function addTileToTileset(
-  tilesetMeta: TilesetMeta,
-  tileIndex: number,
-  tile: Tile
-) {
+function addTileToTileset(tilesetMeta: Biome, tileIndex: number, tile: Tile) {
   // add entry for tileset if it doesn't already exist.
   // it could exist already if other seasons have been added
-  if (!Tile.Tilesets[tilesetMeta.name]) {
-    Tile.Tilesets[tilesetMeta.name] = {};
+  if (!Tile.Tilesets[tilesetMeta.biome]) {
+    Tile.Tilesets[tilesetMeta.biome] = {};
   }
 
   // add entry for season if it doesn't already exist
-  if (!Tile.Tilesets[tilesetMeta.name][tilesetMeta.season]) {
-    Tile.Tilesets[tilesetMeta.name][tilesetMeta.season] = {};
+  if (!Tile.Tilesets[tilesetMeta.biome][tilesetMeta.season]) {
+    Tile.Tilesets[tilesetMeta.biome][tilesetMeta.season] = {};
   }
 
   // add the generated tile to the tileset object
-  Tile.Tilesets[tilesetMeta.name][tilesetMeta.season][tileIndex] = tile;
+  Tile.Tilesets[tilesetMeta.biome][tilesetMeta.season][tileIndex] = tile;
 }

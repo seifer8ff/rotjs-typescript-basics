@@ -60,7 +60,10 @@ export class Person implements Actor {
 
     // no goal
     // generate new goal
-    const randTarget = this.game.getRandomTilePositions(TileType.Floor, 1)[0];
+    const randTarget = this.game.getRandomTilePositions(
+      Tile.Biomes.grassland.biome,
+      1
+    )[0];
     if (randTarget) {
       // console.log("found rand target, planning out intermediary");
       this.goal = new WaitAction(this.game, this, randTarget);

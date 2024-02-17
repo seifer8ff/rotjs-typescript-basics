@@ -1,4 +1,4 @@
-import { TileType } from "./tile";
+import { Biome, BiomeType, TileType } from "./tile";
 
 export class Autotile {
   static NW = Math.pow(2, 0);
@@ -9,56 +9,6 @@ export class Autotile {
   static SW = Math.pow(2, 5);
   static S = Math.pow(2, 6);
   static SE = Math.pow(2, 7);
-
-  // static BITMASK = {
-  //   2: 1,
-  //   8: 2,
-  //   10: 3,
-  //   11: 4,
-  //   16: 5,
-  //   18: 6,
-  //   22: 7,
-  //   24: 8,
-  //   26: 9,
-  //   27: 10,
-  //   30: 11,
-  //   31: 12,
-  //   64: 13,
-  //   66: 14,
-  //   72: 15,
-  //   74: 16,
-  //   75: 17,
-  //   80: 18,
-  //   82: 19,
-  //   86: 20,
-  //   88: 21,
-  //   90: 22,
-  //   91: 23,
-  //   94: 24,
-  //   95: 25,
-  //   104: 26,
-  //   106: 27,
-  //   107: 28,
-  //   120: 29,
-  //   122: 30,
-  //   123: 31,
-  //   126: 32,
-  //   127: 33,
-  //   208: 34,
-  //   210: 35,
-  //   214: 36,
-  //   216: 37,
-  //   218: 38,
-  //   219: 39,
-  //   222: 40,
-  //   223: 41,
-  //   248: 42,
-  //   250: 43,
-  //   251: 44,
-  //   254: 45,
-  //   255: 46,
-  //   0: 47,
-  // };
 
   static BITMASK = {
     2: 44,
@@ -83,14 +33,14 @@ export class Autotile {
     86: 18,
     88: 21,
     90: 15,
-    91: 23,
-    94: 42,
+    91: 14,
+    94: 13,
     95: 12,
     104: 36,
     106: 26,
     107: 24,
     120: 21,
-    122: 5,
+    122: 7,
     123: 6,
     126: 5,
     127: 4,
@@ -110,62 +60,75 @@ export class Autotile {
     0: 46,
   };
 
-  // static BITMASK = {
-  //   2: 47,
-  //   8: 47,
-  //   10: 3,
-  //   11: 47,
-  //   16: 9,
-  //   18: 6,
-  //   22: 47,
-  //   24: 33,
-  //   26: 9,
-  //   27: 10,
-  //   30: 11,
-  //   31: 20,
-  //   64: 46,
-  //   66: 32,
-  //   72: 15,
-  //   74: 16,
-  //   75: 17,
-  //   80: 18,
-  //   82: 19,
-  //   86: 20,
-  //   88: 21,
-  //   90: 22,
-  //   91: 47,
-  //   94: 24,
-  //   95: 25,
-  //   104: 47,
-  //   106: 27,
-  //   107: 16,
-  //   120: 8,
-  //   122: 30,
-  //   123: 31,
-  //   126: 32,
-  //   127: 34,
-  //   208: 5,
-  //   210: 35,
-  //   214: 24,
-  //   216: 37,
-  //   218: 39,
-  //   219: 1,
-  //   222: 41,
-  //   223: 36,
-  //   248: 28,
-  //   250: 43,
-  //   251: 40,
-  //   254: 38,
-  //   255: 0,
-  //   0: 47,
-  // };
+  public static areValidNeighborBiomes(
+    neighborBiome: Biome,
+    tileBiome: Biome
+  ): boolean {
+    if (tileBiome?.biome == "oceandeep" && neighborBiome?.biome == "ocean") {
+      return false;
+    }
+
+    if (
+      tileBiome?.biome == "forestgrass" &&
+      neighborBiome?.biome == "grassland"
+    ) {
+      return true;
+    }
+
+    if (
+      tileBiome?.biome == "grassland" &&
+      neighborBiome?.biome == "forestgrass"
+    ) {
+      return false;
+    }
+
+    if (neighborBiome == null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public static shouldAutoTile(
+    mapObject: { [pos: string]: Biome },
+    x: number,
+    y: number,
+    tileBiome: Biome
+  ): boolean {
+    const skipAutoTileTypes: BiomeType[] = ["dirt", "dirttextured"];
+    if (skipAutoTileTypes.includes(tileBiome?.biome)) {
+      return false;
+    }
+
+    const neighborPositions = [
+      [x, y - 1], // north
+      [x - 1, y], // west
+      [x + 1, y], // east
+      [x, y + 1], // south
+      [x - 1, y - 1], // northwest
+      [x + 1, y - 1], // northeast
+      [x - 1, y + 1], // southwest
+      [x + 1, y + 1], // southeast
+    ];
+
+    for (const [nx, ny] of neighborPositions) {
+      if (
+        !Autotile.areValidNeighborBiomes(tileBiome, mapObject[`${nx},${ny}`])
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   public static autotileLookup(
-    mapObject: { [pos: string]: TileType },
+    mapObject: { [pos: string]: Biome },
     x_boundary: number,
     y_boundary: number,
     x: number,
-    y: number
+    y: number,
+    tileBiome: Biome
   ): number {
     let sum = 0;
     let n = false;
@@ -173,47 +136,60 @@ export class Autotile {
     let s = false;
     let w = false;
 
-    const pos = `${x},${y}`;
-
-    // just return 0 for walls and handle it later
-    if (!mapObject[pos] || mapObject[pos] == TileType.Wall) return 0;
-
-    if (y > 0 && mapObject[`${x},${y - 1}`]) {
+    if (y > 0 && mapObject[`${x},${y - 1}`].biome == tileBiome.biome) {
       n = true;
       sum += Autotile.N;
     }
-    if (x > 0 && mapObject[`${x - 1},${y}`]) {
+    if (x > 0 && mapObject[`${x - 1},${y}`].biome == tileBiome.biome) {
       w = true;
       sum += Autotile.W;
     }
-    if (x < x_boundary && mapObject[`${x + 1},${y}`]) {
+    if (x < x_boundary && mapObject[`${x + 1},${y}`].biome == tileBiome.biome) {
       e = true;
       sum += Autotile.E;
     }
-    if (y < y_boundary && mapObject[`${x},${y + 1}`]) {
+    if (y < y_boundary && mapObject[`${x},${y + 1}`].biome == tileBiome.biome) {
       s = true;
       sum += Autotile.S;
     }
 
-    if (n && w && y > 0 && x > 0 && mapObject[`${x - 1},${y - 1}`])
+    if (
+      n &&
+      w &&
+      y > 0 &&
+      x > 0 &&
+      mapObject[`${x - 1},${y - 1}`].biome == tileBiome.biome
+    )
       sum += Autotile.NW;
-    if (n && e && y > 0 && x < x_boundary && mapObject[`${x + 1},${y - 1}`])
+    if (
+      n &&
+      e &&
+      y > 0 &&
+      x < x_boundary &&
+      mapObject[`${x + 1},${y - 1}`].biome == tileBiome.biome
+    )
       sum += Autotile.NE;
-    if (s && w && y < y_boundary && x > 0 && mapObject[`${x - 1},${y + 1}`])
+    if (
+      s &&
+      w &&
+      y < y_boundary &&
+      x > 0 &&
+      mapObject[`${x - 1},${y + 1}`].biome == tileBiome.biome
+    )
       sum += Autotile.SW;
     if (
       s &&
       e &&
       x < x_boundary &&
       y < y_boundary &&
-      mapObject[`${x + 1},${y + 1}`]
+      mapObject[`${x + 1},${y + 1}`].biome == tileBiome.biome
     )
       sum += Autotile.SE;
 
     return Autotile.BITMASK[sum];
   }
 
-  public static autotile(mapObject: { [pos: string]: TileType }): {
+  public static autotile(mapObject: { [pos: string]: Biome }): {
     [pos: string]: TileType;
   } {
     console.log("autotile rawMapObj: ", mapObject);
@@ -232,14 +208,21 @@ export class Autotile {
     for (let y = 0; y <= maxY; y++) {
       for (let x = 0; x <= maxX; x++) {
         const key = `${x},${y}`;
-        const tileValue = mapObject[key] || 0;
-        // if (tileValue == MapTileType.wall) {
-        //   tiles[key] = -1;
-        // }
-        // if (tileValue == MapTileType.floor) {
-        //   tiles[key] = Autotile.autotileLookup(mapObject, maxX, maxY, x, y);
-        // }
-        tiles[key] = Autotile.autotileLookup(mapObject, maxX, maxY, x, y);
+        const tileValue = mapObject[key];
+
+        if (!this.shouldAutoTile(mapObject, x, y, tileValue)) {
+          tiles[key] = 47;
+          continue;
+        }
+
+        tiles[key] = Autotile.autotileLookup(
+          mapObject,
+          maxX,
+          maxY,
+          x,
+          y,
+          tileValue
+        );
       }
     }
 

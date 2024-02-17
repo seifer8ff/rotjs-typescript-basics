@@ -1,6 +1,8 @@
 export const enum TileType {
   Wall = 0, // order/value is CRITICAL
   Floor = 1,
+  Ocean,
+  Grassland,
   Entity,
   Plant,
   Player,
@@ -15,11 +17,18 @@ export enum Season {
   Winter = "SPRING",
 }
 
-export type Biome = "grassland" | "ocean" | "desert";
+export type BiomeType =
+  | "grassland"
+  | "ocean"
+  | "dirt"
+  | "dirttextured"
+  | "sand"
+  | "oceandeep"
+  | "forestgrass";
 
-export interface TilesetMeta {
-  name: string; // basic identifier for the tileset
-  prefix: string; // filename prefix to append the tileNumber to: grass_spring_ -> grass_spring_00
+export interface Biome {
+  biome: BiomeType; // basic identifier for the tileset
+  autotilePrefix?: string; // filename prefix to append the tileNumber to: grass_spring_ -> grass_spring_00
   color: string;
   season: Season;
 }
@@ -70,26 +79,58 @@ export class Tile {
     "#FF4AE7"
   );
 
-  static readonly AutoTilesets: TilesetMeta[] = [
-    {
-      name: "grassland",
-      prefix: "biomes/grassland/grassland_spring_ground_",
+  static readonly Biomes: { [key in BiomeType]: Biome } = {
+    grassland: {
+      // key will match BiomeType
+      biome: "grassland",
+      autotilePrefix: "biomes/grassland/grassland_spring_ground_",
       color: "#d3ffd8",
       season: Season.Spring,
     },
-    {
-      name: "ocean",
-      prefix: "biomes/ocean/ocean_dirt_",
+    forestgrass: {
+      biome: "forestgrass",
+      autotilePrefix: "biomes/forestgrass/forestgrass_grassland_",
+      color: "#2f9e77",
+      season: Season.Spring,
+    },
+    ocean: {
+      biome: "ocean",
+      autotilePrefix: "biomes/ocean/ocean_dirt_",
       color: "#0080e5",
       season: Season.Spring,
     },
-  ];
+    dirt: {
+      biome: "dirt",
+      autotilePrefix: "biomes/dirt/dirt_dirt_",
+      color: "#e5e5a0",
+      season: Season.Spring,
+    },
+    dirttextured: {
+      biome: "dirttextured",
+      autotilePrefix: "biomes/dirttextured/dirttextured_dirt_",
+      color: "#ddd29b",
+      season: Season.Spring,
+    },
+    sand: {
+      biome: "sand",
+      autotilePrefix: "biomes/sand/sand_dirt_",
+      color: "#f4f0c3",
+      season: Season.Spring,
+    },
+    oceandeep: {
+      biome: "oceandeep",
+      autotilePrefix: "biomes/oceandeep/oceandeep_ocean_",
+      color: "#004db2",
+      season: Season.Spring,
+    },
+  };
 
   static Tilesets: Tileset = {};
 
   constructor(
     public readonly type: TileType,
     public readonly sprite: string,
-    public readonly color: string
+    public readonly color: string,
+    public readonly biomeType?: BiomeType
   ) {}
 }

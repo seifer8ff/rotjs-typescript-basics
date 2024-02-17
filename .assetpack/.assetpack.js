@@ -18,7 +18,7 @@ export default {
         texture: pixiTexturePacker({
             texturePacker: {
                 removeFileExtension: true,
-                extrude: 1
+                extrude: 2
             },
         }),
         manifest: pixiManifest({
