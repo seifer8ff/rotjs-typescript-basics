@@ -1,6 +1,11 @@
 html {
   height: 100%;
   overflow: hidden;
+  -webkit-touch-callout: none; /* Safari */
+  -webkit-user-select: none; /* Chrome */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 }
 
 body {
@@ -13,6 +18,11 @@ body {
   color: #eee;
   overflow: hidden;
   position: relative;
+  -webkit-touch-callout: none; /* Safari */
+  -webkit-user-select: none; /* Chrome */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 }
 
 canvas {
@@ -26,12 +36,22 @@ canvas {
   overflow: hidden;
   border: 2px solid lightslategray;
   box-sizing: border-box;
+  -webkit-touch-callout: none; /* Safari */
+  -webkit-user-select: none; /* Chrome */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 }
 
 #gameContainer {
   overflow: hidden;
   height: 100%;
   box-sizing: border-box;
+  -webkit-touch-callout: none; /* Safari */
+  -webkit-user-select: none; /* Chrome */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 }
 
 #canvasContainer {
@@ -39,6 +59,11 @@ canvas {
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  -webkit-touch-callout: none; /* Safari */
+  -webkit-user-select: none; /* Chrome */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 }
 
 /* #gameContainer {
