@@ -24,7 +24,10 @@ export type BiomeType =
   | "dirttextured"
   | "sand"
   | "oceandeep"
-  | "forestgrass";
+  | "forestgrass"
+  | "hills"
+  | "swampdirt"
+  | "swampwater";
 
 export interface Biome {
   biome: BiomeType; // basic identifier for the tileset
@@ -115,6 +118,18 @@ export class Tile {
         },
       },
     },
+    hills: {
+      biome: "hills",
+      autotilePrefix: "biomes/hills/hills_grassland_",
+      color: "#e48989",
+      season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.75,
+          max: 1,
+        },
+      },
+    },
     forestgrass: {
       biome: "forestgrass",
       autotilePrefix: "biomes/forestgrass/forestgrass_grassland_",
@@ -158,6 +173,30 @@ export class Tile {
       generationOptions: {
         height: {
           min: 0.8,
+        },
+      },
+    },
+    swampdirt: {
+      biome: "swampdirt",
+      autotilePrefix: "biomes/swampdirt/swampdirt_grassland_",
+      color: "#665b47",
+      season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.5,
+          max: 0.7,
+        },
+      },
+    },
+    swampwater: {
+      biome: "swampwater",
+      autotilePrefix: "biomes/swampwater/swampwater_swampdirt_",
+      color: "#39512f",
+      season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.57,
+          max: 0.62,
         },
       },
     },

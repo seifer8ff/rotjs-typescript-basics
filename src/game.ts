@@ -38,8 +38,8 @@ export class Game {
     // RNG.setSeed(1234);
 
     // sensible default
-    let width = 150;
-    let height = 150;
+    let width = 350;
+    let height = 350;
     let fontSize = 20;
 
     // how/why should this change?

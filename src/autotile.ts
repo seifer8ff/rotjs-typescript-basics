@@ -76,6 +76,17 @@ export class Autotile {
     }
 
     if (
+      tileBiome?.biome == "swampdirt" &&
+      neighborBiome?.biome == "grassland"
+    ) {
+      return false;
+    }
+
+    if (tileBiome?.biome == "hills" && neighborBiome?.biome == "grassland") {
+      return false;
+    }
+
+    if (
       tileBiome?.biome == "grassland" &&
       neighborBiome?.biome == "forestgrass"
     ) {

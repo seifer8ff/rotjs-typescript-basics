@@ -29,9 +29,9 @@ export class MapWorld {
     this.adjacencyMap = {};
     this.dirtyTiles = [];
     this.landHeight = 0.5;
-    this.valleyScaleFactor = 1.5;
+    this.valleyScaleFactor = 2;
     this.edgePadding = 0;
-    this.islandMask = 0.3;
+    this.islandMask = 0.38;
   }
 
   generateMap(width: number, height: number): void {
@@ -93,11 +93,11 @@ export class MapWorld {
     // add different octaves of frequency
     // some small hills, some large, etc
     // 1 / octave * this.getScaledNoise(noise, octave * noiseX, octave * noiseY)
-    let height = 0.333 * this.getScaledNoise(noise, 3 * noiseX, 3 * noiseY);
-    height += 0.1667 * this.getScaledNoise(noise, 6 * noiseX, 6 * noiseY);
-    height += 0.06667 * this.getScaledNoise(noise, 15 * noiseX, 15 * noiseY);
-    height += 0.045 * this.getScaledNoise(noise, 22 * noiseX, 22 * noiseY);
-    height = height / (0.3 + 0.1667 + 0.067 + 0.045); // scale to between 0 and 1
+    let height = 0.7 * this.getScaledNoise(noise, 3 * noiseX, 3 * noiseY);
+    height += 0.5 * this.getScaledNoise(noise, 4 * noiseX, 4 * noiseY);
+    height += 0.3 * this.getScaledNoise(noise, 8 * noiseX, 8 * noiseY);
+    height += 0.3 * this.getScaledNoise(noise, 15 * noiseX, 15 * noiseY);
+    height = height / (0.4 + 0.5 + 0.3 + 0.2); // scale to between 0 and 1
 
     height = Math.pow(height, this.valleyScaleFactor); // reshape valleys/mountains
 
@@ -205,6 +205,29 @@ export class MapWorld {
     if (
       Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
     ) {
+      if (Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height)) {
+        return Tile.Biomes.hills;
+      }
+
+      if (
+        Tile.inRange(
+          heightVal,
+          Tile.Biomes.swampdirt.generationOptions.height
+        ) &&
+        !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+      ) {
+        if (
+          Tile.inRange(
+            heightVal,
+            Tile.Biomes.swampwater.generationOptions.height
+          ) &&
+          this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt])
+        ) {
+          return Tile.Biomes.swampwater;
+        }
+        return Tile.Biomes.swampdirt;
+      }
+
       if (
         Tile.inRange(
           heightVal,
