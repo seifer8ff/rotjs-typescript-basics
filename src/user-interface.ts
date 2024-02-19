@@ -10,6 +10,8 @@ import { Tile } from "./tile";
 import { Person } from "./entities/person";
 import { Layer } from "./renderer";
 import { Camera } from "./camera";
+import { TimeControl } from "./web-components/time-control";
+import { MenuTabs } from "./web-components/menu-tabs";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -30,10 +32,12 @@ export class UserInterface {
   private actionLogPosition: Point;
   private maximumBoxes = 10;
   private fontSize = 20;
+  private timeControl: TimeControl;
 
   constructor(private game: Game) {
     this.statusLinePosition = new Point(0, 0);
     this.actionLogPosition = new Point(0, 3);
+    this.initWebComponents();
 
     this.gameDisplayOptions = {
       resizeTo: window,
@@ -78,7 +82,13 @@ export class UserInterface {
     );
 
     this.camera = new Camera(this.game, this);
+    this.initControls();
     this.initEventListeners();
+  }
+
+  private initWebComponents() {
+    customElements.define("time-control", TimeControl);
+    customElements.define("menu-tabs", MenuTabs);
   }
 
   private initEventListeners() {
@@ -90,10 +100,28 @@ export class UserInterface {
     });
   }
 
+  private initControls() {
+    this.timeControl = document.querySelector("time-control");
+    if (this.timeControl) {
+      this.timeControl.updateTime(
+        this.game.timeManager.getCurrentTimeForDisplay()
+      );
+    }
+    const menuTabs: MenuTabs = document.querySelector("menu-tabs");
+    if (menuTabs) {
+      menuTabs.pauseBtn.addEventListener("click", () => {
+        this.game.timeManager.togglePause();
+        menuTabs.pauseIcon.setAttribute(
+          "name",
+          this.game.timeManager.isPaused ? "play-fill" : "pause-fill"
+        );
+      });
+    }
+  }
+
   private handleInput(event: KeyboardEvent): void {
     if (event.keyCode === KEYS.VK_SPACE) {
-      this.game.isPaused = !this.game.isPaused;
-      console.log("isPaused: " + this.game.isPaused);
+      this.game.timeManager.togglePause();
     }
   }
 
@@ -130,6 +158,7 @@ export class UserInterface {
     this.game.map.draw();
     this.statusLine.draw();
     this.messageLog.draw();
+    this.updateTimeControl();
     const viewportInTiles = this.camera.getViewportInTiles(true);
     this.drawPlants();
     this.drawEntities();
@@ -159,6 +188,14 @@ export class UserInterface {
         entity.position,
         Layer.ENTITY,
         entity.tile.sprite
+      );
+    }
+  }
+
+  private updateTimeControl(): void {
+    if (this.timeControl) {
+      this.timeControl.updateTime(
+        this.game.timeManager.getCurrentTimeForDisplay()
       );
     }
   }

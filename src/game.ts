@@ -15,6 +15,7 @@ import { Animal } from "./entities/animal";
 import { Renderer } from "./renderer";
 import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
+import { TimeManager } from "./time-manager";
 
 export class Game {
   public entityCount = 5;
@@ -27,11 +28,9 @@ export class Game {
   public plants: Actor[];
   public gameState: GameState;
   public renderer: Renderer;
+  public timeManager: TimeManager;
   public userInterface: UserInterface;
-  public isPaused = false;
-  public biome: BiomeType = "grassland";
 
-  private scheduler: Action;
   private treePoint: Point;
 
   constructor() {
@@ -48,6 +47,7 @@ export class Game {
     this.gameSize = { width: width, height: height };
     this.mapSize = { width: this.gameSize.width, height: this.gameSize.height };
 
+    this.timeManager = new TimeManager(this);
     this.userInterface = new UserInterface(this);
     this.gameState = new GameState();
     this.map = new MapWorld(this);
@@ -197,7 +197,6 @@ export class Game {
   }
 
   private async initializeGame(): Promise<boolean> {
-    console.log("init game");
     await this.userInterface.init();
     this.gameState.reset();
 
@@ -205,10 +204,8 @@ export class Game {
     this.generatePlants();
 
     this.generateBeings();
-    this.scheduler = new Scheduler.Action();
-    // this.scheduler.add(this.player, true);
     for (let entity of this.entities) {
-      this.scheduler.add(entity, true);
+      this.timeManager.addToSchedule(entity, true);
     }
 
     this.userInterface.refreshPanel();
@@ -219,23 +216,19 @@ export class Game {
   private async mainLoop(): Promise<any> {
     let actor: Actor;
     while (true) {
-      await Game.delay(100);
+      await Game.delay(this.timeManager.turnDelayInMs);
 
-      if (!this.isPaused) {
-        actor = this.scheduler.next();
+      if (!this.timeManager.isPaused) {
+        actor = this.timeManager.nextOnSchedule();
 
         if (actor) {
           actor.plan();
-          this.scheduler.setDuration(actor.action.durationInTurns);
+          this.timeManager.setDuration(actor.action.durationInTurns);
           await actor.act();
-          // if (actor.type === TileType.Player) {
-          //   this.userInterface.statusLine.turns += 1;
-          // }
         }
+        // refresh all screens in case actor affected them
         this.userInterface.refreshPanel();
       }
-
-      // this.map.UpdateFOV(this.player);
 
       if (this.gameState.isGameOver()) {
         await InputUtility.waitForInput(
