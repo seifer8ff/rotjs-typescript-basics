@@ -72,14 +72,14 @@ export class Autotile {
       tileBiome?.biome == "forestgrass" &&
       neighborBiome?.biome == "grassland"
     ) {
-      return true;
+      return false;
     }
 
     if (
       tileBiome?.biome == "grassland" &&
       neighborBiome?.biome == "forestgrass"
     ) {
-      return false;
+      return true;
     }
 
     if (neighborBiome == null) {

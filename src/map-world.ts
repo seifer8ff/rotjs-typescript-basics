@@ -13,8 +13,10 @@ export class MapWorld {
   private biomeMap: { [key: string]: Biome };
   private tileMap: { [key: string]: Tile };
   private heightMap: { [key: string]: number };
+  private terrainMap: { [key: string]: Biome };
+  private adjacencyMap: { [key: string]: Biome[] };
+  private dirtyTiles: string[];
   private landHeight: number;
-  private grasslandHeight: number;
   private valleyScaleFactor: number;
   private edgePadding: number;
   private islandMask: number;
@@ -23,8 +25,10 @@ export class MapWorld {
     this.tileMap = {};
     this.biomeMap = {};
     this.heightMap = {};
-    this.landHeight = 0.46;
-    this.grasslandHeight = 0.55;
+    this.terrainMap = {};
+    this.adjacencyMap = {};
+    this.dirtyTiles = [];
+    this.landHeight = 0.5;
     this.valleyScaleFactor = 1.5;
     this.edgePadding = 0;
     this.islandMask = 0.3;
@@ -34,21 +38,27 @@ export class MapWorld {
     this.tileMap = {};
     this.biomeMap = {};
     this.heightMap = {}; // between 0 and 1
+    this.terrainMap = {};
+    this.dirtyTiles = [];
 
     const noise = new Simplex();
 
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        this.heightMap[this.coordinatesToKey(x, y)] = this.getHeight(
-          x,
-          y,
-          width,
-          height,
-          noise
-        );
-        this.biomeMap[this.coordinatesToKey(x, y)] = this.getBiome(x, y);
+        const key = this.coordinatesToKey(x, y);
+        this.heightMap[key] = this.getHeight(x, y, width, height, noise);
+        this.terrainMap[key] = this.assignTerrain(x, y);
       }
     }
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        const key = this.coordinatesToKey(x, y);
+        this.adjacencyMap[key] = this.assignAdjacentTerrain(x, y);
+        this.biomeMap[key] = this.assignBiome(x, y);
+        this.dirtyTiles.push(key);
+      }
+    }
+    // console.log("adjacencyMap: ", this.adjacencyMap);
 
     this.autotileMap(this.biomeMap);
   }
@@ -104,37 +114,112 @@ export class MapWorld {
     return (noise.get(x, y) + 1) / 2;
   }
 
-  getBiome(x: number, y: number): Biome {
+  assignTerrain(x: number, y: number): Biome {
+    // assign the high level terrain types
+    // features will be placed within these terrain types for tiling transition purposes
     const heightVal = this.heightMap[this.coordinatesToKey(x, y)];
-
-    if (heightVal > this.grasslandHeight) {
-      if (heightVal > this.landHeight + 0.23) {
-        return Tile.Biomes.grassland;
-      }
-
-      // if (heightVal > this.landHeight + 0.19) {
-      //   return Tile.Biomes.forestgrass;
-      // }
-
-      return Tile.Biomes.grassland;
-    }
-
-    if (heightVal > this.landHeight) {
-      if (heightVal > (this.grasslandHeight - this.landHeight) / 2) {
-        return Tile.Biomes.dirt;
-      }
-      return Tile.Biomes.sand;
-    }
-
-    if (heightVal > this.landHeight / 2) {
+    if (Tile.inRange(heightVal, Tile.Biomes.ocean.generationOptions.height)) {
       return Tile.Biomes.ocean;
     }
 
-    return Tile.Biomes.oceandeep;
+    if (Tile.inRange(heightVal, Tile.Biomes.dirt.generationOptions.height)) {
+      return Tile.Biomes.dirt;
+    }
+
+    if (
+      Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
+    ) {
+      return Tile.Biomes.grassland;
+    }
+  }
+
+  assignAdjacentTerrain(x: number, y: number): Biome[] {
+    const adjacencyDistance = 2;
+    const key = this.coordinatesToKey(x, y);
+    const heightVal = this.heightMap[key];
+    const terrain = this.terrainMap[key];
+    const adjacentTerrain = [];
+    let pos: Point;
+    let biome: Biome;
+    for (
+      let xOffset = -adjacencyDistance;
+      xOffset <= adjacencyDistance;
+      xOffset++
+    ) {
+      for (
+        let yOffset = -adjacencyDistance;
+        yOffset <= adjacencyDistance;
+        yOffset++
+      ) {
+        if (xOffset === 0 && yOffset === 0) {
+          continue;
+        }
+        pos = new Point(x + xOffset, y + yOffset);
+        biome = this.terrainMap[this.coordinatesToKey(pos.x, pos.y)];
+        if (biome) {
+          adjacentTerrain.push(biome);
+        }
+      }
+    }
+    return adjacentTerrain;
+  }
+
+  isAdjacentToTerrain(x: number, y: number, terrain: Biome[]): boolean {
+    const key = this.coordinatesToKey(x, y);
+    const adjacentTerrain = this.adjacencyMap[key];
+    for (let i = 0; i < adjacentTerrain.length; i++) {
+      if (terrain.includes(adjacentTerrain[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  assignBiome(x: number, y: number): Biome {
+    const key = this.coordinatesToKey(x, y);
+    const heightVal = this.heightMap[key];
+
+    if (this.terrainMap[key] === Tile.Biomes.ocean) {
+      if (
+        Tile.inRange(
+          heightVal,
+          Tile.Biomes.oceandeep.generationOptions.height
+        ) &&
+        !this.isAdjacentToTerrain(x, y, [
+          Tile.Biomes.dirt,
+          Tile.Biomes.grassland,
+        ])
+      ) {
+        return Tile.Biomes.oceandeep;
+      }
+      return Tile.Biomes.ocean;
+    }
+
+    if (Tile.inRange(heightVal, Tile.Biomes.dirt.generationOptions.height)) {
+      if (Tile.inRange(heightVal, Tile.Biomes.sand.generationOptions.height)) {
+        return Tile.Biomes.sand;
+      }
+      return Tile.Biomes.dirt;
+    }
+
+    if (
+      Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
+    ) {
+      if (
+        Tile.inRange(
+          heightVal,
+          Tile.Biomes.forestgrass.generationOptions.height
+        ) &&
+        !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+      ) {
+        return Tile.Biomes.forestgrass;
+      }
+      return Tile.Biomes.grassland;
+    }
   }
 
   autotileMap(rawMap: { [key: string]: Biome }) {
-    console.log("rawMap to start with: ", rawMap);
+    // console.log("rawMap to start with: ", rawMap);
     const autotileMap = Autotile.autotile(rawMap);
     let tileIndex;
     let biome: BiomeType;
@@ -156,6 +241,7 @@ export class MapWorld {
 
   setTile(x: number, y: number, tile: Tile): void {
     this.tileMap[this.coordinatesToKey(x, y)] = tile;
+    this.dirtyTiles.push(this.coordinatesToKey(x, y));
   }
 
   getRandomTilePositions(biomeType: BiomeType, quantity: number = 1): Point[] {
@@ -193,15 +279,23 @@ export class MapWorld {
   }
 
   draw(): void {
-    // TODO: only redraw the sprites thathave changed...
-    // or change to only render the sprites around the viewport...
-    this.game.renderer.clearScene();
-    for (let key in this.tileMap) {
-      const tile = this.tileMap[key];
-      this.game.userInterface.draw(this.keyToPoint(key), Layer.TERRAIN, [
-        tile.sprite,
-      ]);
+    for (let key of this.dirtyTiles) {
+      if (key) {
+        const tile = this.tileMap[key];
+        this.game.renderer.removeFromScene(
+          this.keyToPoint(key),
+          key,
+          Layer.TERRAIN
+        );
+        this.game.renderer.addToScene(
+          this.keyToPoint(key),
+          Layer.TERRAIN,
+          tile.sprite
+        );
+      }
     }
+    // Clear the changed tiles after drawing them
+    this.dirtyTiles = [];
   }
 
   UpdateFOV(actor: Actor) {

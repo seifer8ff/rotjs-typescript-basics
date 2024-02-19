@@ -31,6 +31,12 @@ export interface Biome {
   autotilePrefix?: string; // filename prefix to append the tileNumber to: grass_spring_ -> grass_spring_00
   color: string;
   season: Season;
+  generationOptions: {
+    height?: {
+      min?: number;
+      max?: number;
+    };
+  };
 }
 
 export interface Tileset {
@@ -79,6 +85,22 @@ export class Tile {
     "#FF4AE7"
   );
 
+  public static inRange(
+    value: number,
+    range?: { min?: number; max?: number }
+  ): boolean {
+    if (!range) {
+      return true;
+    }
+    if (range.min && value < range.min) {
+      return false;
+    }
+    if (range.max && value > range.max) {
+      return false;
+    }
+    return true;
+  }
+
   static readonly Biomes: { [key in BiomeType]: Biome } = {
     grassland: {
       // key will match BiomeType
@@ -86,42 +108,81 @@ export class Tile {
       autotilePrefix: "biomes/grassland/grassland_spring_ground_",
       color: "#d3ffd8",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.5,
+          // max: 0.8,
+        },
+      },
     },
     forestgrass: {
       biome: "forestgrass",
       autotilePrefix: "biomes/forestgrass/forestgrass_grassland_",
       color: "#2f9e77",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.7,
+          max: 0.8,
+        },
+      },
     },
     ocean: {
       biome: "ocean",
       autotilePrefix: "biomes/ocean/ocean_dirt_",
       color: "#0080e5",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          max: 0.5,
+        },
+      },
     },
     dirt: {
       biome: "dirt",
       autotilePrefix: "biomes/dirt/dirt_dirt_",
       color: "#e5e5a0",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.4,
+          max: 0.6,
+        },
+      },
     },
     dirttextured: {
       biome: "dirttextured",
       autotilePrefix: "biomes/dirttextured/dirttextured_dirt_",
       color: "#ddd29b",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.8,
+        },
+      },
     },
     sand: {
       biome: "sand",
       autotilePrefix: "biomes/sand/sand_dirt_",
       color: "#f4f0c3",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          min: 0.3,
+          max: 0.54,
+        },
+      },
     },
     oceandeep: {
       biome: "oceandeep",
       autotilePrefix: "biomes/oceandeep/oceandeep_ocean_",
       color: "#004db2",
       season: Season.Spring,
+      generationOptions: {
+        height: {
+          max: 0.25,
+        },
+      },
     },
   };
 

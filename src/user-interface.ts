@@ -97,20 +97,6 @@ export class UserInterface {
     }
   }
 
-  // public initialize() {
-  //     this.gameDisplay.clear();
-  //     this.textDisplay.clear();
-  //     this.messageLog.clear();
-
-  //     if (!this.game.gameState.isGameOver() || this.game.gameState.doRestartGame()) {
-  //         this.resetStatusLine();
-  //         this.writeHelpMessage();
-  //     } else {
-  //         this.statusLine.boxes = 0;
-  //     }
-
-  // }
-
   public async init() {
     await InitAssets();
     this.gameDisplay.stage.addChild(this.game.renderer.terrainLayer);
@@ -130,21 +116,6 @@ export class UserInterface {
     }
   }
 
-  draw(position: Point, layer: Layer, sprites: string[], tint?: string): void {
-    sprites.forEach((spriteName) => {
-      let pixiSprite = PIXI.Sprite.from(spriteName);
-      pixiSprite.anchor.set(0.5);
-      pixiSprite.position.x = position.x * Tile.size;
-      pixiSprite.position.y = position.y * Tile.size;
-      pixiSprite.cullable = true;
-      if (tint) {
-        pixiSprite.tint = tint || "0xFFFFFF";
-      }
-
-      this.game.renderer.addToScene(pixiSprite, layer);
-    });
-  }
-
   drawText(position: Point, text: string, maxWidth?: number): void {
     this.textDisplay.drawText(position.x, position.y, text, maxWidth);
   }
@@ -155,39 +126,41 @@ export class UserInterface {
   }
 
   refreshPanel(): void {
-    // this.gameDisplay.clear();
     this.textDisplay.clear();
     this.game.map.draw();
     this.statusLine.draw();
     this.messageLog.draw();
+    const viewportInTiles = this.camera.getViewportInTiles(true);
+    this.drawPlants();
+    this.drawEntities();
+    this.game.renderer.renderLayers(
+      [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY],
+      viewportInTiles.width,
+      viewportInTiles.height,
+      viewportInTiles.center
+    );
+  }
 
+  private drawPlants(): void {
+    this.game.renderer.clearLayer(Layer.PLANT, true);
     for (let plant of this.game.plants) {
-      this.draw(plant.position, Layer.PLANT, [plant.tile.sprite]);
+      this.game.renderer.addToScene(
+        plant.position,
+        Layer.PLANT,
+        plant.tile.sprite
+      );
     }
+  }
 
+  private drawEntities(): void {
+    this.game.renderer.clearLayer(Layer.ENTITY, true);
     for (let entity of this.game.entities) {
-      this.draw(entity.position, Layer.ENTITY, [entity.tile.sprite]);
+      this.game.renderer.addToScene(
+        entity.position,
+        Layer.ENTITY,
+        entity.tile.sprite
+      );
     }
-
-    // let pos = this.game.getPlayerPosition();
-    // let bgTile = this.game.map.getTile(pos.x, pos.y);
-    // this.draw(pos, [bgTile.glyph, this.game.player.glyph]);
-    // this.rescale(pos.x, pos.y);
-    // for (let enemy of this.game.enemies) {
-    //     pos = enemy.position;
-    //     bgTile = this.game.map.getTile(pos.x, pos.y);
-    //     this.draw(enemy.position, [bgTile.glyph, enemy.glyph]);
-    // }
-
-    ////////////////////////////////////////////////////////////
-    //
-    // change this function to draw layer by layer
-    // draw terrain
-    // draw structures
-    // draw objs
-    // draw actors
-    //
-    ///////////////////////////////////////////////////////////
   }
 
   resetStatusLine(): void {

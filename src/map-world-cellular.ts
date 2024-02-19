@@ -107,9 +107,9 @@ export class MapWorldCellular {
     this.game.renderer.clearScene();
     for (let key in this.map) {
       const tile = this.map[key];
-      this.game.userInterface.draw(this.keyToPoint(key), Layer.TERRAIN, [
-        tile.sprite,
-      ]);
+      // this.game.userInterface.draw(this.keyToPoint(key), Layer.TERRAIN, [
+      //   tile.sprite,
+      // ]);
     }
   }
 
