@@ -208,7 +208,7 @@ export class Tile {
       generationOptions: {
         height: {
           min: 0.3,
-          max: 0.52,
+          max: 0.54,
         },
       },
     },

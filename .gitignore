@@ -66,4 +66,3 @@ dist/
 /public/**
 !/public/.gitignore
 
-/shoelace
