@@ -29,13 +29,9 @@ export class TimeManager {
   public currentTime: number;
   public currentTurn: number;
 
-  private defaultTurnDelayInMs: number;
-
   constructor(private game: Game) {
     this.scheduler = new Action();
     this.isPaused = false;
-    this.defaultTurnDelayInMs = 100;
-    this.turnDelayInMs = this.defaultTurnDelayInMs;
 
     this.maxTimeScale = 10;
     this.dayLength = 50;
@@ -95,8 +91,8 @@ export class TimeManager {
     if (this.timeScale <= 0) {
       this.timeScale = 0;
       this.isPaused = true;
+    } else {
+      this.isPaused = false;
     }
-    this.turnDelayInMs = this.defaultTurnDelayInMs / this.timeScale;
-    console.log("turnDelayInMs: ", this.turnDelayInMs);
   }
 }
