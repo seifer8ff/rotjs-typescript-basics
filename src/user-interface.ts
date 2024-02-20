@@ -12,6 +12,7 @@ import { Layer } from "./renderer";
 import { Camera } from "./camera";
 import { TimeControl } from "./web-components/time-control";
 import { MenuTabs } from "./web-components/menu-tabs";
+import { MenuTabContent } from "./web-components/menu-tab-content";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -33,6 +34,7 @@ export class UserInterface {
   private maximumBoxes = 10;
   private fontSize = 20;
   private timeControl: TimeControl;
+  private menuTabs: MenuTabs;
 
   constructor(private game: Game) {
     this.statusLinePosition = new Point(0, 0);
@@ -88,6 +90,7 @@ export class UserInterface {
 
   private initWebComponents() {
     customElements.define("time-control", TimeControl);
+    customElements.define("menu-tab-content", MenuTabContent);
     customElements.define("menu-tabs", MenuTabs);
   }
 
@@ -103,19 +106,31 @@ export class UserInterface {
   private initControls() {
     this.timeControl = document.querySelector("time-control");
     if (this.timeControl) {
+      this.timeControl.toggleTooltip();
       this.timeControl.updateTime(
         this.game.timeManager.getCurrentTimeForDisplay()
       );
-    }
-    const menuTabs: MenuTabs = document.querySelector("menu-tabs");
-    if (menuTabs) {
-      menuTabs.pauseBtn.addEventListener("click", () => {
+      this.timeControl.pauseBtn.addEventListener("click", () => {
         this.game.timeManager.togglePause();
-        menuTabs.pauseIcon.setAttribute(
+        this.timeControl.pauseBtn.setAttribute(
           "name",
           this.game.timeManager.isPaused ? "play-fill" : "pause-fill"
         );
       });
+      this.timeControl.timeSlider.addEventListener("sl-input", (e: any) => {
+        this.game.timeManager.setTimescale(e.target.value);
+        console.log("time scale: ", this.game.timeManager.timeScale);
+      });
+    }
+    this.menuTabs = document.querySelector("menu-tabs");
+    if (this.menuTabs) {
+      this.menuTabs.dropdownMenu.addEventListener(
+        "sl-select",
+        (e: CustomEvent) => {
+          console.log(e.detail);
+          this.menuTabs.setSelectedTab(this.menuTabs.getTab(e.detail.item.id));
+        }
+      );
     }
   }
 

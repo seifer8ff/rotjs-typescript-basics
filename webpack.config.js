@@ -78,11 +78,19 @@ plugins: [
                 from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
                 to: path.resolve(__dirname, 'dist/shoelace/assets')
                 },
+                {
+                    from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
+                    to: path.resolve(__dirname, 'dist/shoelace/themes')
+                },
                 // copy to both places to allow dev server and also prod builds
                 {
                     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
                     to: path.resolve(__dirname, 'shoelace/assets')
-                },
+                },  
+                {
+                    from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
+                    to: path.resolve(__dirname, 'shoelace/themes')
+                },    
                 { from: "./public", to: "public" } ] 
         }
     )

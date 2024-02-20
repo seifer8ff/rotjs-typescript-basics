@@ -7,17 +7,43 @@ import SlButton from "@shoelace-style/shoelace/dist/components/button/button.js"
 import SlTabGroup from "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
 import SlTabPanel from "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.js";
 import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.js";
+import "@shoelace-style/shoelace/dist/components/menu/menu.js";
+import "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
+import "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
+import "@shoelace-style/shoelace/dist/components/popup/popup.js";
+import "@shoelace-style/shoelace/dist/components/menu-label/menu-label.js";
+import "@shoelace-style/shoelace/dist/components/divider/divider.js";
+import { MenuTabContent } from "./menu-tab-content";
+import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu.js";
+import SlDropdown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
+import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
+
+export interface MenuTab {
+  name: string;
+  icon: string;
+}
+
+export const Tabs: MenuTab[] = [
+  { name: "Entities", icon: "person" },
+  { name: "Cities", icon: "house-door" },
+  { name: "Resources", icon: "backpack4" },
+  { name: "Build", icon: "wrench" },
+];
 
 export class MenuTabs extends HTMLElement {
-  public pauseBtn: SlButton;
-  public pauseIcon: SlIcon;
   public tabGroup: SlTabGroup;
   public tabPanels: SlTabPanel[];
+  private dropdownBtn: SlButton;
+  private dropdown: SlDropdown;
+  public dropdownMenu: SlMenu;
+  public selectedTab: MenuTab;
+  public menuTabContent: MenuTabContent;
+  private topControls: HTMLDivElement;
+  private midControls: HTMLDivElement;
+  private dropdownMenuOptions: SlMenuItem[];
 
   constructor() {
     super();
-
-    const tabIds = ["Game", "Inventory", "Settings"];
 
     const shadow = this.attachShadow({ mode: "open" });
 
@@ -28,152 +54,178 @@ export class MenuTabs extends HTMLElement {
     container.style.left = "0";
     container.style.bottom = "20px";
     container.style.padding = "10px";
-    container.style.paddingLeft = "20px";
+    container.style.paddingLeft = "0px";
     container.style.maxWidth = "calc(100% - 20px)";
     container.style.maxHeight = "calc(100% - 20px)";
-    container.style.overflow = "hidden";
-    container.style.backgroundColor = "rgba(25, 25, 25, .55)";
+    container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
     container.style.backdropFilter = "blur(15px)";
     container.style.display = "flex";
     container.style.flexDirection = "column";
     container.style.alignItems = "center";
-    container.style.justifyContent = "space-between";
+    container.style.justifyContent = "start";
     container.style.borderTopRightRadius = "10px";
     container.style.borderBottomRightRadius = "10px";
 
-    const topControls = document.createElement("div");
-    topControls.style.flexGrow = "1";
-    topControls.style.flexBasis = "0";
+    this.topControls = document.createElement("div");
+    this.topControls.style.flexGrow = "0";
+    this.topControls.style.flexBasis = "0";
+    this.dropdown = document.createElement("sl-dropdown");
+    this.dropdown.setAttribute("placement", "bottom-end");
+    this.dropdown.style.pointerEvents = "auto";
+    this.dropdown.style.marginTop = "5px";
 
-    this.pauseBtn = document.createElement("sl-button");
-    this.pauseBtn.setAttribute("variant", "text");
-    this.pauseBtn.setAttribute("size", "large");
-    container.style.pointerEvents = "auto";
-    // pauseButton.style.margin = "15px";
-    this.pauseIcon = document.createElement("sl-icon");
-    this.pauseIcon.style.fontSize = "32px";
-    this.pauseIcon.setAttribute("name", "pause-fill");
+    this.dropdownMenu = document.createElement("sl-menu");
+    this.dropdownMenu.style.pointerEvents = "auto";
+    this.dropdown.appendChild(this.dropdownMenu);
 
-    this.pauseBtn.appendChild(this.pauseIcon);
-    this.pauseBtn.addEventListener("click", () => {
-      console.log("Pause button clicked");
-    });
+    const divider = document.createElement("sl-divider");
+    this.topControls.appendChild(this.dropdown);
+    this.topControls.appendChild(divider);
 
-    topControls.appendChild(this.pauseBtn);
+    this.midControls = document.createElement("div");
+    this.midControls.style.flexGrow = "1";
+    this.midControls.style.flexBasis = "0";
+    this.midControls.style.display = "flex";
+    this.midControls.style.flexDirection = "column";
+    this.midControls.style.justifyContent = "start";
+    this.midControls.style.maxHeight = "100%";
+    this.midControls.style.overflowY = "auto";
 
-    const midControls = document.createElement("div");
-    midControls.style.flexGrow = "1";
-    midControls.style.flexBasis = "0";
-    midControls.style.display = "flex";
-    midControls.style.flexDirection = "column";
-    midControls.style.justifyContent = "center";
+    this.setSelectedTab(Tabs[0]);
 
-    const tabGroup = document.createElement("sl-tab-group");
-    tabGroup.setAttribute("placement", "start");
-    tabGroup.addEventListener("sl-tab-hide", (e: any) => {
-      const hideTab = e.detail.name;
-      if (hideTab === "game") {
-        topControls.style.display = "none";
-        bottomControls.style.display = "none";
-        // topControls.style.height = "0";
-        // bottomControls.style.height = "0";
-      } else {
-        // topControls.style.height = "auto";
-        // bottomControls.style.height = "auto";
-        topControls.style.display = "flex";
-        bottomControls.style.display = "flex";
-        return;
-      }
-    });
-    tabGroup.addEventListener("sl-tab-show", (e: any) => {
-      const showTab = e.detail.name;
-      if (showTab === "game") {
-        // topControls.style.height = "0";
-        // bottomControls.style.height = "0";
-        topControls.style.display = "flex";
-        bottomControls.style.display = "flex";
-        return;
-      } else {
-        // topControls.style.height = "0";
-        // bottomControls.style.height = "0";
-        topControls.style.display = "none";
-        bottomControls.style.display = "none";
-        return;
-      }
-    });
-
-    tabIds.forEach((tabId) => {
-      const navTab = document.createElement("sl-tab");
-      const navIcon = document.createElement("sl-icon");
-      switch (tabId) {
-        case "Game":
-          navIcon.setAttribute("name", "globe-americas");
-          break;
-        case "Inventory":
-          navIcon.setAttribute("name", "backpack4");
-          break;
-        case "Settings":
-          navIcon.setAttribute("name", "gear");
-          break;
-        default:
-          navIcon.setAttribute("name", "exclamation-triangle");
-      }
-      navTab.appendChild(navIcon);
-      navTab.style.margin = "15px";
-      navTab.style.pointerEvents = "auto";
-
-      navTab.setAttribute("slot", "nav");
-      navTab.setAttribute("panel", tabId.toLowerCase());
-
-      tabGroup.appendChild(navTab);
-    });
-
-    tabIds.forEach((tabId) => {
-      if (tabId === "Game") {
-        return;
-      }
-      const panelTab = document.createElement("sl-tab-panel");
-      panelTab.textContent = `This is the ${tabId} panel...`;
-      panelTab.setAttribute("name", tabId.toLowerCase());
-      panelTab.style.padding = "10px";
-
-      panelTab.style.pointerEvents = "auto";
-      tabGroup.appendChild(panelTab);
-    });
-    midControls.appendChild(tabGroup);
-
-    const bottomControls = document.createElement("div");
-    bottomControls.style.flexGrow = "1";
-    bottomControls.style.flexBasis = "0";
-    bottomControls.style.display = "flex";
-    bottomControls.style.flexDirection = "column";
-
-    const testResources = [
-      "currency-dollar",
-      "piggy-bank",
-      "capsule",
-      "flower2",
-    ];
-
-    testResources.forEach((resource) => {
-      const resourceBtn = document.createElement("sl-button");
-      const resourceIcon = document.createElement("sl-icon");
-      resourceBtn.setAttribute("variant", "text");
-      resourceBtn.style.pointerEvents = "auto";
-      resourceIcon.style.padding = "15px";
-      resourceIcon.style.fontSize = "16px";
-      resourceIcon.setAttribute("name", resource);
-      resourceBtn.appendChild(resourceIcon);
-      bottomControls.appendChild(resourceBtn);
-    });
-
-    container.appendChild(topControls);
-    container.appendChild(midControls);
-    container.appendChild(bottomControls);
-
-    // container.appendChild(tabGroup);
+    container.appendChild(this.topControls);
+    container.appendChild(this.midControls);
 
     shadow.appendChild(container);
+  }
+
+  public getTab(tabName: string): MenuTab {
+    return Tabs.find((tab) => tab.name === tabName);
+  }
+
+  public setSelectedTab(tab: MenuTab): void {
+    this.selectedTab = tab;
+    this.buildTabDropdown();
+    this.buildTabContent();
+  }
+
+  private buildTabDropdown(): void {
+    if (this.dropdownBtn) {
+      this.dropdown.removeChild(this.dropdownBtn);
+    }
+    this.dropdownBtn = document.createElement("sl-button");
+    this.dropdownBtn.setAttribute("variant", "text");
+    this.dropdownBtn.setAttribute("slot", "trigger");
+    this.dropdownBtn.setAttribute("caret", "");
+    const dropdownIcon = document.createElement("sl-icon");
+    dropdownIcon.setAttribute("name", this.selectedTab.icon);
+    dropdownIcon.style.fontSize = "20px";
+    this.dropdownBtn.appendChild(dropdownIcon);
+    this.dropdown.appendChild(this.dropdownBtn);
+
+    if (this.dropdownMenuOptions) {
+      for (let option of this.dropdownMenuOptions) {
+        this.dropdownMenu.removeChild(option);
+      }
+    }
+    this.dropdownMenuOptions = [];
+
+    for (let tab of Tabs) {
+      if (tab === this.selectedTab) {
+        continue;
+      }
+
+      const dropdownItem = document.createElement("sl-menu-item");
+      const dropdownIcon = document.createElement("sl-icon");
+      dropdownIcon.style.marginRight = "15px";
+      dropdownItem.textContent = tab.name;
+      dropdownItem.id = tab.name;
+      dropdownItem.style.paddingTop = "15px";
+      dropdownItem.style.paddingBottom = "15px";
+      dropdownIcon.setAttribute("slot", "prefix");
+      dropdownIcon.setAttribute("name", tab.icon);
+      dropdownItem.appendChild(dropdownIcon);
+      this.dropdownMenu.appendChild(dropdownItem);
+      this.dropdownMenuOptions.push(dropdownItem);
+    }
+  }
+
+  private buildTabContent(): void {
+    let placeholderResources: MenuTab[];
+
+    switch (this.selectedTab.name) {
+      case "Entities":
+        placeholderResources = [
+          { name: "Mario", icon: "person-bounding-box" },
+          { name: "Cassie", icon: "person-bounding-box" },
+          { name: "Judy", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+          { name: "Jermaine", icon: "person-bounding-box" },
+        ];
+        break;
+      case "Cities":
+        placeholderResources = [
+          { name: "Boom Town", icon: "house-gear" },
+          { name: "Declining City", icon: "house-down-fill" },
+          { name: "Potential Site", icon: "geo-alt" },
+          { name: "Commercial District", icon: "shop-window" },
+        ];
+        break;
+      case "Resources":
+        placeholderResources = [
+          { name: "Currency", icon: "currency-dollar" },
+          { name: "Animals", icon: "piggy-bank" },
+          { name: "Medicine", icon: "capsule" },
+          { name: "Plant Material", icon: "flower2" },
+        ];
+        break;
+      case "Build":
+        placeholderResources = [
+          { name: "Planning", icon: "pencil" },
+          { name: "Housing", icon: "house" },
+        ];
+        break;
+    }
+    if (this.menuTabContent) {
+      this.midControls.removeChild(this.menuTabContent);
+    }
+
+    this.menuTabContent = new MenuTabContent(
+      this.selectedTab,
+      placeholderResources
+    );
+    this.midControls.appendChild(this.menuTabContent);
   }
 }
