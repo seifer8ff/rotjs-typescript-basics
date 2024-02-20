@@ -1,8 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es6",
-        "module": "es6",
-        "moduleResolution": "Node",
+        "target": "es5",
         "resolveJsonModule": true,
         "lib": [
             "dom",

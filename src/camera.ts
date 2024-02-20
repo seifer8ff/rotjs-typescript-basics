@@ -245,8 +245,8 @@ export class Camera {
   private handlePanEnd = (g: TinyGesture) => {
     this.isPanning = false;
     let momentumModifier = 0.8;
-    const momentumDuration = 250; // in milliseconds
-    const momentumInterval = 1000 / 60; // in milliseconds
+    const momentumDuration = 300; // in milliseconds
+    const momentumInterval = 16; // in milliseconds
     const momentumX =
       (g.velocityX * momentumModifier) / this.ui.gameDisplay.stage.scale.x;
     const momentumY =

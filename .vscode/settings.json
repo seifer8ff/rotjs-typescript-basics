@@ -1,4 +1,3 @@
 {
-    "npm-scripts.showStartNotification": false,
-    "html.customData": ["./node_modules/@shoelace-style/shoelace/dist/vscode.html-custom-data.json"]
+    "npm-scripts.showStartNotification": false
 }
