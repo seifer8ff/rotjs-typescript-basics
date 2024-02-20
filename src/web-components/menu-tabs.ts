@@ -59,7 +59,7 @@ export class MenuTabs extends HTMLElement {
     container.style.maxHeight = "calc(100% - 20px)";
     container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
-    container.style.backdropFilter = "blur(15px)";
+    container.style["backdropFilter"] = "blur(15px)";
     container.style.display = "flex";
     container.style.flexDirection = "column";
     container.style.alignItems = "center";

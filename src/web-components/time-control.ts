@@ -24,7 +24,7 @@ export class TimeControl extends HTMLElement {
     container.style.alignItems = "center";
     container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
-    container.style.backdropFilter = "blur(15px)";
+    container.style["backdropFilter"] = "blur(15px)";
     // container.style.padding = "20px";
     container.style.padding = "0 20px 0 20px";
     container.style.fontFamily = "Arial";
