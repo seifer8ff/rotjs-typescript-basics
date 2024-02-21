@@ -15,6 +15,7 @@ import { Animal } from "./entities/animal";
 import { Renderer } from "./renderer";
 import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
+import { TimeManager } from "./time-manager";
 
 export class Game {
   public entityCount = 5;
@@ -27,17 +28,23 @@ export class Game {
   public plants: Actor[];
   public gameState: GameState;
   public renderer: Renderer;
+  public timeManager: TimeManager;
   public userInterface: UserInterface;
-  public isPaused = false;
-  public biome: BiomeType = "grassland";
 
-  private scheduler: Action;
   private treePoint: Point;
+
+  private lastRenderTime: number;
+  private msPerFrame: number = 1000 / 60; // desired interval is 60fps
+
+  private lastGameLoopTime: number;
+  private msPerLoop: number = 1000 / 20; // desired interval is 1000 ms / runs per second
 
   constructor() {
     // RNG.setSeed(1234);
 
     // sensible default
+    // let width = 350;
+    // let height = 350;
     let width = 350;
     let height = 350;
     let fontSize = 20;
@@ -48,6 +55,7 @@ export class Game {
     this.gameSize = { width: width, height: height };
     this.mapSize = { width: this.gameSize.width, height: this.gameSize.height };
 
+    this.timeManager = new TimeManager(this);
     this.userInterface = new UserInterface(this);
     this.gameState = new GameState();
     this.map = new MapWorld(this);
@@ -60,7 +68,8 @@ export class Game {
   }
 
   public start() {
-    this.mainLoop();
+    requestAnimationFrame(this.gameLoop.bind(this));
+    requestAnimationFrame(this.renderLoop.bind(this));
   }
 
   mapIsPassable(x: number, y: number): boolean {
@@ -197,7 +206,6 @@ export class Game {
   }
 
   private async initializeGame(): Promise<boolean> {
-    console.log("init game");
     await this.userInterface.init();
     this.gameState.reset();
 
@@ -205,10 +213,8 @@ export class Game {
     this.generatePlants();
 
     this.generateBeings();
-    this.scheduler = new Scheduler.Action();
-    // this.scheduler.add(this.player, true);
     for (let entity of this.entities) {
-      this.scheduler.add(entity, true);
+      this.timeManager.addToSchedule(entity, true);
     }
 
     this.userInterface.refreshPanel();
@@ -216,26 +222,25 @@ export class Game {
     return true;
   }
 
-  private async mainLoop(): Promise<any> {
-    let actor: Actor;
-    while (true) {
-      await Game.delay(100);
+  private async gameLoop(now: number) {
+    requestAnimationFrame(this.gameLoop.bind(this));
 
-      if (!this.isPaused) {
-        actor = this.scheduler.next();
+    if (!this.lastGameLoopTime) {
+      this.lastGameLoopTime = now;
+    }
+    const elapsed = now - this.lastGameLoopTime;
+
+    if (elapsed > this.msPerLoop / this.timeManager.timeScale) {
+      let actor: Actor;
+      if (!this.timeManager.isPaused) {
+        actor = this.timeManager.nextOnSchedule();
 
         if (actor) {
           actor.plan();
-          this.scheduler.setDuration(actor.action.durationInTurns);
+          this.timeManager.setDuration(actor.action.durationInTurns);
           await actor.act();
-          // if (actor.type === TileType.Player) {
-          //   this.userInterface.statusLine.turns += 1;
-          // }
         }
-        this.userInterface.refreshPanel();
       }
-
-      // this.map.UpdateFOV(this.player);
 
       if (this.gameState.isGameOver()) {
         await InputUtility.waitForInput(
@@ -243,46 +248,23 @@ export class Game {
         );
         await this.initializeGame();
       }
+      this.lastGameLoopTime = now;
     }
   }
 
-  // private async mainLoop(): Promise<any> {
-  //   let actor: Actor;
-  //   console.log("main loop");
-  //   while (true) {
-  //     await this.userInterface.camera.Act();
+  private renderLoop(now: number) {
+    requestAnimationFrame(this.renderLoop.bind(this));
 
-  //     actor = this.scheduler.next();
-  //     // actor = null;
-  //     // if (!actor) {
-  //     //   await this.userInterface.camera.Act();
-  //     // }
+    if (!this.lastRenderTime) {
+      this.lastRenderTime = now;
+    }
+    const elapsed = now - this.lastRenderTime;
 
-  //     if (actor) {
-  //       const actionDuration = Math.ceil(RNG.getUniform() * 20);
-  //       this.scheduler.setDuration(actionDuration);
-  //       await actor.act();
-  //       if (actor.type === TileType.Player) {
-  //         this.userInterface.statusLine.turns += 1;
-  //       }
-  //       if (this.gameState.foundPineapple) {
-  //         this.userInterface.statusLine.pineapples += 1;
-  //       }
-  //     }
-
-  //     // this.drawUserInterface();
-  //     this.userInterface.refreshPanel();
-
-  //     // this.map.UpdateFOV(this.player);
-
-  //     if (this.gameState.isGameOver()) {
-  //       await InputUtility.waitForInput(
-  //         this.userInterface.HandleInputConfirm.bind(this)
-  //       );
-  //       await this.initializeGame();
-  //     }
-  //   }
-  // }
+    if (elapsed > this.msPerFrame) {
+      this.userInterface.refreshPanel();
+      this.lastRenderTime = now;
+    }
+  }
 
   private getActorName(actor: Actor): string {
     switch (actor.type) {

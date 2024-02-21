@@ -45,6 +45,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@shoelace-style/shoelace": "^2.14.0",
     "lodash": "^4.17.21",
     "pixi.js": "^7.4.0",
     "tinygesture": "^3.0.0"

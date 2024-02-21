@@ -10,6 +10,9 @@ import { Tile } from "./tile";
 import { Person } from "./entities/person";
 import { Layer } from "./renderer";
 import { Camera } from "./camera";
+import { TimeControl } from "./web-components/time-control";
+import { MenuTabs } from "./web-components/menu-tabs";
+import { MenuTabContent } from "./web-components/menu-tab-content";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -30,10 +33,13 @@ export class UserInterface {
   private actionLogPosition: Point;
   private maximumBoxes = 10;
   private fontSize = 20;
+  private timeControl: TimeControl;
+  private menuTabs: MenuTabs;
 
   constructor(private game: Game) {
     this.statusLinePosition = new Point(0, 0);
     this.actionLogPosition = new Point(0, 3);
+    this.initWebComponents();
 
     this.gameDisplayOptions = {
       resizeTo: window,
@@ -78,7 +84,14 @@ export class UserInterface {
     );
 
     this.camera = new Camera(this.game, this);
+    this.initControls();
     this.initEventListeners();
+  }
+
+  private initWebComponents() {
+    customElements.define("time-control", TimeControl);
+    customElements.define("menu-tab-content", MenuTabContent);
+    customElements.define("menu-tabs", MenuTabs);
   }
 
   private initEventListeners() {
@@ -90,10 +103,40 @@ export class UserInterface {
     });
   }
 
+  private initControls() {
+    this.timeControl = document.querySelector("time-control");
+    if (this.timeControl) {
+      this.timeControl.toggleTooltip();
+      this.timeControl.updateTime(
+        this.game.timeManager.getCurrentTimeForDisplay()
+      );
+      this.timeControl.pauseBtn.addEventListener("click", () => {
+        this.game.timeManager.togglePause();
+        this.timeControl.pauseBtn.setAttribute(
+          "name",
+          this.game.timeManager.isPaused ? "play-fill" : "pause-fill"
+        );
+      });
+      this.timeControl.timeSlider.addEventListener("sl-input", (e: any) => {
+        this.game.timeManager.setTimescale(e.target.value);
+        console.log("time scale: ", this.game.timeManager.timeScale);
+      });
+    }
+    this.menuTabs = document.querySelector("menu-tabs");
+    if (this.menuTabs) {
+      this.menuTabs.dropdownMenu.addEventListener(
+        "sl-select",
+        (e: CustomEvent) => {
+          console.log(e.detail);
+          this.menuTabs.setSelectedTab(this.menuTabs.getTab(e.detail.item.id));
+        }
+      );
+    }
+  }
+
   private handleInput(event: KeyboardEvent): void {
     if (event.keyCode === KEYS.VK_SPACE) {
-      this.game.isPaused = !this.game.isPaused;
-      console.log("isPaused: " + this.game.isPaused);
+      this.game.timeManager.togglePause();
     }
   }
 
@@ -130,6 +173,7 @@ export class UserInterface {
     this.game.map.draw();
     this.statusLine.draw();
     this.messageLog.draw();
+    this.updateTimeControl();
     const viewportInTiles = this.camera.getViewportInTiles(true);
     this.drawPlants();
     this.drawEntities();
@@ -159,6 +203,14 @@ export class UserInterface {
         entity.position,
         Layer.ENTITY,
         entity.tile.sprite
+      );
+    }
+  }
+
+  private updateTimeControl(): void {
+    if (this.timeControl) {
+      this.timeControl.updateTime(
+        this.game.timeManager.getCurrentTimeForDisplay()
       );
     }
   }

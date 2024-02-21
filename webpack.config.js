@@ -58,6 +58,10 @@ plugins: [
                 <meta name="description" content="Your game description goes here.">            
             </head>
             <body>
+                <div id="uiContainer">
+                    <time-control></time-control>
+                    <menu-tabs></menu-tabs>
+                </div>
                 <div id="gameContainer">
                     <div id="canvasContainer"></div>
                     <div id="textContainer"></div>
@@ -68,7 +72,27 @@ plugins: [
     }),
     new CopyWebpackPlugin(
         { 
-            patterns: [ { from: "./public", to: "public" } ] 
+            
+            patterns: [ 
+                // Copy Shoelace assets to dist/shoelace
+                // {
+                // from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
+                // to: path.resolve(__dirname, 'dist/shoelace/assets')
+                // },
+                // {
+                //     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
+                //     to: path.resolve(__dirname, 'dist/shoelace/themes')
+                // },
+                // copy to both places to allow dev server and also prod builds
+                {
+                    from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
+                    to: path.resolve(__dirname, 'shoelace/assets')
+                },  
+                {
+                    from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
+                    to: path.resolve(__dirname, 'shoelace/themes')
+                },    
+                { from: "./public", to: "public" } ] 
         }
     )
 ],
