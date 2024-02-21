@@ -26,6 +26,10 @@ module: {
           //   test: /\.json/,
           //   type: 'asset/resource'
           // },
+          {
+            test: /\.(png|svg|jpg|jpeg|gif)$/i,
+            type: 'asset/resource',
+          },
         {
             test: /\.css$/,
             use: ['style-loader', 'css-loader']
@@ -42,13 +46,14 @@ resolve: {
 },
 output: {
     filename: 'app.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, 'dist'),
+    clean: true
 },
 plugins: [
     new HtmlWebpackPlugin({
     title: "Sim World",
     templateContent: `
-        <html>
+        <html class="sl-theme-dark">
             <head>
                 <title>Sim World</title>
                 <meta name="description" content="Test project using rotjs and pixijs to build a simulated world to settle.">
@@ -74,16 +79,6 @@ plugins: [
         { 
             
             patterns: [ 
-                // Copy Shoelace assets to dist/shoelace
-                // {
-                // from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
-                // to: path.resolve(__dirname, 'dist/shoelace/assets')
-                // },
-                // {
-                //     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
-                //     to: path.resolve(__dirname, 'dist/shoelace/themes')
-                // },
-                // copy to both places to allow dev server and also prod builds
                 {
                     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
                     to: path.resolve(__dirname, 'shoelace/assets')
@@ -91,10 +86,12 @@ plugins: [
                 {
                     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
                     to: path.resolve(__dirname, 'shoelace/themes')
-                },    
+                },
+                {
+                    from: path.resolve(__dirname, './public/shoelace/assets/icons'),
+                    to: path.resolve(__dirname, 'public/shoelace/assets/icons')
+                },
                 { from: "./public", to: "public" } ] 
         }
-    )
-],
-mode: 'development'
+    )]
 };
