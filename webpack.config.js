@@ -59,6 +59,7 @@ plugins: [
             </head>
             <body>
                 <div id="uiContainer">
+                    <time-control></time-control>
                     <menu-tabs></menu-tabs>
                 </div>
                 <div id="gameContainer">
@@ -74,14 +75,14 @@ plugins: [
             
             patterns: [ 
                 // Copy Shoelace assets to dist/shoelace
-                {
-                from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
-                to: path.resolve(__dirname, 'dist/shoelace/assets')
-                },
-                {
-                    from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
-                    to: path.resolve(__dirname, 'dist/shoelace/themes')
-                },
+                // {
+                // from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
+                // to: path.resolve(__dirname, 'dist/shoelace/assets')
+                // },
+                // {
+                //     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
+                //     to: path.resolve(__dirname, 'dist/shoelace/themes')
+                // },
                 // copy to both places to allow dev server and also prod builds
                 {
                     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
