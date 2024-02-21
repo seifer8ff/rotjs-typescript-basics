@@ -88,8 +88,8 @@ plugins: [
                     to: path.resolve(__dirname, 'shoelace/themes')
                 },
                 {
-                    from: path.resolve(__dirname, './public/shoelace/assets/icons'),
-                    to: path.resolve(__dirname, 'public/shoelace/assets/icons')
+                    from: path.resolve(__dirname, './public/shoelace'),
+                    to: path.resolve(__dirname, 'public/shoelace')
                 },
                 { from: "./public", to: "public" } ] 
         }
