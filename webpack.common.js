@@ -72,7 +72,7 @@ module.exports = {
         }),
         new HtmlWebpackPlugin({
             title: "Sim World",
-            publicPath: "/",
+            publicPath: "",
             templateContent: `
         <html class="sl-theme-dark">
             <head>
