@@ -1,6 +1,4 @@
-import { css } from "lit";
-
-export default css`
+import{css}from"lit";export default css`
   :root,
   :host,
   .sl-theme-light {
