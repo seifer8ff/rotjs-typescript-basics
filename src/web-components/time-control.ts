@@ -3,6 +3,7 @@ import "@shoelace-style/shoelace/dist/components/button/button.js";
 import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
 import "@shoelace-style/shoelace/dist/components/range/range.js";
 import { SlIconButton, SlRange } from "@shoelace-style/shoelace";
+import PauseIcon from "/public/shoelace/assets/icons/pause-fill.svg";
 
 export class TimeControl extends HTMLElement {
   public timeDisplay: HTMLDivElement;
@@ -34,7 +35,8 @@ export class TimeControl extends HTMLElement {
 
     this.pauseBtn = document.createElement("sl-icon-button");
     this.pauseBtn.setAttribute("size", "large");
-    this.pauseBtn.setAttribute("name", "pause-fill");
+    // this.pauseBtn.setAttribute("name", "pause-fill");
+    this.pauseBtn.setAttribute("src", PauseIcon);
     this.pauseBtn.style.fontSize = "32px";
 
     container.appendChild(this.pauseBtn);

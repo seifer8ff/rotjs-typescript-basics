@@ -17,6 +17,7 @@ import { MenuTabContent } from "./menu-tab-content";
 import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import SlDropdown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
+import PauseIcon from "/public/shoelace/assets/icons/pause-fill.svg";
 
 export interface MenuTab {
   name: string;
@@ -119,7 +120,8 @@ export class MenuTabs extends HTMLElement {
     this.dropdownBtn.setAttribute("slot", "trigger");
     this.dropdownBtn.setAttribute("caret", "");
     const dropdownIcon = document.createElement("sl-icon");
-    dropdownIcon.setAttribute("name", this.selectedTab.icon);
+    // dropdownIcon.setAttribute("name", this.selectedTab.icon);
+    dropdownIcon.setAttribute("src", PauseIcon);
     dropdownIcon.style.fontSize = "20px";
     this.dropdownBtn.appendChild(dropdownIcon);
     this.dropdown.appendChild(this.dropdownBtn);
