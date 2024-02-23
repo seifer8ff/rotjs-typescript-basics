@@ -65,6 +65,3 @@ dist/
 
 # keep public/shoelace as its where icons are copied from for prod build
 public/*
-!public/shoelace
-
-/shoelace-temp

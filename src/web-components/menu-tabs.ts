@@ -17,8 +17,8 @@ import { MenuTabContent } from "./menu-tab-content";
 import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import SlDropdown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
-import PauseIcon from "/public/shoelace/assets/icons/pause-fill.svg";
-import EntityIcon from "/public/shoelace/assets/icons/person-bounding-box.svg";
+import PauseIcon from "../shoelace/assets/icons/pause-fill.svg";
+import EntityIcon from "../shoelace/assets/icons/person-bounding-box.svg";
 
 export interface MenuTab {
   name: string;

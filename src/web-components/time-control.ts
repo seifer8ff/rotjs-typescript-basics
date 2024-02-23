@@ -3,7 +3,8 @@ import "@shoelace-style/shoelace/dist/components/button/button.js";
 import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
 import "@shoelace-style/shoelace/dist/components/range/range.js";
 import { SlIconButton, SlRange } from "@shoelace-style/shoelace";
-import PauseIcon from "/public/shoelace/assets/icons/pause-fill.svg";
+import PauseIcon from "../shoelace/assets/icons/pause-fill.svg";
+import PlayIcon from "../shoelace/assets/icons/play-fill.svg";
 
 export class TimeControl extends HTMLElement {
   public timeDisplay: HTMLDivElement;
@@ -68,6 +69,10 @@ export class TimeControl extends HTMLElement {
 
   public updateTime(timeForDisplay: string): void {
     this.timeText.textContent = timeForDisplay;
+  }
+
+  public togglePauseBtn(pause: boolean): void {
+    this.pauseBtn.setAttribute("src", pause ? PlayIcon : PauseIcon);
   }
 
   public toggleTooltip(): void {
