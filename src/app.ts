@@ -1,5 +1,5 @@
 import { Game } from "./game";
-import "./shoelace/themes/dark.styles";
+// import "./shoelace/themes/dark.styles";
 import "./shoelace/themes/dark.css";
 import "./style.css";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";

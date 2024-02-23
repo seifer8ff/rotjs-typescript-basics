@@ -6,7 +6,6 @@ import "@shoelace-style/shoelace/dist/components/button/button.js";
 import SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import SlTabGroup from "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
 import SlTabPanel from "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.js";
-import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
 import "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
@@ -17,8 +16,20 @@ import { MenuTabContent } from "./menu-tab-content";
 import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import SlDropdown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
-import PauseIcon from "../shoelace/assets/icons/pause-fill.svg";
 import EntityIcon from "../shoelace/assets/icons/person-bounding-box.svg";
+import WrenchIcon from "../shoelace/assets/icons/wrench.svg";
+import HouseIcon from "../shoelace/assets/icons/house-door.svg";
+import BackpackIcon from "../shoelace/assets/icons/backpack4.svg";
+import PersonIcon from "../shoelace/assets/icons/person.svg";
+import HouseWithGearIcon from "../shoelace/assets/icons/house-gear.svg";
+import HouseDownIcon from "../shoelace/assets/icons/house-down-fill.svg";
+import GeoIcon from "../shoelace/assets/icons/geo-alt.svg";
+import ShopWindowIcon from "../shoelace/assets/icons/shop-window.svg";
+import CurrencyIcon from "../shoelace/assets/icons/currency-dollar.svg";
+import PiggyBankIcon from "../shoelace/assets/icons/piggy-bank.svg";
+import CapsuleIcon from "../shoelace/assets/icons/capsule.svg";
+import FlowerIcon from "../shoelace/assets/icons/flower2.svg";
+import PencilIcon from "../shoelace/assets/icons/pencil.svg";
 
 export interface MenuTab {
   name: string;
@@ -26,10 +37,10 @@ export interface MenuTab {
 }
 
 export const Tabs: MenuTab[] = [
-  { name: "Entities", icon: "person" },
-  { name: "Cities", icon: "house-door" },
-  { name: "Resources", icon: "backpack4" },
-  { name: "Build", icon: "wrench" },
+  { name: "Entities", icon: PersonIcon },
+  { name: "Cities", icon: HouseIcon },
+  { name: "Resources", icon: BackpackIcon },
+  { name: "Build", icon: WrenchIcon },
 ];
 
 export class MenuTabs extends HTMLElement {
@@ -122,7 +133,7 @@ export class MenuTabs extends HTMLElement {
     this.dropdownBtn.setAttribute("caret", "");
     const dropdownIcon = document.createElement("sl-icon");
     // dropdownIcon.setAttribute("name", this.selectedTab.icon);
-    dropdownIcon.setAttribute("src", PauseIcon);
+    dropdownIcon.setAttribute("src", this.selectedTab.icon);
     dropdownIcon.style.fontSize = "20px";
     this.dropdownBtn.appendChild(dropdownIcon);
     this.dropdown.appendChild(this.dropdownBtn);
@@ -147,7 +158,7 @@ export class MenuTabs extends HTMLElement {
       dropdownItem.style.paddingTop = "15px";
       dropdownItem.style.paddingBottom = "15px";
       dropdownIcon.setAttribute("slot", "prefix");
-      dropdownIcon.setAttribute("name", tab.icon);
+      dropdownIcon.setAttribute("src", tab.icon);
       dropdownItem.appendChild(dropdownIcon);
       this.dropdownMenu.appendChild(dropdownItem);
       this.dropdownMenuOptions.push(dropdownItem);
@@ -200,24 +211,24 @@ export class MenuTabs extends HTMLElement {
         break;
       case "Cities":
         placeholderResources = [
-          { name: "Boom Town", icon: "house-gear" },
-          { name: "Declining City", icon: "house-down-fill" },
-          { name: "Potential Site", icon: "geo-alt" },
-          { name: "Commercial District", icon: "shop-window" },
+          { name: "Boom Town", icon: HouseWithGearIcon },
+          { name: "Declining City", icon: HouseDownIcon },
+          { name: "Potential Site", icon: GeoIcon },
+          { name: "Commercial District", icon: ShopWindowIcon },
         ];
         break;
       case "Resources":
         placeholderResources = [
-          { name: "Currency", icon: "currency-dollar" },
-          { name: "Animals", icon: "piggy-bank" },
-          { name: "Medicine", icon: "capsule" },
-          { name: "Plant Material", icon: "flower2" },
+          { name: "Currency", icon: CurrencyIcon },
+          { name: "Animals", icon: PiggyBankIcon },
+          { name: "Medicine", icon: CapsuleIcon },
+          { name: "Plant Material", icon: FlowerIcon },
         ];
         break;
       case "Build":
         placeholderResources = [
-          { name: "Planning", icon: "pencil" },
-          { name: "Housing", icon: "house" },
+          { name: "Planning", icon: PencilIcon },
+          { name: "Housing", icon: HouseIcon },
         ];
         break;
     }

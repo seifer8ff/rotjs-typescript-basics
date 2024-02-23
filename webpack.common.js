@@ -47,6 +47,7 @@ module.exports = {
     },
     output: {
         filename: 'app.js',
+        clean: true,
         path: path.resolve(__dirname, 'dist')
     },
     plugins: [
@@ -95,18 +96,6 @@ module.exports = {
             {
 
                 patterns: [
-                    // {
-                    //     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/assets'),
-                    //     to: path.resolve(__dirname, 'shoelace/assets')
-                    // },  
-                    // {
-                    //     from: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
-                    //     to: path.resolve(__dirname, 'shoelace/themes')
-                    // },
-                    // {
-                    //     from: path.resolve(__dirname, './public/shoelace'),
-                    //     to: path.resolve(__dirname, 'public/shoelace')
-                    // },
                     { from: "./public", to: "public" }]
             }
         )]

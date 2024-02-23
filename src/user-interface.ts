@@ -112,12 +112,7 @@ export class UserInterface {
       );
       this.timeControl.pauseBtn.addEventListener("click", () => {
         this.game.timeManager.togglePause();
-        console.log("about to togglepausebtn");
         this.timeControl.togglePauseBtn(this.game.timeManager.isPaused);
-        // this.timeControl.pauseBtn.setAttribute(
-        //   "name",
-        //   this.game.timeManager.isPaused ? "play-fill" : "pause-fill"
-        // );
       });
       this.timeControl.timeSlider.addEventListener("sl-input", (e: any) => {
         this.game.timeManager.setTimescale(e.target.value);
