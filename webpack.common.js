@@ -61,18 +61,13 @@ module.exports = {
                         {
                             source: path.resolve(__dirname, 'node_modules/@shoelace-style/shoelace/dist/themes'),
                             destination: path.resolve(__dirname, 'shoelace-temp/themes')
-                        },
-                        {
-                            source: path.resolve(__dirname, 'public/shoelace'),
-                            destination: path.resolve(__dirname, 'dist/shoelace')
-                        },
+                        }
                     ]
                 }
             }
         }),
         new HtmlWebpackPlugin({
             title: "Sim World",
-            publicPath: "",
             templateContent: `
         <html class="sl-theme-dark">
             <head>
