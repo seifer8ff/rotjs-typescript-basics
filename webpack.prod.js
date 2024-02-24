@@ -1,4 +1,5 @@
 const { merge } = require('webpack-merge');
+const FileManagerPlugin = require('filemanager-webpack-plugin');
 const common = require('./webpack.common.js');
 
 module.exports = merge(common, {
