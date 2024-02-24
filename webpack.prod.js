@@ -1,6 +1,13 @@
 const { merge } = require('webpack-merge');
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const FileManagerPlugin = require('filemanager-webpack-plugin');
 const common = require('./webpack.common.js');
+
+
+const FileManagerPlugin = require('filemanager-webpack-plugin');
+
 
 module.exports = merge(common, {
   mode: 'production',
