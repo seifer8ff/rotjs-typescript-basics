@@ -18,7 +18,7 @@ import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
 
 export class Game {
-  public entityCount = 15;
+  public entityCount = 1;
   public treeCount = 50;
   public gameSize: { width: number; height: number };
   public mapSize: { width: number; height: number };
@@ -45,8 +45,8 @@ export class Game {
     // sensible default
     // let width = 350;
     // let height = 350;
-    let width = 350;
-    let height = 350;
+    let width = 150;
+    let height = 150;
     let fontSize = 20;
 
     // how/why should this change?
@@ -174,6 +174,11 @@ export class Game {
             }
           }
         }
+        this.map.lightManager.clearLightMap();
+        this.map.lightManager.calculateLightLevel();
+        this.map.lightManager.lightEmitters.clearLights();
+        this.calculateLighting();
+        // this.calculateDynamicLighting();
       }
 
       if (this.gameState.isGameOver()) {
@@ -198,6 +203,34 @@ export class Game {
       this.userInterface.refreshPanel();
       this.lastRenderTime = now;
     }
+  }
+
+  private calculateDynamicLighting() {
+    // if night, calculate fov for entities
+    if (this.timeManager.isNighttime) {
+      for (let entity of this.entities) {
+        this.map.lightManager.UpdateFOV(entity);
+      }
+    }
+    // when render loop gets called later, it will use updated lightmap
+  }
+
+  private calculateLighting() {
+    this.map.lightManager.lightEmitters.clearLights();
+    this.map.lightManager.lightEmitters.setLight(12, 12, [240, 240, 30]);
+    this.map.lightManager.lightEmitters.setLight(20, 20, [240, 60, 60]);
+    this.map.lightManager.lightEmitters.setLight(45, 25, [200, 200, 200]);
+    if (this.timeManager.isNighttime) {
+      for (let entity of this.entities) {
+        this.map.lightManager.lightEmitters.setLight(
+          entity.position.x,
+          entity.position.y,
+          this.map.lightManager.lightDefaults.torchBright
+        );
+      }
+    }
+    //update lightmap object
+    this.map.lightManager.calculateLighting();
   }
 
   private getActorName(actor: Actor): string {

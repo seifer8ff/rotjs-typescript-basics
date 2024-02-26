@@ -21,24 +21,25 @@ export class TimeManager {
   public daysPerYear: number;
   public dayLength: number;
   public nightLength: number;
-  public transitionTime: number;
+  // public transitionTime: number;
   public isDayTime: boolean;
   public isNighttime: boolean;
   public currentYear: number;
   public currentDay: number;
   public currentTime: number;
   public currentTurn: number;
+  public remainingCyclePercent: number; // how much time left before day/night cycles. expressed as decimal
 
   constructor(private game: Game) {
     this.scheduler = new Action();
     this.isPaused = false;
 
     this.maxTimeScale = 10;
-    this.dayLength = 50;
-    this.nightLength = 20;
-    this.daysPerYear = 4;
+    this.dayLength = 20;
+    this.nightLength = 60;
+    this.daysPerYear = 10;
 
-    this.transitionTime = 10;
+    // this.transitionTime = 10;
     this.timeScale = 1;
     this.currentYear = 1;
     this.currentDay = 1;
@@ -46,6 +47,7 @@ export class TimeManager {
     this.currentTurn = 0;
     this.isDayTime = true;
     this.isNighttime = !this.isDayTime;
+    this.calculateCurrentTime();
   }
 
   public addToSchedule(
@@ -57,17 +59,33 @@ export class TimeManager {
   }
 
   public nextOnSchedule(): Actor {
-    this.currentTurn = this.scheduler.getTime();
     this.calculateCurrentTime();
     return this.scheduler.next();
   }
 
   public calculateCurrentTime(): void {
+    this.currentTurn = this.scheduler.getTime();
+    const totalDayLength = this.dayLength + this.nightLength;
     this.currentYear =
-      Math.floor(this.currentTurn / this.dayLength / this.daysPerYear) + 1;
+      Math.floor(this.currentTurn / totalDayLength / this.daysPerYear) + 1;
     this.currentDay =
-      (Math.floor(this.currentTurn / this.dayLength) % this.daysPerYear) + 1;
-    this.currentTime = this.currentTurn % this.dayLength;
+      (Math.floor(this.currentTurn / totalDayLength) % this.daysPerYear) + 1;
+    this.currentTime = this.currentTurn % totalDayLength;
+    this.isNighttime = this.currentTime >= this.dayLength;
+    this.isDayTime = !this.isNighttime;
+    // const cycleLength = this.isDayTime ? this.dayLength : this.nightLength;
+    // const currentCycleTime = Math.abs(totalDayLength - this.currentTime);
+    // console.log("currentCycleTime", currentCycleTime);
+    // this.remainingCyclePercent = Math.abs(1 - currentCycleTime / cycleLength);
+    // // this.remainingCyclePercent = Math.abs(1 - this.currentTime / cycleLength);
+
+    // calculate remaining percent left in cycle
+    // at start of cycle, it should equal 1
+    // at end of cycle, it should equal 0
+    // at mid cycle, it should equal 0.5
+    this.remainingCyclePercent = this.isDayTime
+      ? 1 - this.currentTime / this.dayLength
+      : (this.currentTime - this.dayLength) / this.nightLength;
   }
 
   public getCurrentTimeForDisplay(): string {

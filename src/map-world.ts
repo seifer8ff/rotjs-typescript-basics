@@ -1,6 +1,5 @@
-import { Map as RotJsMap } from "rot-js/lib/index";
+import { Color, Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
-import { FOV } from "rot-js/lib/index";
 import { Game } from "./game";
 import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
 import { Point } from "./point";
@@ -8,10 +7,13 @@ import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
 import Simplex from "rot-js/lib/noise/simplex";
+import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
+import { LightManager } from "./light-manager";
 
 export class MapWorld {
+  public lightManager: LightManager;
   private biomeMap: { [key: string]: Biome };
-  private tileMap: { [key: string]: Tile };
+  public terrainTileMap: { [key: string]: Tile };
   private heightMap: { [key: string]: number };
   private terrainMap: { [key: string]: Biome };
   private adjacencyMap: { [key: string]: Biome[] };
@@ -22,7 +24,7 @@ export class MapWorld {
   private islandMask: number;
 
   constructor(private game: Game) {
-    this.tileMap = {};
+    this.terrainTileMap = {};
     this.biomeMap = {};
     this.heightMap = {};
     this.terrainMap = {};
@@ -35,7 +37,7 @@ export class MapWorld {
   }
 
   generateMap(width: number, height: number): void {
-    this.tileMap = {};
+    this.terrainTileMap = {};
     this.biomeMap = {};
     this.heightMap = {}; // between 0 and 1
     this.terrainMap = {};
@@ -58,9 +60,9 @@ export class MapWorld {
         this.dirtyTiles.push(key);
       }
     }
-    // console.log("adjacencyMap: ", this.adjacencyMap);
 
     this.autotileMap(this.biomeMap);
+    this.lightManager = new LightManager(this.game, this);
   }
 
   lerp(x: number, y: number, a: number): number {
@@ -258,21 +260,21 @@ export class MapWorld {
       if (!tile) {
         console.log(`AUTOTILE ERROR: ${biome} - ${season} - ${tileIndex}`);
       }
-      this.tileMap[pos] = tile;
+      this.terrainTileMap[pos] = tile;
     });
   }
 
   setTile(x: number, y: number, tile: Tile): void {
-    this.tileMap[this.coordinatesToKey(x, y)] = tile;
+    this.terrainTileMap[this.coordinatesToKey(x, y)] = tile;
     this.dirtyTiles.push(this.coordinatesToKey(x, y));
   }
 
   getRandomTilePositions(biomeType: BiomeType, quantity: number = 1): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
-    for (let key in this.tileMap) {
+    for (let key in this.terrainTileMap) {
       // console.log("this.map[key]", key, this.map[key]);
-      if (this.tileMap[key].biomeType === biomeType) {
+      if (this.terrainTileMap[key].biomeType === biomeType) {
         buffer.push(this.keyToPoint(key));
       }
     }
@@ -286,17 +288,17 @@ export class MapWorld {
   }
 
   getTile(x: number, y: number): Tile {
-    return this.tileMap[this.coordinatesToKey(x, y)];
+    return this.terrainTileMap[this.coordinatesToKey(x, y)];
   }
 
   getTileType(x: number, y: number): TileType {
-    return this.tileMap[this.coordinatesToKey(x, y)].type;
+    return this.terrainTileMap[this.coordinatesToKey(x, y)].type;
   }
 
   isPassable(x: number, y: number): boolean {
     return (
-      this.coordinatesToKey(x, y) in this.tileMap &&
-      this.tileMap[this.coordinatesToKey(x, y)]?.biomeType !==
+      this.coordinatesToKey(x, y) in this.terrainTileMap &&
+      this.terrainTileMap[this.coordinatesToKey(x, y)]?.biomeType !==
         Tile.Biomes.ocean.biome
     );
   }
@@ -304,7 +306,7 @@ export class MapWorld {
   draw(): void {
     for (let key of this.dirtyTiles) {
       if (key) {
-        const tile = this.tileMap[key];
+        const tile = this.terrainTileMap[key];
         this.game.renderer.removeFromScene(
           this.keyToPoint(key),
           key,
@@ -319,46 +321,6 @@ export class MapWorld {
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];
-  }
-
-  UpdateFOV(actor: Actor) {
-    const fov = new FOV.PreciseShadowcasting(this.lightPasses.bind(this));
-    let bgTile;
-    let key;
-
-    /* output callback */
-    fov.compute(
-      actor.position.x,
-      actor.position.y,
-      3,
-      (xPos, yPos, r, visibility) => {
-        key = xPos + "," + yPos;
-        bgTile = this.tileMap[key];
-        if (this.tileMap[key] == null) {
-          return;
-        }
-        console.log("r= " + r);
-        console.log("visibility: " + visibility);
-        // const glyphs =
-        //   r === 0 ? [this.map[key].glyph, actor.glyph] : [this.map[key].glyph];
-        // const glyphs = r === 0 ? [actor.glyph, this.map[key].glyph] : [this.map[key].glyph];
-
-        const brightness = 0.55 * (1 / r) * visibility;
-        const color = `rgba(244, 197, 91, ${brightness})`;
-        // var color = (this.map[xPos+","+yPos] ? "#aa0": "#660");
-
-        // comment out while switching from glyphs to tiles
-        // this.game.userInterface.draw(new Point(xPos, yPos), glyphs, glyphs.map(g => color));
-      }
-    );
-  }
-
-  private lightPasses(x, y): boolean {
-    var key = x + "," + y;
-    if (key in this.tileMap) {
-      return this.tileMap[key] != Tile.water;
-    }
-    return false;
   }
 
   private coordinatesToKey(x: number, y: number): string {
