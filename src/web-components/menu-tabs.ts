@@ -79,20 +79,20 @@ export class MenuTabs extends HTMLElement {
     this.container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     this.container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
     this.container.style["backdropFilter"] = "blur(15px)";
-    this.container.style.display = "flex";
-    this.container.style.flexDirection = "column";
-    this.container.style.alignItems = "stretch";
-    this.container.style.justifyContent = "start";
+    // this.container.style.display = "flex";
+    // this.container.style.flexDirection = "column";
+    // this.container.style.alignItems = "stretch";
+    // this.container.style.justifyContent = "start";
     this.container.style.borderBottomRightRadius = "10px";
     this.container.style.transition = "transform 0.3s ease-in-out";
-    const innerContainer = document.createElement("div");
-    innerContainer.style.position = "relative";
-    innerContainer.style.display = "flex";
-    innerContainer.style.flexDirection = "column";
-    innerContainer.style.alignItems = "stretch";
-    innerContainer.style.justifyContent = "start";
-    innerContainer.style.overflow = "hidden";
-    this.container.appendChild(innerContainer);
+    // const innerContainer = document.createElement("div");
+    // innerContainer.style.position = "relative";
+    // innerContainer.style.display = "flex";
+    // innerContainer.style.flexDirection = "column";
+    // innerContainer.style.alignItems = "stretch";
+    // innerContainer.style.justifyContent = "start";
+    // innerContainer.style.overflow = "hidden";
+    // this.container.appendChild(innerContainer);
 
     this.handle = document.createElement("sl-icon-button");
     this.handle.setAttribute("src", HandleIcon);
@@ -110,11 +110,11 @@ export class MenuTabs extends HTMLElement {
     this.container.appendChild(this.handle);
 
     this.topControls = document.createElement("div");
-    this.topControls.style.height = "100px";
-    this.topControls.style.display = "flex";
-    this.topControls.style.flexDirection = "column";
-    this.topControls.style.flexGrow = "0";
-    this.topControls.style.flexBasis = "0";
+    this.topControls.style.height = "90px";
+    // this.topControls.style.display = "flex";
+    // this.topControls.style.flexDirection = "column";
+    // this.topControls.style.flexGrow = "0";
+    // this.topControls.style.flexBasis = "0";
     this.dropdown = document.createElement("sl-dropdown");
     this.dropdown.setAttribute("hoist", "true");
     this.dropdown.setAttribute("placement", "bottom-end");
@@ -130,15 +130,20 @@ export class MenuTabs extends HTMLElement {
     this.topControls.appendChild(divider);
 
     this.midControls = document.createElement("div");
-    this.midControls.style.display = "flex";
-    this.midControls.style.flexDirection = "column";
-    this.midControls.style.justifyContent = "start";
+    this.midControls.style.position = "absolute";
+    this.midControls.style.top = "90px";
+    this.midControls.style.left = "0";
+    this.midControls.style.right = "0";
+    this.midControls.style.bottom = "10px";
+    // this.midControls.style.display = "flex";
+    // this.midControls.style.flexDirection = "column";
+    // this.midControls.style.justifyContent = "start";
     this.midControls.style.overflowY = "auto";
 
     this.setSelectedTab(Tabs[0]);
 
-    innerContainer.appendChild(this.topControls);
-    innerContainer.appendChild(this.midControls);
+    this.container.appendChild(this.topControls);
+    this.container.appendChild(this.midControls);
 
     shadow.appendChild(this.container);
   }
