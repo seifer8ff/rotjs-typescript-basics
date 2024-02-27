@@ -110,8 +110,11 @@ export class MenuTabs extends HTMLElement {
     this.container.appendChild(this.handle);
 
     this.topControls = document.createElement("div");
+    this.topControls.style.height = "100px";
     this.topControls.style.display = "flex";
     this.topControls.style.flexDirection = "column";
+    this.topControls.style.flexGrow = "0";
+    this.topControls.style.flexBasis = "0";
     this.dropdown = document.createElement("sl-dropdown");
     this.dropdown.setAttribute("hoist", "true");
     this.dropdown.setAttribute("placement", "bottom-end");
