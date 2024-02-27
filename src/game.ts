@@ -197,6 +197,7 @@ export class Game {
     const deltaTime = elapsed / 1000; // time elapsed in seconds
 
     if (elapsed > this.msPerFrame) {
+      this.userInterface.camera.updateViewport();
       this.map.lightManager.clearLightMap();
       this.map.lightManager.calculateLightLevel();
       this.map.lightManager.calculateLighting(deltaTime);

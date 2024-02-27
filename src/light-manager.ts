@@ -4,6 +4,7 @@ import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
 import { MapWorld } from "./map-world";
 import { Color as ColorType } from "rot-js/lib/color";
 import { Tile } from "./tile";
+import { Viewport } from "./camera";
 
 export class LightManager {
   public lightMap: { [key: string]: ColorType }; // x,y -> rgba color string
@@ -13,6 +14,7 @@ export class LightManager {
   private lightEmitterById: { [id: string]: [number, number] };
   public ambientLight: ColorType;
   public targetAmbientLight: ColorType;
+  private cachedViewport: Viewport;
 
   constructor(private game: Game, private map: MapWorld) {
     this.lightDefaults = {
@@ -137,7 +139,9 @@ export class LightManager {
   }
 
   public lightingCallback(x: number, y: number, color: ColorType) {
-    this.lightMap[MapWorld.coordsToKey(x, y)] = color;
+    if (this.game.userInterface.camera.inViewport(x, y)) {
+      this.lightMap[MapWorld.coordsToKey(x, y)] = color;
+    }
   }
 
   public interpolateLightState(deltaTime: number) {
