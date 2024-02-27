@@ -22,6 +22,7 @@ export class UserInterface {
   public messageLog: MessageLog;
   public gameCanvasContainer: HTMLElement;
 
+  private gameContainer: HTMLElement;
   private gameCanvas: PIXI.ICanvas;
   private gameDisplayOptions: Partial<PIXI.IApplicationOptions>;
   private keyMap: { [key: number]: number };
@@ -41,8 +42,12 @@ export class UserInterface {
     this.actionLogPosition = new Point(0, 3);
     this.initWebComponents();
 
+    this.gameContainer = document.getElementById("gameContainer");
+    this.gameCanvasContainer = document.getElementById("canvasContainer");
+    this.textCanvasContainer = document.getElementById("textContainer");
+
     this.gameDisplayOptions = {
-      resizeTo: window,
+      resizeTo: this.gameContainer,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
       antialias: false,
@@ -55,9 +60,6 @@ export class UserInterface {
       height: 10,
       fontSize: this.fontSize,
     });
-
-    this.gameCanvasContainer = document.getElementById("canvasContainer");
-    this.textCanvasContainer = document.getElementById("textContainer");
 
     // this.gameCanvasContainer.appendChild(this.gameDisplay.getContainer());
     // this.gameCanvas = this.gameDisplay.getContainer().querySelector("canvas");
@@ -112,7 +114,6 @@ export class UserInterface {
       );
       this.timeControl.pauseBtn.addEventListener("click", () => {
         this.game.timeManager.togglePause();
-        this.timeControl.togglePauseBtn(this.game.timeManager.isPaused);
       });
       this.timeControl.timeSlider.addEventListener("sl-input", (e: any) => {
         this.game.timeManager.setTimescale(e.target.value);
@@ -209,6 +210,7 @@ export class UserInterface {
       this.timeControl.updateTime(
         this.game.timeManager.getCurrentTimeForDisplay()
       );
+      this.timeControl.updatePauseBtn(this.game.timeManager.isPaused);
     }
   }
 

@@ -6,7 +6,7 @@ export class Point {
   }
 
   toKey(): string {
-    return this.x + "," + this.y;
+    return `${this.x},${this.y}`;
   }
 
   manhattanDistance(point: Point): number {

@@ -71,7 +71,7 @@ export class TimeControl extends HTMLElement {
     this.timeText.textContent = timeForDisplay;
   }
 
-  public togglePauseBtn(pause: boolean): void {
+  public updatePauseBtn(pause: boolean): void {
     this.pauseBtn.setAttribute("src", pause ? PlayIcon : PauseIcon);
   }
 

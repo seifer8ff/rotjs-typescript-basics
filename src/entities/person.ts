@@ -1,4 +1,4 @@
-import { Path } from "rot-js";
+import { Path, RNG } from "rot-js";
 import { Game } from "../game";
 import { Actor } from "./actor";
 import { Point } from "../point";
@@ -8,6 +8,7 @@ import { Action } from "../actions/action";
 import { MoveAction } from "../actions/moveAction";
 
 export class Person implements Actor {
+  id: number;
   tile: Tile;
   type: TileType;
   goal: Action;
@@ -15,6 +16,7 @@ export class Person implements Actor {
   private path: Point[];
 
   constructor(private game: Game, public position: Point) {
+    this.id = Date.now() + RNG.getUniformInt(0, 100000);
     this.tile = Tile.person;
     this.type = this.tile.type;
     this.path = [];

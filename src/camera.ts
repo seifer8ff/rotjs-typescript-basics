@@ -3,17 +3,22 @@ import { Point } from "./point";
 import * as PIXI from "pixi.js";
 import { Tile } from "./tile";
 import { UserInterface } from "./user-interface";
-import { KEYS, DIRS } from "rot-js";
+import { KEYS, DIRS, Util } from "rot-js";
 import { InputUtility } from "./input-utility";
 import TinyGesture from "tinygesture";
 
+export interface Viewport {
+  width: number;
+  height: number;
+  center: Point;
+}
+
 export class Camera {
-  public viewport = {
-    width: 360,
-    height: 800,
-  };
+  public viewport: Viewport;
   private currentZoom = 1;
-  private defaultZoom = 1;
+  private defaultZoom = 1.4;
+  private minZoom = 0.5;
+  private maxZoom = 10;
   private moveSpeed = 0.3;
   private keyMap: { [key: number]: number };
 
@@ -29,23 +34,16 @@ export class Camera {
     this.centerViewport(
       this.ui.gameDisplay.stage,
       this.ui.gameCanvasContainer.clientWidth,
-      this.ui.gameCanvasContainer.clientHeight,
-      this.viewport.width,
-      this.viewport.height
+      this.ui.gameCanvasContainer.clientHeight
     );
-    this.defaultZoom = this.ui.gameDisplay.stage.scale.x;
     this.initEventListeners();
   }
 
   public centerViewport(
     stage: PIXI.Container,
     screenWidth: number,
-    screenHeight: number,
-    virtualWidth: number,
-    virtualHeight: number
+    screenHeight: number
   ): void {
-    // not sure if this next line does anything...
-    // this.gameDisplay.renderer.resize(screenWidth, screenHeight);
     const gameWidthPixels = this.game.gameSize.width * Tile.size;
     const gameHeightPixels = this.game.gameSize.height * Tile.size;
     const screenCenterX = screenWidth / 2;
@@ -54,18 +52,24 @@ export class Camera {
     this.setPivot(stage, gameWidthPixels / 2, gameHeightPixels / 2);
     stage.position.set(screenCenterX, screenCenterY);
 
-    stage.scale.x = (screenWidth / virtualWidth) * this.currentZoom;
-    stage.scale.y = (screenHeight / virtualHeight) * this.currentZoom;
-
-    if (stage.scale.x < stage.scale.y) {
-      stage.scale.y = stage.scale.x;
-    } else {
-      stage.scale.x = stage.scale.y;
-    }
+    stage.scale.x = this.defaultZoom;
+    stage.scale.y = this.defaultZoom;
   }
 
   private setPivot(stage: PIXI.Container, x: number, y: number): void {
     stage.pivot.set(x, y);
+  }
+
+  public inViewport(x: number, y: number): boolean {
+    // console.log("inViewport", x, this.viewport.center.x, this.viewport.width);
+    return (
+      x >= 0 &&
+      y >= 0 &&
+      x > this.viewport.center.x - this.viewport.width / 2 &&
+      x < this.viewport.center.x + this.viewport.width / 2 &&
+      y > this.viewport.center.y - this.viewport.height / 2 &&
+      y < this.viewport.center.y + this.viewport.height / 2
+    );
   }
 
   centerOn(x: number, y: number) {
@@ -101,9 +105,7 @@ export class Camera {
       this.centerViewport(
         this.ui.gameDisplay.stage,
         this.ui.gameCanvasContainer.clientWidth,
-        this.ui.gameCanvasContainer.clientHeight,
-        this.viewport.width,
-        this.viewport.height
+        this.ui.gameCanvasContainer.clientHeight
       );
 
     const gesture = new TinyGesture(this.ui.gameCanvasContainer);
@@ -121,7 +123,7 @@ export class Camera {
     gesture.on("doubletap", (event) => {
       // The gesture was a double tap. The 'tap' event will also have been fired on
       // the first tap.
-      console.log("double tap");
+
       this.handleDoubleTap(gesture);
     });
 
@@ -145,31 +147,7 @@ export class Camera {
     return true;
   }
 
-  // public getViewportSizeInTiles(pad: boolean = false): {
-  //   width: number;
-  //   height: number;
-  // } {
-  //   let width =
-  //     this.ui.gameCanvasContainer.clientWidth /
-  //     (Tile.size * this.ui.gameDisplay.stage.scale.x);
-  //   let height =
-  //     this.ui.gameCanvasContainer.clientHeight /
-  //     (Tile.size * this.ui.gameDisplay.stage.scale.x);
-  //   if (pad) {
-  //     // min of 5 padding
-  //     width += Math.max(5, width / 4);
-  //     height += Math.max(5, height / 4);
-  //   }
-  //   width = Math.ceil(width);
-  //   height = Math.ceil(height);
-  //   return { width, height };
-  // }
-
-  public getViewportInTiles(pad: boolean = false): {
-    width: number;
-    height: number;
-    center: Point;
-  } {
+  public getViewportInTiles(pad: boolean = false): Viewport {
     let width =
       this.ui.gameCanvasContainer.clientWidth /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
@@ -177,9 +155,9 @@ export class Camera {
       this.ui.gameCanvasContainer.clientHeight /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
     if (pad) {
-      // min of 5 padding
-      width += Math.max(10, width);
-      height += Math.max(10, height);
+      // load more than needed to prevent flickering at edges
+      width += Math.max(10, 0.2 * width);
+      height += Math.max(10, 0.2 * height);
     }
     const center = this.getViewportCenterTile();
     width = Math.ceil(width);
@@ -215,13 +193,10 @@ export class Camera {
       }
       this.moveCamera(this.ui.gameDisplay.stage, diff);
     } else if (code === KEYS.VK_HOME) {
-      this.setViewportZoom(this.ui.gameDisplay.stage, this.defaultZoom);
       this.centerViewport(
         this.ui.gameDisplay.stage,
         this.ui.gameCanvasContainer.clientWidth,
-        this.ui.gameCanvasContainer.clientHeight,
-        this.viewport.width,
-        this.viewport.height
+        this.ui.gameCanvasContainer.clientHeight
       );
       validInput = true;
     }
@@ -237,85 +212,112 @@ export class Camera {
 
     this.ui.gameDisplay.stage.pivot.x -=
       // scale the velocity by the size of the stage
-      modifiedVelocityX / this.ui.gameDisplay.stage.scale.x;
+      modifiedVelocityX / this.ui.gameDisplay.stage.scale.x / 1.3;
     this.ui.gameDisplay.stage.pivot.y -=
-      modifiedVelocityY / this.ui.gameDisplay.stage.scale.x;
+      modifiedVelocityY / this.ui.gameDisplay.stage.scale.x / 1.3;
   };
+
+  lerp(x: number, y: number, a: number): number {
+    return x * (1 - a) + y * a;
+  }
 
   private handlePanEnd = (g: TinyGesture) => {
     this.isPanning = false;
-    let momentumModifier = 0.8;
-    const momentumDuration = 250; // in milliseconds
-    const momentumInterval = 1000 / 60; // in milliseconds
-    const momentumX =
-      (g.velocityX * momentumModifier) / this.ui.gameDisplay.stage.scale.x;
-    const momentumY =
-      (g.velocityY * momentumModifier) / this.ui.gameDisplay.stage.scale.x;
+    const velocityLimit = 20;
+    const momentumDuration = 1000; // in milliseconds
+    const msPerLoop = 1000 / 60; // in milliseconds
+    const scale = this.ui.gameDisplay.stage.scale.x;
+
+    const momentumX = Util.clamp(
+      g.velocityX / 3 / (scale * scale),
+      -velocityLimit,
+      velocityLimit
+    );
+    const momentumY = Util.clamp(
+      g.velocityY / 3 / (scale * scale),
+      -velocityLimit,
+      velocityLimit
+    );
 
     let elapsed = 0;
-    const momentumTimer = setInterval(() => {
-      elapsed += momentumInterval;
-      const progress = elapsed / momentumDuration;
-      if (progress >= 1) {
-        clearInterval(momentumTimer);
-        return;
+    let lastRenderTime = 0;
+
+    const momentumHandler = (now: number) => {
+      if (!lastRenderTime) {
+        lastRenderTime = now;
       }
 
-      const momentumStepX = momentumX * (1 - progress);
-      const momentumStepY = momentumY * (1 - progress);
+      elapsed = now - lastRenderTime;
+      if (elapsed > msPerLoop && elapsed < momentumDuration) {
+        const deltaTime = elapsed / 1000; // time elapsed in seconds
+        this.ui.gameDisplay.stage.pivot.x -= momentumX * (1 - deltaTime);
+        this.ui.gameDisplay.stage.pivot.y -= momentumY * (1 - deltaTime);
+      }
 
-      this.ui.gameDisplay.stage.pivot.x -= momentumStepX;
-      this.ui.gameDisplay.stage.pivot.y -= momentumStepY;
-    }, momentumInterval);
+      if (elapsed < momentumDuration) {
+        requestAnimationFrame(momentumHandler);
+      }
+    };
+    requestAnimationFrame(momentumHandler.bind(this));
   };
 
   private handlePinchZoom = (g: TinyGesture) => {
-    // TODO: fix bugs
-    // BUG: pinch zooming is not centered on the pinch point
-    // BUG: pinch zooming initially sets scale to distance between fingers
-    // BUG: weird behavior when moving while pinching
+    const maxScaleSpeed = 0.2; // < 1 to take effect
     const scaleSpeed = 0.2;
 
     const pivotX = this.ui.gameDisplay.stage.pivot.x;
     const pivotY = this.ui.gameDisplay.stage.pivot.y;
+    let scale = this.ui.gameDisplay.stage.scale.x;
+    let scaleDelta = scale - g.scale;
+    scaleDelta = Math.max(-maxScaleSpeed, Math.min(maxScaleSpeed, scaleDelta));
 
-    const posX = this.ui.gameDisplay.stage.position.x;
-    const posY = this.ui.gameDisplay.stage.position.y;
+    // modify the maps scale based on how much the user pinched
+    scale += -1 * scaleDelta * scaleSpeed * scale;
+    // clamp to reasonable values
+    scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
 
-    const scaleX = this.ui.gameDisplay.stage.scale.x;
-    const scaleY = this.ui.gameDisplay.stage.scale.y;
-
-    let scaleDiff = scaleX - g.scale;
-    scaleDiff *= -1 * scaleSpeed;
-    scaleDiff = Math.max(-0.2, Math.min(0.2, scaleDiff));
-
-    const newScaleX = scaleX * g.scale * (1 - scaleSpeed);
-    const newScaleY = scaleY * g.scale * (1 - scaleSpeed);
-
-    this.currentZoom += scaleDiff;
-    this.ui.gameDisplay.stage.scale.x += scaleDiff;
-    this.ui.gameDisplay.stage.scale.y += scaleDiff;
+    this.currentZoom = scale;
+    // update the scale and position of the stage
+    this.ui.gameDisplay.stage.setTransform(
+      this.game.userInterface.gameDisplay.stage.position.x,
+      this.game.userInterface.gameDisplay.stage.position.y,
+      scale, // scale
+      scale,
+      null, // rotation
+      null, // skew
+      null,
+      pivotX,
+      pivotY
+    );
   };
 
   private handleDoubleTap = (g: TinyGesture) => {
     const zoomInAmount = 1.75;
+    let scale = this.ui.gameDisplay.stage.scale.x * zoomInAmount;
 
-    this.ui.gameDisplay.stage.scale.x *= zoomInAmount;
-    this.ui.gameDisplay.stage.scale.y *= zoomInAmount;
+    scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
+
+    this.ui.gameDisplay.stage.scale.set(scale);
   };
 
   private handleZoom = (e: WheelEvent) => {
     e.preventDefault();
     const scaleSpeed = 0.1;
+    const maxScaleSpeed = 0.35;
 
     const pivotX = this.ui.gameDisplay.stage.pivot.x;
     const pivotY = this.ui.gameDisplay.stage.pivot.y;
     let scale = this.ui.gameDisplay.stage.scale.x;
 
+    let scrollDelta = Math.max(-1, Math.min(1, e.deltaY));
+    scrollDelta = Math.max(
+      -maxScaleSpeed,
+      Math.min(maxScaleSpeed, scrollDelta)
+    );
     // modify the scale based on the scroll delta
-    scale += -1 * Math.max(-1, Math.min(1, e.deltaY)) * scaleSpeed * scale;
+    scale += -1 * scrollDelta * scaleSpeed * scale;
     // clamp to reasonable values
-    scale = Math.max(0.4, Math.min(10, scale));
+    scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
 
     this.currentZoom = scale;
 
@@ -332,6 +334,14 @@ export class Camera {
       pivotY
     );
   };
+
+  public updateViewport() {
+    this.viewport = this.getViewportInTiles(true);
+  }
+
+  public getNormalizedZoom(): number {
+    return this.ui.gameDisplay.stage.scale.x / (this.maxZoom - this.minZoom);
+  }
 
   // private handleZoom = (e: WheelEvent) => {
   //   e.preventDefault();
