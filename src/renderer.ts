@@ -2,7 +2,8 @@ import * as PIXI from "pixi.js";
 import { Game } from "./game";
 import { Point } from "./point";
 import { Tile } from "./tile";
-
+import { Color } from "rot-js";
+import { Color as ColorType } from "rot-js/lib/color";
 export enum Layer {
   TERRAIN,
   PLANT,
@@ -35,28 +36,61 @@ export class Renderer {
     viewportCenterTile: Point
   ): void {
     this.clearScene();
+    const terrainMap = this.game.map.terrainTileMap;
+    const lightMap = this.game.map.lightManager.lightMap;
     const centeredWidth = viewportCenterTile.x + Math.ceil(width / 2);
     const centeredHeight = viewportCenterTile.y + Math.ceil(height / 2);
     const left = viewportCenterTile.x - Math.ceil(width / 2);
     const top = viewportCenterTile.y - Math.ceil(height / 2);
+    let ambientLight = this.game.map.lightManager.ambientLight;
 
     for (let x = left; x < centeredWidth; x++) {
       for (let y = top; y < centeredHeight; y++) {
         for (let layer of layers) {
-          let sprite = this.spriteCache[layer][`${x},${y}`];
+          if (
+            x < 0 ||
+            y < 0 ||
+            x >= this.game.mapSize.width ||
+            y >= this.game.mapSize.height
+          ) {
+            continue;
+          }
+          const key = `${x},${y}`;
+          let sprite = this.spriteCache[layer][key];
+          let light = ambientLight;
+
+          if (key in lightMap && lightMap[key] != null) {
+            /* add light from our computation */
+            light = Color.add(light, lightMap[key]);
+          }
+
+          const finalColor = Color.multiply(ambientLight, light);
+          // highlight the entity a little bit
+          const finalEntityColor = Color.interpolate(
+            finalColor,
+            this.game.map.lightManager.lightDefaults.sunlight,
+            0.4
+          );
+          const finalColorHex = Color.toHex(finalColor);
+          const finalEntityColorHex = Color.toHex(finalEntityColor);
+
           if (!sprite) {
             continue;
           }
+
           switch (layer) {
             case Layer.TERRAIN: {
+              sprite.tint = finalColorHex;
               this.terrainLayer.addChild(sprite);
               break;
             }
             case Layer.PLANT: {
+              sprite.tint = finalColorHex;
               this.plantLayer.addChild(sprite);
               break;
             }
             case Layer.ENTITY: {
+              sprite.tint = finalEntityColorHex;
               this.entityLayer.addChild(sprite);
               break;
             }

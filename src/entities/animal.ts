@@ -10,6 +10,7 @@ import { HarvestAction } from "../actions/harvestAction";
 import { WanderAction } from "../actions/wanderAction";
 
 export class Animal implements Actor {
+  id: number;
   tile: Tile;
   type: TileType;
   action: Action;
@@ -19,6 +20,7 @@ export class Animal implements Actor {
   private range: number;
 
   constructor(private game: Game, public position: Point) {
+    this.id = Date.now() + RNG.getUniformInt(0, 100000);
     this.tile = Tile.animal;
     this.type = this.tile.type;
     this.path = [];
