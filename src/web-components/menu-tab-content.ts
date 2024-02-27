@@ -32,6 +32,7 @@ export class MenuTabContent extends HTMLElement {
 
     this.optionControls = this.options.map((option) => {
       const optionBtn = document.createElement("sl-icon-button");
+      optionBtn.classList.add("menu-option");
       optionBtn.setAttribute("src", option.icon);
       optionBtn.style.pointerEvents = "auto";
       container.appendChild(optionBtn);

@@ -18,7 +18,7 @@ import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
 
 export class Game {
-  public entityCount = 1;
+  public entityCount = 20;
   public treeCount = 50;
   public gameSize: { width: number; height: number };
   public mapSize: { width: number; height: number };
@@ -45,8 +45,8 @@ export class Game {
     // sensible default
     // let width = 350;
     // let height = 350;
-    let width = 150;
-    let height = 150;
+    let width = 200;
+    let height = 200;
     let fontSize = 20;
 
     // how/why should this change?

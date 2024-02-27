@@ -25,6 +25,35 @@ body {
   user-select: none;
 }
 
+.test-outer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.upper {
+  flex-grow: 0;
+}
+
+.middle {
+  position: relative;
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  max-height: 100%;
+}
+
+.lower {
+  flex-grow: 0;
+  height: 75px;
+}
+
 canvas {
   image-rendering: optimizeSpeed;
   image-rendering: crisp-edges;
@@ -34,7 +63,8 @@ canvas {
   -ms-interpolation-mode: nearest-neighbor;
   image-rendering: pixelated;
   overflow: hidden;
-  border: 2px solid lightslategray;
+  /* border: 2px solid lightslategray;
+  border-left: none; */
   box-sizing: border-box;
   -webkit-touch-callout: none; /* Safari */
   -webkit-user-select: none; /* Chrome */
@@ -50,6 +80,7 @@ canvas {
   left: 0;
   right: 0;
   pointer-events: none;
+  z-index: 100;
 }
 
 /* #uiContainer > * {
@@ -57,14 +88,17 @@ canvas {
 } */
 
 #gameContainer {
+  position: relative;
   overflow: hidden;
   height: 100%;
+  max-height: 100%;
   box-sizing: border-box;
   -webkit-touch-callout: none; /* Safari */
   -webkit-user-select: none; /* Chrome */
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none;
+  z-index: 5;
 }
 
 #canvasContainer {
