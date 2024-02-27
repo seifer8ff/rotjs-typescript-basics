@@ -22,7 +22,7 @@ export class LightManager {
       moonlight: [70, 70, 135],
       ambientDaylight: [100, 100, 100],
       ambientNightLight: [60, 60, 60],
-      torchBright: [240, 240, 30],
+      torchBright: [235, 165, 30],
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
     };

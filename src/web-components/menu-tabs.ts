@@ -78,11 +78,20 @@ export class MenuTabs extends HTMLElement {
     container.style.justifyContent = "start";
     container.style.borderTopRightRadius = "10px";
     container.style.borderBottomRightRadius = "10px";
+    const innerContainer = document.createElement("div");
+    innerContainer.style.position = "relative";
+    innerContainer.style.display = "flex";
+    innerContainer.style.flexDirection = "column";
+    innerContainer.style.alignItems = "stretch";
+    innerContainer.style.justifyContent = "start";
+    innerContainer.style.overflow = "hidden";
+    container.appendChild(innerContainer);
 
     this.topControls = document.createElement("div");
     this.topControls.style.display = "flex";
     this.topControls.style.flexDirection = "column";
     this.dropdown = document.createElement("sl-dropdown");
+    this.dropdown.setAttribute("hoist", "true");
     this.dropdown.setAttribute("placement", "bottom-end");
     this.dropdown.style.pointerEvents = "auto";
     this.dropdown.style.marginTop = "5px";
@@ -103,8 +112,8 @@ export class MenuTabs extends HTMLElement {
 
     this.setSelectedTab(Tabs[0]);
 
-    container.appendChild(this.topControls);
-    container.appendChild(this.midControls);
+    innerContainer.appendChild(this.topControls);
+    innerContainer.appendChild(this.midControls);
 
     shadow.appendChild(container);
   }
