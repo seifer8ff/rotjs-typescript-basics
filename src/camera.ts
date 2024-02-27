@@ -6,6 +6,7 @@ import { UserInterface } from "./user-interface";
 import { KEYS, DIRS, Util } from "rot-js";
 import { InputUtility } from "./input-utility";
 import TinyGesture from "tinygesture";
+import { Actor } from "./entities/actor";
 
 export interface Viewport {
   width: number;
@@ -15,6 +16,7 @@ export interface Viewport {
 
 export class Camera {
   public viewport: Viewport;
+  public target: Point | Actor;
   private currentZoom = 1;
   private defaultZoom = 1.4;
   private minZoom = 0.5;
@@ -73,26 +75,15 @@ export class Camera {
   }
 
   centerOn(x: number, y: number) {
-    // TODO
-    console.log(`TODO: centerOn: ${x}, ${y}`);
+    this.target = this.TileToScreenCoords(x, y);
+  }
 
-    // const offset = (game.touchScreen ? touchOffsetY : 0);
-    // const offset = 0;
-    // const tw = ((x * -this.gameDisplay.getOptions().tileWidth) +
-    //             (this.gameDisplayOptions.width * this.gameDisplayOptions.tileWidth / 2) + -4);
-    // const th = ((y * -this.gameDisplayOptions.tileHeight) +
-    //             (this.gameDisplayOptions.height * this.gameDisplayOptions.tileHeight / 2) + offset);
-    // if (this.gameCanvasContainer) {
-    //   // this applies the animation effect
-    //   this.gameCanvasContainer.style.transition = "transform 0.5s ease-out 0s";
-    //   if (this.gameCanvas) {
-    //     this.gameCanvas.getContext('2d').imageSmoothingEnabled = false;
-    //   }
-    //   // this sets the scale and position to focus on the player
-    //   this.gameCanvasContainer.style.transform =
-    //     "scale(" + this.scale + ") " + "translate3d(" + Math.floor(tw) +
-    //     "px," + Math.floor(th) + "px,0px)";
-    // }
+  public followActor(actor: Actor) {
+    this.target = actor;
+  }
+
+  public TileToScreenCoords(x: number, y: number): Point {
+    return new Point(x * Tile.size, y * Tile.size);
   }
 
   public setViewportZoom(stage: PIXI.Container, newZoom: number) {
@@ -192,10 +183,12 @@ export class Camera {
     if (code in this.keyMap) {
       let diff = DIRS[8][this.keyMap[code]];
       if (this.moveCamera(this.ui.gameDisplay.stage, diff)) {
+        this.target = null;
         validInput = true;
       }
-      this.moveCamera(this.ui.gameDisplay.stage, diff);
+      // this.moveCamera(this.ui.gameDisplay.stage, diff);
     } else if (code === KEYS.VK_HOME) {
+      this.target = null;
       this.centerViewport(
         this.ui.gameDisplay.stage,
         this.ui.gameCanvasContainer.clientWidth,
@@ -207,6 +200,7 @@ export class Camera {
   }
 
   private handlePointerDrag = (g: TinyGesture) => {
+    this.target = null;
     let dragModifier = 1;
     // increase drag speed to prevent sluggish feeling
     const modifiedVelocityX = g.velocityX * dragModifier;
@@ -225,6 +219,7 @@ export class Camera {
 
   private handlePanStart = (g: TinyGesture) => {
     this.isPanning = true;
+    this.target = null;
     if (!this.ui.sideMenu.isCollapsed && this.ui.sideMenu.isVisible) {
       this.ui.sideMenu.setVisible(false);
     }
@@ -350,6 +345,42 @@ export class Camera {
 
   public updateViewport() {
     this.viewport = this.getViewportInTiles(true);
+  }
+
+  private isActor(target: any): target is Actor {
+    return "plan" in target && "act" in target && "position" in target;
+  }
+
+  public update(deltaTime: number) {
+    // move towards target
+    // clear target on any touch events
+    let targetPos: Point;
+    if (this.target && this.isActor(this.target)) {
+      targetPos = this.TileToScreenCoords(
+        this.target.position.x,
+        this.target.position.y
+      );
+    } else if (this.target && this.target instanceof Point) {
+      targetPos = this.target;
+    }
+    if (targetPos) {
+      if (
+        Math.abs(this.ui.gameDisplay.stage.pivot.x - targetPos.x) > 0.2 &&
+        Math.abs(this.ui.gameDisplay.stage.pivot.y - targetPos.y) > 0.2
+      ) {
+        this.ui.gameDisplay.stage.pivot.x = this.lerp(
+          this.ui.gameDisplay.stage.pivot.x,
+          targetPos.x,
+          deltaTime
+        );
+        this.ui.gameDisplay.stage.pivot.y = this.lerp(
+          this.ui.gameDisplay.stage.pivot.y,
+          targetPos.y,
+          deltaTime
+        );
+      }
+    }
+    this.updateViewport();
   }
 
   public getNormalizedZoom(): number {

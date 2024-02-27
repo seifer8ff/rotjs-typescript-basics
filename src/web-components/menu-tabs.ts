@@ -36,14 +36,15 @@ import { SlIconButton } from "@shoelace-style/shoelace";
 export interface MenuTab {
   name: string;
   icon: string;
+  content: MenuItem[];
 }
 
-export const Tabs: MenuTab[] = [
-  { name: "Entities", icon: PersonIcon },
-  { name: "Cities", icon: HouseIcon },
-  { name: "Resources", icon: BackpackIcon },
-  { name: "Build", icon: WrenchIcon },
-];
+export interface MenuItem {
+  name: string;
+  icon: string;
+  clickHandler?: () => void;
+  tooltip?: string;
+}
 
 export class MenuTabs extends HTMLElement {
   public container: HTMLDivElement;
@@ -60,11 +61,18 @@ export class MenuTabs extends HTMLElement {
   private dropdownMenuOptions: SlMenuItem[];
   public isVisible: boolean;
   public isCollapsed: boolean;
+  public tabs: MenuTab[];
 
   constructor() {
     super();
 
     const shadow = this.attachShadow({ mode: "open" });
+    this.tabs = [
+      { name: "Entities", icon: PersonIcon, content: [] },
+      { name: "Cities", icon: HouseIcon, content: [] },
+      { name: "Resources", icon: BackpackIcon, content: [] },
+      { name: "Build", icon: WrenchIcon, content: [] },
+    ];
     this.isVisible = true;
 
     this.container = document.createElement("div");
@@ -79,20 +87,8 @@ export class MenuTabs extends HTMLElement {
     this.container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     this.container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
     this.container.style["backdropFilter"] = "blur(15px)";
-    // this.container.style.display = "flex";
-    // this.container.style.flexDirection = "column";
-    // this.container.style.alignItems = "stretch";
-    // this.container.style.justifyContent = "start";
     this.container.style.borderBottomRightRadius = "10px";
     this.container.style.transition = "transform 0.3s ease-in-out";
-    // const innerContainer = document.createElement("div");
-    // innerContainer.style.position = "relative";
-    // innerContainer.style.display = "flex";
-    // innerContainer.style.flexDirection = "column";
-    // innerContainer.style.alignItems = "stretch";
-    // innerContainer.style.justifyContent = "start";
-    // innerContainer.style.overflow = "hidden";
-    // this.container.appendChild(innerContainer);
 
     this.handle = document.createElement("sl-icon-button");
     this.handle.setAttribute("src", HandleIcon);
@@ -111,10 +107,6 @@ export class MenuTabs extends HTMLElement {
 
     this.topControls = document.createElement("div");
     this.topControls.style.height = "90px";
-    // this.topControls.style.display = "flex";
-    // this.topControls.style.flexDirection = "column";
-    // this.topControls.style.flexGrow = "0";
-    // this.topControls.style.flexBasis = "0";
     this.dropdown = document.createElement("sl-dropdown");
     this.dropdown.setAttribute("hoist", "true");
     this.dropdown.setAttribute("placement", "bottom-end");
@@ -135,12 +127,9 @@ export class MenuTabs extends HTMLElement {
     this.midControls.style.left = "0";
     this.midControls.style.right = "0";
     this.midControls.style.bottom = "10px";
-    // this.midControls.style.display = "flex";
-    // this.midControls.style.flexDirection = "column";
-    // this.midControls.style.justifyContent = "start";
     this.midControls.style.overflowY = "auto";
 
-    this.setSelectedTab(Tabs[0]);
+    this.setSelectedTab(this.tabs[0]);
 
     this.container.appendChild(this.topControls);
     this.container.appendChild(this.midControls);
@@ -149,7 +138,7 @@ export class MenuTabs extends HTMLElement {
   }
 
   public getTab(tabName: string): MenuTab {
-    return Tabs.find((tab) => tab.name === tabName);
+    return this.tabs.find((tab) => tab.name === tabName);
   }
 
   public setSelectedTab(tab: MenuTab): void {
@@ -167,7 +156,6 @@ export class MenuTabs extends HTMLElement {
     this.dropdownBtn.setAttribute("slot", "trigger");
     this.dropdownBtn.setAttribute("caret", "");
     const dropdownIcon = document.createElement("sl-icon");
-    // dropdownIcon.setAttribute("name", this.selectedTab.icon);
     dropdownIcon.setAttribute("src", this.selectedTab.icon);
     dropdownIcon.style.fontSize = "20px";
     this.dropdownBtn.appendChild(dropdownIcon);
@@ -180,7 +168,7 @@ export class MenuTabs extends HTMLElement {
     }
     this.dropdownMenuOptions = [];
 
-    for (let tab of Tabs) {
+    for (let tab of this.tabs) {
       if (tab === this.selectedTab) {
         continue;
       }
@@ -201,79 +189,39 @@ export class MenuTabs extends HTMLElement {
   }
 
   private buildTabContent(): void {
-    let placeholderResources: MenuTab[];
-
-    switch (this.selectedTab.name) {
-      case "Entities":
-        placeholderResources = [
-          { name: "Mario", icon: EntityIcon },
-          { name: "Cassie", icon: EntityIcon },
-          { name: "Judy", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-          { name: "Jermaine", icon: EntityIcon },
-        ];
-        break;
-      case "Cities":
-        placeholderResources = [
-          { name: "Boom Town", icon: HouseWithGearIcon },
-          { name: "Declining City", icon: HouseDownIcon },
-          { name: "Potential Site", icon: GeoIcon },
-          { name: "Commercial District", icon: ShopWindowIcon },
-        ];
-        break;
-      case "Resources":
-        placeholderResources = [
-          { name: "Currency", icon: CurrencyIcon },
-          { name: "Animals", icon: PiggyBankIcon },
-          { name: "Medicine", icon: CapsuleIcon },
-          { name: "Plant Material", icon: FlowerIcon },
-        ];
-        break;
-      case "Build":
-        placeholderResources = [
-          { name: "Planning", icon: PencilIcon },
-          { name: "Housing", icon: HouseIcon },
-        ];
-        break;
-    }
+    // switch (this.selectedTab.name) {
+    //   case "Entities":
+    //     break;
+    //   case "Cities":
+    //     placeholderResources = [
+    //       { name: "Boom Town", icon: HouseWithGearIcon },
+    //       { name: "Declining City", icon: HouseDownIcon },
+    //       { name: "Potential Site", icon: GeoIcon },
+    //       { name: "Commercial District", icon: ShopWindowIcon },
+    //     ];
+    //     break;
+    //   case "Resources":
+    //     placeholderResources = [
+    //       { name: "Currency", icon: CurrencyIcon },
+    //       { name: "Animals", icon: PiggyBankIcon },
+    //       { name: "Medicine", icon: CapsuleIcon },
+    //       { name: "Plant Material", icon: FlowerIcon },
+    //     ];
+    //     break;
+    //   case "Build":
+    //     placeholderResources = [
+    //       { name: "Planning", icon: PencilIcon },
+    //       { name: "Housing", icon: HouseIcon },
+    //     ];
+    //     break;
+    // }
     if (this.menuTabContent) {
       this.midControls.removeChild(this.menuTabContent);
     }
 
     this.menuTabContent = new MenuTabContent(
       this.selectedTab,
-      placeholderResources
+      this.selectedTab.content
     );
     this.midControls.appendChild(this.menuTabContent);
   }
@@ -288,5 +236,12 @@ export class MenuTabs extends HTMLElement {
   public setCollapsed(collapsed: boolean): void {
     this.isCollapsed = collapsed;
     this.setVisible(!this.isCollapsed);
+  }
+
+  public setTabContent(tabName: string, content: MenuItem[]): void {
+    const tab = this.getTab(tabName);
+    tab.content = content;
+    this.buildTabContent();
+    console.log("set tab content", this.tabs);
   }
 }

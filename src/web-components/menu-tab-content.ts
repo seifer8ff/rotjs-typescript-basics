@@ -9,7 +9,7 @@ import "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import "@shoelace-style/shoelace/dist/components/popup/popup.js";
 import "@shoelace-style/shoelace/dist/components/menu-label/menu-label.js";
 import "@shoelace-style/shoelace/dist/components/divider/divider.js";
-import { MenuTab } from "./menu-tabs";
+import { MenuItem, MenuTab } from "./menu-tabs";
 import "@shoelace-style/shoelace/dist/components/tooltip/tooltip.js";
 import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
 import { SlIconButton } from "@shoelace-style/shoelace";
@@ -17,7 +17,7 @@ import { SlIconButton } from "@shoelace-style/shoelace";
 export class MenuTabContent extends HTMLElement {
   public optionControls?: SlIconButton[];
 
-  constructor(private tab: MenuTab, private options: MenuTab[]) {
+  constructor(private tab: MenuTab, private options: MenuItem[]) {
     super();
 
     const shadow = this.attachShadow({ mode: "open" });
@@ -31,10 +31,15 @@ export class MenuTabContent extends HTMLElement {
     container.style.overflowY = "auto";
 
     this.optionControls = this.options.map((option) => {
+      // const optionTooltip = document.createElement("sl-tooltip");
+      // optionTooltip.setAttribute("content", option.tooltip);
+      // optionTooltip.setAttribute("hoist", "true");
       const optionBtn = document.createElement("sl-icon-button");
       optionBtn.classList.add("menu-option");
       optionBtn.setAttribute("src", option.icon);
       optionBtn.style.pointerEvents = "auto";
+      optionBtn.addEventListener("click", option.clickHandler);
+      // optionTooltip.appendChild(optionBtn);
       container.appendChild(optionBtn);
       return optionBtn;
     });

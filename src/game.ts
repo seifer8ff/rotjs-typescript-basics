@@ -139,9 +139,6 @@ export class Game {
     this.generatePlants();
 
     this.generateBeings();
-    for (let entity of this.entities) {
-      this.timeManager.addToSchedule(entity, true);
-    }
 
     this.userInterface.refreshPanel();
 
@@ -197,7 +194,7 @@ export class Game {
     const deltaTime = elapsed / 1000; // time elapsed in seconds
 
     if (elapsed > this.msPerFrame) {
-      this.userInterface.camera.updateViewport();
+      this.userInterface.camera.update(deltaTime);
       this.map.lightManager.clearLightMap();
       this.map.lightManager.calculateLightLevel();
       this.map.lightManager.calculateLighting(deltaTime);
@@ -282,6 +279,13 @@ export class Game {
       //   this.entities.push(new Animal(this, position));
       // }
     }
+    for (let entity of this.entities) {
+      this.timeManager.addToSchedule(entity, true);
+    }
+    const entityMenuItems = this.entities.map((entity) => {
+      return this.userInterface.mapEntityToMenuItem(entity);
+    });
+    this.userInterface.sideMenu.setTabContent("Entities", entityMenuItems);
   }
 
   checkBox(x: number, y: number): void {

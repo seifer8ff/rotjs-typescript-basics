@@ -11,8 +11,10 @@ import { Person } from "./entities/person";
 import { Layer } from "./renderer";
 import { Camera } from "./camera";
 import { TimeControl } from "./web-components/time-control";
-import { MenuTabs } from "./web-components/menu-tabs";
+import { MenuItem, MenuTabs } from "./web-components/menu-tabs";
 import { MenuTabContent } from "./web-components/menu-tab-content";
+import { Actor } from "./entities/actor";
+import EntityIcon from "./shoelace/assets/icons/person-bounding-box.svg";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -221,5 +223,17 @@ export class UserInterface {
   resetStatusLine(): void {
     this.statusLine.reset();
     this.statusLine.maxBoxes = this.game.treeCount;
+  }
+
+  public mapEntityToMenuItem(entity: Actor): MenuItem {
+    return {
+      name: `${entity.id}`,
+      icon: EntityIcon,
+      clickHandler: () => {
+        console.log(`clicked on ${entity.id}`);
+        this.camera.followActor(entity);
+      },
+      tooltip: `Entity: ${entity.id}`,
+    };
   }
 }
