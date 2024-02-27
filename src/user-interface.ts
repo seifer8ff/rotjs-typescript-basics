@@ -214,6 +214,12 @@ export class UserInterface {
     }
   }
 
+  public setSideMenuVisibile(visible: boolean) {
+    if (this.menuTabs) {
+      this.menuTabs.setVisible(visible);
+    }
+  }
+
   resetStatusLine(): void {
     this.statusLine.reset();
     this.statusLine.maxBoxes = this.game.treeCount;

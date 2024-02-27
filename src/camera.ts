@@ -114,6 +114,9 @@ export class Camera {
       event.preventDefault();
       this.handlePinchZoom(gesture);
     });
+    gesture.on("panstart", (event) => {
+      this.handlePanStart(gesture);
+    });
     gesture.on("panmove", (event) => {
       this.handlePointerDrag(gesture);
     });
@@ -205,7 +208,6 @@ export class Camera {
 
   private handlePointerDrag = (g: TinyGesture) => {
     let dragModifier = 1;
-    this.isPanning = true;
     // increase drag speed to prevent sluggish feeling
     const modifiedVelocityX = g.velocityX * dragModifier;
     const modifiedVelocityY = g.velocityY * dragModifier;
@@ -221,7 +223,13 @@ export class Camera {
     return x * (1 - a) + y * a;
   }
 
+  private handlePanStart = (g: TinyGesture) => {
+    this.isPanning = true;
+    this.ui.setSideMenuVisibile(false);
+  };
+
   private handlePanEnd = (g: TinyGesture) => {
+    this.ui.setSideMenuVisibile(true);
     this.isPanning = false;
     const velocityLimit = 20;
     const momentumDuration = 1000; // in milliseconds

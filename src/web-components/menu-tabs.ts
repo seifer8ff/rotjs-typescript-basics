@@ -44,6 +44,7 @@ export const Tabs: MenuTab[] = [
 ];
 
 export class MenuTabs extends HTMLElement {
+  public container: HTMLDivElement;
   public tabGroup: SlTabGroup;
   public tabPanels: SlTabPanel[];
   private dropdownBtn: SlButton;
@@ -54,30 +55,33 @@ export class MenuTabs extends HTMLElement {
   private topControls: HTMLDivElement;
   private midControls: HTMLDivElement;
   private dropdownMenuOptions: SlMenuItem[];
+  public isVisible: boolean;
 
   constructor() {
     super();
 
     const shadow = this.attachShadow({ mode: "open" });
+    this.isVisible = true;
 
-    const container = document.createElement("div");
-    container.style.pointerEvents = "auto";
-    container.style.position = "absolute";
-    container.style.top = "120px";
-    container.style.left = "0";
-    container.style.bottom = "20px";
-    container.style.padding = "10px";
-    container.style.paddingRight = "0px";
-    container.style.paddingLeft = "0px";
-    container.style.backgroundColor = "rgba(0, 0, 0, .8)";
-    container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
-    container.style["backdropFilter"] = "blur(15px)";
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.alignItems = "stretch";
-    container.style.justifyContent = "start";
-    container.style.borderTopRightRadius = "10px";
-    container.style.borderBottomRightRadius = "10px";
+    this.container = document.createElement("div");
+    this.container.style.pointerEvents = "auto";
+    this.container.style.position = "absolute";
+    this.container.style.top = "120px";
+    this.container.style.left = "0";
+    this.container.style.bottom = "20px";
+    this.container.style.padding = "10px";
+    this.container.style.paddingRight = "0px";
+    this.container.style.paddingLeft = "0px";
+    this.container.style.backgroundColor = "rgba(0, 0, 0, .8)";
+    this.container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
+    this.container.style["backdropFilter"] = "blur(15px)";
+    this.container.style.display = "flex";
+    this.container.style.flexDirection = "column";
+    this.container.style.alignItems = "stretch";
+    this.container.style.justifyContent = "start";
+    this.container.style.borderTopRightRadius = "10px";
+    this.container.style.borderBottomRightRadius = "10px";
+    this.container.style.transition = "transform 0.3s ease-in-out";
     const innerContainer = document.createElement("div");
     innerContainer.style.position = "relative";
     innerContainer.style.display = "flex";
@@ -85,7 +89,7 @@ export class MenuTabs extends HTMLElement {
     innerContainer.style.alignItems = "stretch";
     innerContainer.style.justifyContent = "start";
     innerContainer.style.overflow = "hidden";
-    container.appendChild(innerContainer);
+    this.container.appendChild(innerContainer);
 
     this.topControls = document.createElement("div");
     this.topControls.style.display = "flex";
@@ -115,7 +119,7 @@ export class MenuTabs extends HTMLElement {
     innerContainer.appendChild(this.topControls);
     innerContainer.appendChild(this.midControls);
 
-    shadow.appendChild(container);
+    shadow.appendChild(this.container);
   }
 
   public getTab(tabName: string): MenuTab {
@@ -246,5 +250,12 @@ export class MenuTabs extends HTMLElement {
       placeholderResources
     );
     this.midControls.appendChild(this.menuTabContent);
+  }
+
+  public setVisible(visible: boolean): void {
+    this.isVisible = visible;
+    this.container.style.transform = this.isVisible
+      ? "translateX(0)"
+      : "translateX(-100%)";
   }
 }
