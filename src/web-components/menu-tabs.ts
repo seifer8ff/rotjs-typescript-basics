@@ -67,22 +67,21 @@ export class MenuTabs extends HTMLElement {
     container.style.left = "0";
     container.style.bottom = "20px";
     container.style.padding = "10px";
+    container.style.paddingRight = "0px";
     container.style.paddingLeft = "0px";
-    container.style.maxWidth = "calc(100% - 20px)";
-    container.style.maxHeight = "calc(100% - 20px)";
     container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
     container.style["backdropFilter"] = "blur(15px)";
     container.style.display = "flex";
     container.style.flexDirection = "column";
-    container.style.alignItems = "center";
+    container.style.alignItems = "stretch";
     container.style.justifyContent = "start";
     container.style.borderTopRightRadius = "10px";
     container.style.borderBottomRightRadius = "10px";
 
     this.topControls = document.createElement("div");
-    this.topControls.style.flexGrow = "0";
-    this.topControls.style.flexBasis = "0";
+    this.topControls.style.display = "flex";
+    this.topControls.style.flexDirection = "column";
     this.dropdown = document.createElement("sl-dropdown");
     this.dropdown.setAttribute("placement", "bottom-end");
     this.dropdown.style.pointerEvents = "auto";
@@ -97,12 +96,9 @@ export class MenuTabs extends HTMLElement {
     this.topControls.appendChild(divider);
 
     this.midControls = document.createElement("div");
-    this.midControls.style.flexGrow = "1";
-    this.midControls.style.flexBasis = "0";
     this.midControls.style.display = "flex";
     this.midControls.style.flexDirection = "column";
     this.midControls.style.justifyContent = "start";
-    this.midControls.style.maxHeight = "100%";
     this.midControls.style.overflowY = "auto";
 
     this.setSelectedTab(Tabs[0]);
