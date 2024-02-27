@@ -225,11 +225,16 @@ export class Camera {
 
   private handlePanStart = (g: TinyGesture) => {
     this.isPanning = true;
-    this.ui.setSideMenuVisibile(false);
+    if (!this.ui.sideMenu.isCollapsed && this.ui.sideMenu.isVisible) {
+      this.ui.sideMenu.setVisible(false);
+    }
   };
 
   private handlePanEnd = (g: TinyGesture) => {
-    this.ui.setSideMenuVisibile(true);
+    if (!this.ui.sideMenu.isCollapsed && !this.ui.sideMenu.isVisible) {
+      this.ui.sideMenu.setVisible(true);
+    }
+
     this.isPanning = false;
     const velocityLimit = 20;
     const momentumDuration = 1000; // in milliseconds

@@ -30,6 +30,8 @@ import PiggyBankIcon from "../shoelace/assets/icons/piggy-bank.svg";
 import CapsuleIcon from "../shoelace/assets/icons/capsule.svg";
 import FlowerIcon from "../shoelace/assets/icons/flower2.svg";
 import PencilIcon from "../shoelace/assets/icons/pencil.svg";
+import HandleIcon from "../shoelace/assets/icons/grip-vertical.svg";
+import { SlIconButton } from "@shoelace-style/shoelace";
 
 export interface MenuTab {
   name: string;
@@ -45,6 +47,7 @@ export const Tabs: MenuTab[] = [
 
 export class MenuTabs extends HTMLElement {
   public container: HTMLDivElement;
+  public handle: SlIconButton;
   public tabGroup: SlTabGroup;
   public tabPanels: SlTabPanel[];
   private dropdownBtn: SlButton;
@@ -56,6 +59,7 @@ export class MenuTabs extends HTMLElement {
   private midControls: HTMLDivElement;
   private dropdownMenuOptions: SlMenuItem[];
   public isVisible: boolean;
+  public isCollapsed: boolean;
 
   constructor() {
     super();
@@ -79,7 +83,6 @@ export class MenuTabs extends HTMLElement {
     this.container.style.flexDirection = "column";
     this.container.style.alignItems = "stretch";
     this.container.style.justifyContent = "start";
-    this.container.style.borderTopRightRadius = "10px";
     this.container.style.borderBottomRightRadius = "10px";
     this.container.style.transition = "transform 0.3s ease-in-out";
     const innerContainer = document.createElement("div");
@@ -90,6 +93,21 @@ export class MenuTabs extends HTMLElement {
     innerContainer.style.justifyContent = "start";
     innerContainer.style.overflow = "hidden";
     this.container.appendChild(innerContainer);
+
+    this.handle = document.createElement("sl-icon-button");
+    this.handle.setAttribute("src", HandleIcon);
+    this.handle.style.fontSize = "28px";
+    this.handle.style.backgroundColor = "rgba(0, 0, 0, .8)";
+    this.handle.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
+    this.handle.style["backdropFilter"] = "blur(15px)";
+    this.handle.style.padding = "0";
+    this.handle.style.borderTopRightRadius = "10px";
+    this.handle.style.borderBottomRightRadius = "10px";
+    this.handle.style.position = "absolute";
+    this.handle.style.top = "0";
+    this.handle.style.right = "-44px";
+    this.handle.style.cursor = "pointer";
+    this.container.appendChild(this.handle);
 
     this.topControls = document.createElement("div");
     this.topControls.style.display = "flex";
@@ -257,5 +275,10 @@ export class MenuTabs extends HTMLElement {
     this.container.style.transform = this.isVisible
       ? "translateX(0)"
       : "translateX(-100%)";
+  }
+
+  public setCollapsed(collapsed: boolean): void {
+    this.isCollapsed = collapsed;
+    this.setVisible(!this.isCollapsed);
   }
 }

@@ -35,7 +35,7 @@ export class UserInterface {
   private maximumBoxes = 10;
   private fontSize = 20;
   private timeControl: TimeControl;
-  private menuTabs: MenuTabs;
+  public sideMenu: MenuTabs;
 
   constructor(private game: Game) {
     this.statusLinePosition = new Point(0, 0);
@@ -120,15 +120,19 @@ export class UserInterface {
         console.log("time scale: ", this.game.timeManager.timeScale);
       });
     }
-    this.menuTabs = document.querySelector("menu-tabs");
-    if (this.menuTabs) {
-      this.menuTabs.dropdownMenu.addEventListener(
+    this.sideMenu = document.querySelector("menu-tabs");
+    if (this.sideMenu) {
+      this.sideMenu.dropdownMenu.addEventListener(
         "sl-select",
         (e: CustomEvent) => {
           console.log(e.detail);
-          this.menuTabs.setSelectedTab(this.menuTabs.getTab(e.detail.item.id));
+          this.sideMenu.setSelectedTab(this.sideMenu.getTab(e.detail.item.id));
         }
       );
+
+      this.sideMenu.handle.addEventListener("click", () => {
+        this.sideMenu.setCollapsed(!this.sideMenu.isCollapsed);
+      });
     }
   }
 
@@ -211,12 +215,6 @@ export class UserInterface {
         this.game.timeManager.getCurrentTimeForDisplay()
       );
       this.timeControl.updatePauseBtn(this.game.timeManager.isPaused);
-    }
-  }
-
-  public setSideMenuVisibile(visible: boolean) {
-    if (this.menuTabs) {
-      this.menuTabs.setVisible(visible);
     }
   }
 
