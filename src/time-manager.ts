@@ -1,13 +1,5 @@
-import { Map as RotJsMap } from "rot-js/lib/index";
-import { RNG } from "rot-js";
-import { FOV } from "rot-js/lib/index";
 import { Game } from "./game";
-import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
-import { Point } from "./point";
 import { Actor } from "./entities/actor";
-import { Layer } from "./renderer";
-import { Autotile } from "./autotile";
-import Simplex from "rot-js/lib/noise/simplex";
 import Action from "rot-js/lib/scheduler/action";
 
 export class TimeManager {
@@ -73,23 +65,18 @@ export class TimeManager {
     this.currentTime = this.currentTurn % totalDayLength;
     this.isNighttime = this.currentTime >= this.dayLength;
     this.isDayTime = !this.isNighttime;
-    // const cycleLength = this.isDayTime ? this.dayLength : this.nightLength;
-    // const currentCycleTime = Math.abs(totalDayLength - this.currentTime);
-    // console.log("currentCycleTime", currentCycleTime);
-    // this.remainingCyclePercent = Math.abs(1 - currentCycleTime / cycleLength);
-    // // this.remainingCyclePercent = Math.abs(1 - this.currentTime / cycleLength);
 
-    // calculate remaining percent left in cycle
-    // at start of cycle, it should equal 1
-    // at end of cycle, it should equal 0
-    // at mid cycle, it should equal 0.5
+    // how much time is left before the next transition
+    // at start: 1, mid: 0.5, end: 0
     this.remainingCyclePercent = this.isDayTime
       ? 1 - this.currentTime / this.dayLength
       : (this.currentTime - this.dayLength) / this.nightLength;
   }
 
   public getCurrentTimeForDisplay(): string {
-    return `Year: ${this.currentYear}  -  Day: ${this.currentDay}  -  Hour: ${this.currentTime}`;
+    return `Year: ${this.currentYear}  -  ${
+      this.isDayTime ? "Day" : "Night"
+    }: ${this.currentDay}  -  Hour: ${this.currentTime}`;
   }
 
   public setDuration(time: number): Action {

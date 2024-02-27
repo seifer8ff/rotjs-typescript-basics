@@ -1,44 +1,40 @@
-import { Color, Lighting, Map as RotJsMap } from "rot-js/lib/index";
-import { RNG } from "rot-js";
+import { Color, Lighting } from "rot-js/lib/index";
 import { Game } from "./game";
-import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
-import { Point } from "./point";
-import { Actor } from "./entities/actor";
-import { Layer } from "./renderer";
-import { Autotile } from "./autotile";
-import Simplex from "rot-js/lib/noise/simplex";
 import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
-import Map from "rot-js/lib/map/map";
 import { MapWorld } from "./map-world";
-import { Color as ColorType, lerp, toHex, toRGB } from "rot-js/lib/color";
+import { Color as ColorType } from "rot-js/lib/color";
+import { Tile } from "./tile";
 
 export class LightManager {
-  public lightMap: { [key: string]: string }; // x,y -> rgba color string
+  public lightMap: { [key: string]: ColorType }; // x,y -> rgba color string
   public readonly lightDefaults: { [key: string]: ColorType };
   private lightingFov: PreciseShadowcasting;
   public lightEmitters: Lighting;
+  private lightEmitterById: { [id: string]: [number, number] };
   public ambientLight: ColorType;
-  public shadowLight: ColorType;
+  public targetAmbientLight: ColorType;
 
   constructor(private game: Game, private map: MapWorld) {
     this.lightDefaults = {
       sunlight: [255, 255, 255],
       moonlight: [70, 70, 135],
       ambientDaylight: [100, 100, 100],
-      shadowDaylight: [50, 50, 50],
       ambientNightLight: [60, 60, 60],
-      shadowNightLight: [25, 25, 25],
       torchBright: [240, 240, 30],
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
     };
     this.lightMap = {};
-    this.calculateLightLevel();
+    this.lightEmitterById = {};
+    this.calculateLightLevel(false); // initial
+    this.calculateLightLevel(true); // target
+
+    this.interpolateLightState(1);
     this.lightingFov = new PreciseShadowcasting(this.lightPasses.bind(this), {
-      topology: 4,
+      topology: 8,
     });
     this.lightEmitters = new Lighting(this.reflectivity.bind(this), {
-      range: 10,
+      range: 6,
       passes: 2,
     });
     this.lightEmitters.setFOV(this.lightingFov);
@@ -47,9 +43,14 @@ export class LightManager {
     console.log("lightMap", this.lightMap);
   }
 
-  public calculateLightLevel() {
+  public calculateLightLevel(calculateTarget = true) {
+    // Set the target light state instead of the current light state
+    let ambientLightToUpdate = this.targetAmbientLight;
+    if (!calculateTarget) {
+      ambientLightToUpdate = this.ambientLight;
+    }
     if (this.game.timeManager.isDayTime) {
-      this.ambientLight = this.multiColorLerp(
+      ambientLightToUpdate = this.multiColorLerp(
         [
           this.lightDefaults.ambientDaylight,
           this.lightDefaults.sunlight,
@@ -57,13 +58,8 @@ export class LightManager {
         ],
         this.game.timeManager.remainingCyclePercent
       );
-      this.shadowLight = Color.interpolate(
-        this.lightDefaults.shadowNightLight,
-        this.lightDefaults.shadowDaylight,
-        this.game.timeManager.remainingCyclePercent
-      );
     } else {
-      this.ambientLight = this.multiColorLerp(
+      ambientLightToUpdate = this.multiColorLerp(
         [
           this.lightDefaults.ambientDaylight,
           this.lightDefaults.moonlight,
@@ -71,11 +67,12 @@ export class LightManager {
         ],
         this.game.timeManager.remainingCyclePercent
       );
-      this.shadowLight = Color.interpolate(
-        this.lightDefaults.shadowNightLight,
-        this.lightDefaults.shadowDaylight,
-        this.game.timeManager.remainingCyclePercent
-      );
+    }
+
+    if (!calculateTarget) {
+      this.ambientLight = ambientLightToUpdate;
+    } else {
+      this.targetAmbientLight = ambientLightToUpdate;
     }
   }
 
@@ -98,184 +95,10 @@ export class LightManager {
     ];
   }
 
-  // UpdateFOV(actor: Actor, innerRadius: number = 4, outerRadius: number = 14) {
-  //   const fov = new PreciseShadowcasting(this.lightPasses.bind(this));
-
-  //   /* output callback */
-  //   fov.compute(
-  //     actor.position.x,
-  //     actor.position.y,
-  //     outerRadius,
-  //     (xPos, yPos, r, visibility) => {
-  //       const dx = xPos - actor.position.x;
-  //       const dy = yPos - actor.position.y;
-  //       const distanceSquared = dx * dx + dy * dy;
-  //       const key = this.coordinatesToKey(xPos, yPos);
-  //       const fovLightColor: ColorType = [240, 180, 100];
-
-  //       if (
-  //         xPos < 0 ||
-  //         yPos < 0 ||
-  //         xPos >= this.game.mapSize.width ||
-  //         yPos >= this.game.mapSize.height
-  //       ) {
-  //         // outside of map bounds
-  //         return;
-  //       }
-
-  //       if (distanceSquared > outerRadius * outerRadius) {
-  //         // outside of visible range
-  //         return;
-  //       }
-
-  //       const midRadius = Math.floor((innerRadius + outerRadius) / 2);
-  //       const innerRadiusSquared = innerRadius * innerRadius;
-  //       const midRadiusSquared = midRadius * midRadius;
-
-  //       if (distanceSquared <= innerRadiusSquared || r == 0) {
-  //         // tile is within inner radius
-  //         // this.lightMap[key] = Color.interpolate(
-  //         //   fovLightColor,
-  //         //   baseColor,
-  //         //   1
-  //         // );
-  //         this.lightMap[key] = toRGB(fovLightColor);
-  //         return;
-  //       }
-
-  //       let tileVisibilty: number;
-  //       tileVisibilty = 1 / Math.abs(r - midRadius / 2);
-  //       // if (distanceSquared <= midRadiusSquared) {
-  //       //   // constrain mid radius darkness to 0.2
-  //       //   tileVisibilty = this.lerp(0, 1, 1 / Math.abs(r - innerRadius / 2));
-  //       // } else {
-  //       //   // start calculating outer radius darkness from midpoint rather than actor pos
-  //       //   tileVisibilty = 1 / Math.abs(r - midRadius / 2);
-  //       // }
-
-  //       let baseColorString = this.lightMap[key];
-  //       let baseColor: ColorType;
-  //       if (!baseColorString) {
-  //         baseColorString = toRGB(this.ambientLight);
-  //       }
-  //       baseColor = Color.fromString(baseColorString);
-  //       if (!baseColor) {
-  //         return;
-  //       }
-
-  //       const interpolatedColor = Color.interpolate(
-  //         baseColor,
-  //         fovLightColor,
-  //         tileVisibilty
-  //       );
-
-  //       // scale white to a shade of black
-  //       // const colorValue = Math.floor(255 * tileVisibilty);
-  //       // const colorValue = Math.floor(this.lightMap[this.coordinatesToKey(x, y)] * tileVisibilty);
-  //       // if (colorValue === Infinity) {
-  //       //   // prevent any edge cases/bugs from reaching the renderer
-  //       //   return;
-  //       // }
-
-  //       // update the light map for this position
-  //       // this.lightMap[key] = `rgb(${colorValue}, ${colorValue}, ${colorValue})`;
-  //       this.lightMap[key] = toRGB(interpolatedColor);
-  //     }
-  //   );
-  // }
-
-  // UpdateFOV(actor: Actor, innerRadius: number = 4, outerRadius: number = 14) {
-  //   const fov = new PreciseShadowcasting(this.lightPasses.bind(this));
-
-  //   /* output callback */
-  //   fov.compute(
-  //     actor.position.x,
-  //     actor.position.y,
-  //     outerRadius,
-  //     (xPos, yPos, r, visibility) => {
-  //       const dx = xPos - actor.position.x;
-  //       const dy = yPos - actor.position.y;
-  //       const distanceSquared = dx * dx + dy * dy;
-  //       const key = this.coordinatesToKey(xPos, yPos);
-  //       const fovLightColor: ColorType = [240, 100, 60];
-
-  //       if (
-  //         xPos < 0 ||
-  //         yPos < 0 ||
-  //         xPos >= this.game.mapSize.width ||
-  //         yPos >= this.game.mapSize.height
-  //       ) {
-  //         // outside of map bounds
-  //         return;
-  //       }
-
-  //       if (distanceSquared > outerRadius * outerRadius) {
-  //         // outside of visible range or at the actor's position
-  //         return;
-  //       }
-
-  //       const midRadius = Math.floor((innerRadius + outerRadius) / 2);
-  //       const innerRadiusSquared = innerRadius * innerRadius;
-  //       const midRadiusSquared = midRadius * midRadius;
-
-  //       if (distanceSquared <= innerRadiusSquared || r == 0) {
-  //         // tile is within inner radius
-  //         // this.lightMap[key] = Color.interpolate(
-  //         //   fovLightColor,
-  //         //   baseColor,
-  //         //   1
-  //         // );
-  //         this.lightMap[key] = toHex(fovLightColor);
-  //         return;
-  //       }
-
-  //       let tileVisibilty: number;
-  //       if (distanceSquared <= midRadiusSquared) {
-  //         // constrain mid radius darkness to 0.2
-  //         tileVisibilty = this.lerp(0, 1, 1 / Math.abs(r - innerRadius / 2));
-  //       } else {
-  //         // start calculating outer radius darkness from midpoint rather than actor pos
-  //         tileVisibilty = 1 / Math.abs(r - midRadius / 2);
-  //       }
-
-  //       let baseColorString = this.lightMap[key];
-  //       let baseColor: ColorType;
-  //       if (!baseColorString) {
-  //         baseColorString = toHex(this.ambientLight);
-  //       }
-  //       baseColor = Color.fromString(baseColorString);
-  //       if (!baseColor) {
-  //         return;
-  //       }
-
-  //       const modColor = Color.interpolate(
-  //         baseColor,
-  //         fovLightColor,
-  //         tileVisibilty
-  //       );
-  //       console.log("tileVisibilty", tileVisibilty, "modColor", modColor);
-
-  //       // scale white to a shade of black
-  //       // const colorValue = Math.floor(255 * tileVisibilty);
-  //       // const colorValue = Math.floor(this.lightMap[this.coordinatesToKey(x, y)] * tileVisibilty);
-  //       // if (colorValue === Infinity) {
-  //       //   // prevent any edge cases/bugs from reaching the renderer
-  //       //   return;
-  //       // }
-
-  //       // update the light map for this position
-  //       // this.lightMap[key] = `rgb(${colorValue}, ${colorValue}, ${colorValue})`;
-  //       this.lightMap[key] = toHex(modColor);
-  //     }
-  //   );
-  // }
-
   private lightPasses(x: number, y: number): boolean {
-    var key = this.coordinatesToKey(x, y);
-    // console.log("key: ", key);
+    var key = MapWorld.coordsToKey(x, y);
     if (key in this.map.terrainTileMap) {
-      // console.log("light pass: ", this.map.terrainTileMap[key]);
-      return this.map.terrainTileMap[key].biomeType != "ocean";
+      return this.map.terrainTileMap[key].biomeType != "hills";
     }
     return false;
   }
@@ -284,26 +107,90 @@ export class LightManager {
     this.lightMap = {};
   }
 
-  private coordinatesToKey(x: number, y: number): string {
-    return x + "," + y;
-  }
-
-  private keyToPoint(key: string): Point {
-    let parts = key.split(",");
-    return new Point(parseInt(parts[0]), parseInt(parts[1]));
-  }
-
   public reflectivity(x: number, y: number) {
-    return this.map.terrainTileMap[this.coordinatesToKey(x, y)] == Tile.water
-      ? 0
-      : 0.4;
+    const key = MapWorld.coordsToKey(x, y);
+    const tile = this.map.terrainTileMap[key];
+    if (!tile) {
+      return 0;
+    }
+    const isBlocking = tile.biomeType == "hills";
+    const isWater =
+      tile.biomeType == "ocean" ||
+      tile.biomeType == "oceandeep" ||
+      tile.biomeType == "swampwater";
+    const isReflectiveDirt = tile.biomeType == "sand";
+    const isShadowed =
+      tile.biomeType == "forestgrass" || tile.biomeType == "swampdirt";
+    if (isBlocking) {
+      return 0;
+    }
+    if (isShadowed) {
+      return 0.15;
+    }
+    if (isReflectiveDirt) {
+      return 0.26;
+    }
+    if (isWater) {
+      return 0.35;
+    }
+    return 0.22;
   }
 
   public lightingCallback(x: number, y: number, color: ColorType) {
-    this.lightMap[this.coordinatesToKey(x, y)] = toRGB(color);
+    this.lightMap[MapWorld.coordsToKey(x, y)] = color;
   }
 
-  public calculateLighting() {
+  public interpolateLightState(deltaTime: number) {
+    // Interpolate between the current light state and the target light state based on
+    // how much time has passed since the last frame
+    this.ambientLight = Color.lerp(
+      this.ambientLight,
+      this.targetAmbientLight,
+      deltaTime
+    );
+  }
+
+  public calculateLighting(deltaTime: number) {
+    // Interpolate the light state before computing the lighting
+    this.interpolateLightState(deltaTime);
     this.lightEmitters.compute(this.lightingCallback.bind(this));
+  }
+
+  public clearAllDynamicLights() {
+    for (let entity of this.game.entities) {
+      if (this.lightEmitterById[entity.id]) {
+        const [x, y] = this.lightEmitterById[entity.id];
+        this.lightEmitters.setLight(x, y, null);
+        this.lightEmitterById[entity.id] = null;
+      }
+    }
+  }
+
+  public clearChangedDynamicLights() {
+    for (let entity of this.game.entities) {
+      if (this.lightEmitterById[entity.id]) {
+        const [x, y] = this.lightEmitterById[entity.id];
+        if (entity.position.x != x || entity.position.y != y) {
+          this.lightEmitters.setLight(x, y, null);
+          this.lightEmitterById[entity.id] = null;
+        }
+      }
+    }
+  }
+
+  public updateDynamicLighting() {
+    if (this.game.timeManager.isNighttime) {
+      for (let entity of this.game.entities) {
+        this.lightEmitterById[entity.id] = [
+          entity.position.x,
+          entity.position.y,
+        ];
+        this.lightEmitters.setLight(
+          entity.position.x,
+          entity.position.y,
+          this.lightDefaults.torchBright
+        );
+      }
+    }
   }
 }

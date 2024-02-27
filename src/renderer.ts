@@ -4,7 +4,6 @@ import { Point } from "./point";
 import { Tile } from "./tile";
 import { Color } from "rot-js";
 import { Color as ColorType } from "rot-js/lib/color";
-
 export enum Layer {
   TERRAIN,
   PLANT,
@@ -44,7 +43,6 @@ export class Renderer {
     const left = viewportCenterTile.x - Math.ceil(width / 2);
     const top = viewportCenterTile.y - Math.ceil(height / 2);
     let ambientLight = this.game.map.lightManager.ambientLight;
-    let shadowLight = this.game.map.lightManager.shadowLight;
 
     for (let x = left; x < centeredWidth; x++) {
       for (let y = top; y < centeredHeight; y++) {
@@ -59,18 +57,14 @@ export class Renderer {
           }
           const key = `${x},${y}`;
           let sprite = this.spriteCache[layer][key];
-
-          const baseColor =
-            terrainMap[key] != Tile.water ? ambientLight : shadowLight;
           let light = ambientLight;
 
           if (key in lightMap && lightMap[key] != null) {
-            // console.log("lightmap key", key, lightMap[key]);
             /* add light from our computation */
-            light = Color.add(light, Color.fromString(lightMap[key]));
+            light = Color.add(light, lightMap[key]);
           }
 
-          const finalColor = Color.multiply(baseColor, light);
+          const finalColor = Color.multiply(ambientLight, light);
           // highlight the entity a little bit
           const finalEntityColor = Color.interpolate(
             finalColor,

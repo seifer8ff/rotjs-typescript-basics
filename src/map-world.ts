@@ -36,6 +36,15 @@ export class MapWorld {
     this.islandMask = 0.38;
   }
 
+  public static coordsToKey(x: number, y: number): string {
+    return `${x},${y}`;
+  }
+
+  public static keyToPoint(key: string): Point {
+    let parts = key.split(",");
+    return new Point(parseInt(parts[0]), parseInt(parts[1]));
+  }
+
   generateMap(width: number, height: number): void {
     this.terrainTileMap = {};
     this.biomeMap = {};
@@ -47,14 +56,14 @@ export class MapWorld {
 
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = this.coordinatesToKey(x, y);
+        const key = MapWorld.coordsToKey(x, y);
         this.heightMap[key] = this.getHeight(x, y, width, height, noise);
         this.terrainMap[key] = this.assignTerrain(x, y);
       }
     }
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = this.coordinatesToKey(x, y);
+        const key = MapWorld.coordsToKey(x, y);
         this.adjacencyMap[key] = this.assignAdjacentTerrain(x, y);
         this.biomeMap[key] = this.assignBiome(x, y);
         this.dirtyTiles.push(key);
@@ -119,7 +128,7 @@ export class MapWorld {
   assignTerrain(x: number, y: number): Biome {
     // assign the high level terrain types
     // features will be placed within these terrain types for tiling transition purposes
-    const heightVal = this.heightMap[this.coordinatesToKey(x, y)];
+    const heightVal = this.heightMap[MapWorld.coordsToKey(x, y)];
     if (Tile.inRange(heightVal, Tile.Biomes.ocean.generationOptions.height)) {
       return Tile.Biomes.ocean;
     }
@@ -137,7 +146,7 @@ export class MapWorld {
 
   assignAdjacentTerrain(x: number, y: number): Biome[] {
     const adjacencyDistance = 2;
-    const key = this.coordinatesToKey(x, y);
+    const key = MapWorld.coordsToKey(x, y);
     const heightVal = this.heightMap[key];
     const terrain = this.terrainMap[key];
     const adjacentTerrain = [];
@@ -157,7 +166,7 @@ export class MapWorld {
           continue;
         }
         pos = new Point(x + xOffset, y + yOffset);
-        biome = this.terrainMap[this.coordinatesToKey(pos.x, pos.y)];
+        biome = this.terrainMap[MapWorld.coordsToKey(pos.x, pos.y)];
         if (biome) {
           adjacentTerrain.push(biome);
         }
@@ -167,7 +176,7 @@ export class MapWorld {
   }
 
   isAdjacentToTerrain(x: number, y: number, terrain: Biome[]): boolean {
-    const key = this.coordinatesToKey(x, y);
+    const key = MapWorld.coordsToKey(x, y);
     const adjacentTerrain = this.adjacencyMap[key];
     for (let i = 0; i < adjacentTerrain.length; i++) {
       if (terrain.includes(adjacentTerrain[i])) {
@@ -178,7 +187,7 @@ export class MapWorld {
   }
 
   assignBiome(x: number, y: number): Biome {
-    const key = this.coordinatesToKey(x, y);
+    const key = MapWorld.coordsToKey(x, y);
     const heightVal = this.heightMap[key];
 
     if (this.terrainMap[key] === Tile.Biomes.ocean) {
@@ -265,8 +274,8 @@ export class MapWorld {
   }
 
   setTile(x: number, y: number, tile: Tile): void {
-    this.terrainTileMap[this.coordinatesToKey(x, y)] = tile;
-    this.dirtyTiles.push(this.coordinatesToKey(x, y));
+    this.terrainTileMap[MapWorld.coordsToKey(x, y)] = tile;
+    this.dirtyTiles.push(MapWorld.coordsToKey(x, y));
   }
 
   getRandomTilePositions(biomeType: BiomeType, quantity: number = 1): Point[] {
@@ -275,7 +284,7 @@ export class MapWorld {
     for (let key in this.terrainTileMap) {
       // console.log("this.map[key]", key, this.map[key]);
       if (this.terrainTileMap[key].biomeType === biomeType) {
-        buffer.push(this.keyToPoint(key));
+        buffer.push(MapWorld.keyToPoint(key));
       }
     }
 
@@ -288,18 +297,21 @@ export class MapWorld {
   }
 
   getTile(x: number, y: number): Tile {
-    return this.terrainTileMap[this.coordinatesToKey(x, y)];
+    return this.terrainTileMap[MapWorld.coordsToKey(x, y)];
   }
 
   getTileType(x: number, y: number): TileType {
-    return this.terrainTileMap[this.coordinatesToKey(x, y)].type;
+    return this.terrainTileMap[MapWorld.coordsToKey(x, y)].type;
   }
 
   isPassable(x: number, y: number): boolean {
+    const key = MapWorld.coordsToKey(x, y);
+    const tile = this.terrainTileMap[key];
     return (
-      this.coordinatesToKey(x, y) in this.terrainTileMap &&
-      this.terrainTileMap[this.coordinatesToKey(x, y)]?.biomeType !==
-        Tile.Biomes.ocean.biome
+      key in this.terrainTileMap &&
+      tile?.biomeType !== Tile.Biomes.ocean.biome &&
+      tile?.biomeType !== Tile.Biomes.oceandeep.biome &&
+      tile?.biomeType !== Tile.Biomes.hills.biome
     );
   }
 
@@ -308,12 +320,12 @@ export class MapWorld {
       if (key) {
         const tile = this.terrainTileMap[key];
         this.game.renderer.removeFromScene(
-          this.keyToPoint(key),
+          MapWorld.keyToPoint(key),
           key,
           Layer.TERRAIN
         );
         this.game.renderer.addToScene(
-          this.keyToPoint(key),
+          MapWorld.keyToPoint(key),
           Layer.TERRAIN,
           tile.sprite
         );
@@ -321,14 +333,5 @@ export class MapWorld {
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];
-  }
-
-  private coordinatesToKey(x: number, y: number): string {
-    return x + "," + y;
-  }
-
-  private keyToPoint(key: string): Point {
-    let parts = key.split(",");
-    return new Point(parseInt(parts[0]), parseInt(parts[1]));
   }
 }

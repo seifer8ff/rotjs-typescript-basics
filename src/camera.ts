@@ -145,26 +145,6 @@ export class Camera {
     return true;
   }
 
-  // public getViewportSizeInTiles(pad: boolean = false): {
-  //   width: number;
-  //   height: number;
-  // } {
-  //   let width =
-  //     this.ui.gameCanvasContainer.clientWidth /
-  //     (Tile.size * this.ui.gameDisplay.stage.scale.x);
-  //   let height =
-  //     this.ui.gameCanvasContainer.clientHeight /
-  //     (Tile.size * this.ui.gameDisplay.stage.scale.x);
-  //   if (pad) {
-  //     // min of 5 padding
-  //     width += Math.max(5, width / 4);
-  //     height += Math.max(5, height / 4);
-  //   }
-  //   width = Math.ceil(width);
-  //   height = Math.ceil(height);
-  //   return { width, height };
-  // }
-
   public getViewportInTiles(pad: boolean = false): {
     width: number;
     height: number;
@@ -177,9 +157,9 @@ export class Camera {
       this.ui.gameCanvasContainer.clientHeight /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
     if (pad) {
-      // min of 5 padding
-      width += Math.max(10, width);
-      height += Math.max(10, height);
+      // load more than needed to prevent flickering at edges
+      width += Math.max(10, 0.2 * width);
+      height += Math.max(10, 0.2 * height);
     }
     const center = this.getViewportCenterTile();
     width = Math.ceil(width);
@@ -270,31 +250,33 @@ export class Camera {
   };
 
   private handlePinchZoom = (g: TinyGesture) => {
-    // TODO: fix bugs
-    // BUG: pinch zooming is not centered on the pinch point
-    // BUG: pinch zooming initially sets scale to distance between fingers
-    // BUG: weird behavior when moving while pinching
+    const maxScaleSpeed = 0.2; // < 1 to take effect
     const scaleSpeed = 0.2;
 
     const pivotX = this.ui.gameDisplay.stage.pivot.x;
     const pivotY = this.ui.gameDisplay.stage.pivot.y;
+    let scale = this.ui.gameDisplay.stage.scale.x;
+    let scaleDelta = scale - g.scale;
+    scaleDelta = Math.max(-maxScaleSpeed, Math.min(maxScaleSpeed, scaleDelta));
 
-    const posX = this.ui.gameDisplay.stage.position.x;
-    const posY = this.ui.gameDisplay.stage.position.y;
+    // modify the maps scale based on how much the user pinched
+    scale += -1 * scaleDelta * scaleSpeed * scale;
+    // clamp to reasonable values
+    scale = Math.max(0.5, Math.min(10, scale));
 
-    const scaleX = this.ui.gameDisplay.stage.scale.x;
-    const scaleY = this.ui.gameDisplay.stage.scale.y;
-
-    let scaleDiff = scaleX - g.scale;
-    scaleDiff *= -1 * scaleSpeed;
-    scaleDiff = Math.max(-0.2, Math.min(0.2, scaleDiff));
-
-    const newScaleX = scaleX * g.scale * (1 - scaleSpeed);
-    const newScaleY = scaleY * g.scale * (1 - scaleSpeed);
-
-    this.currentZoom += scaleDiff;
-    this.ui.gameDisplay.stage.scale.x += scaleDiff;
-    this.ui.gameDisplay.stage.scale.y += scaleDiff;
+    this.currentZoom = scale;
+    // update the scale and position of the stage
+    this.ui.gameDisplay.stage.setTransform(
+      this.game.userInterface.gameDisplay.stage.position.x,
+      this.game.userInterface.gameDisplay.stage.position.y,
+      scale, // scale
+      scale,
+      null, // rotation
+      null, // skew
+      null,
+      pivotX,
+      pivotY
+    );
   };
 
   private handleDoubleTap = (g: TinyGesture) => {
@@ -307,15 +289,21 @@ export class Camera {
   private handleZoom = (e: WheelEvent) => {
     e.preventDefault();
     const scaleSpeed = 0.1;
+    const maxScaleSpeed = 0.35;
 
     const pivotX = this.ui.gameDisplay.stage.pivot.x;
     const pivotY = this.ui.gameDisplay.stage.pivot.y;
     let scale = this.ui.gameDisplay.stage.scale.x;
 
+    let scrollDelta = Math.max(-1, Math.min(1, e.deltaY));
+    scrollDelta = Math.max(
+      -maxScaleSpeed,
+      Math.min(maxScaleSpeed, scrollDelta)
+    );
     // modify the scale based on the scroll delta
-    scale += -1 * Math.max(-1, Math.min(1, e.deltaY)) * scaleSpeed * scale;
+    scale += -1 * scrollDelta * scaleSpeed * scale;
     // clamp to reasonable values
-    scale = Math.max(0.4, Math.min(10, scale));
+    scale = Math.max(0.5, Math.min(10, scale));
 
     this.currentZoom = scale;
 

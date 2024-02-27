@@ -3,6 +3,7 @@ import { Tile, TileType } from "../tile";
 import { Action } from "../actions/action";
 
 export interface Actor {
+  id: number;
   position: Point;
   tile: Tile;
   type: TileType;

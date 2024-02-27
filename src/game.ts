@@ -149,9 +149,6 @@ export class Game {
   }
 
   private async gameLoop(now: number) {
-    requestAnimationFrame(this.gameLoop.bind(this));
-    // console.log("game loop");
-
     if (!this.lastGameLoopTime) {
       this.lastGameLoopTime = now;
     }
@@ -159,10 +156,9 @@ export class Game {
 
     if (elapsed > this.msPerLoop / this.timeManager.timeScale) {
       const turn = this.timeManager.currentTurn;
-      // ONLY ONE ACTOR GETS CALLED PER LOOP
-      // NEED TO LOOP THROUGH ALL ACTORS AND CALL ACT IF THEY'RE 'READY'
       let actor: Actor;
       if (!this.timeManager.isPaused) {
+        // loop through ALL actors each turn
         while (turn === this.timeManager.currentTurn) {
           actor = this.timeManager.nextOnSchedule();
           if (actor) {
@@ -174,11 +170,10 @@ export class Game {
             }
           }
         }
-        this.map.lightManager.clearLightMap();
-        this.map.lightManager.calculateLightLevel();
-        this.map.lightManager.lightEmitters.clearLights();
-        this.calculateLighting();
-        // this.calculateDynamicLighting();
+        // update dynamic lights after all actors have moved
+        // will get picked up in next render
+        this.map.lightManager.clearChangedDynamicLights();
+        this.map.lightManager.updateDynamicLighting();
       }
 
       if (this.gameState.isGameOver()) {
@@ -189,6 +184,7 @@ export class Game {
       }
       this.lastGameLoopTime = now;
     }
+    requestAnimationFrame(this.gameLoop.bind(this));
   }
 
   private renderLoop(now: number) {
@@ -198,40 +194,44 @@ export class Game {
       this.lastRenderTime = now;
     }
     const elapsed = now - this.lastRenderTime;
+    const deltaTime = elapsed / 1000; // time elapsed in seconds
 
     if (elapsed > this.msPerFrame) {
+      this.map.lightManager.clearLightMap();
+      this.map.lightManager.calculateLightLevel();
+      this.map.lightManager.calculateLighting(deltaTime);
       this.userInterface.refreshPanel();
       this.lastRenderTime = now;
     }
   }
 
-  private calculateDynamicLighting() {
-    // if night, calculate fov for entities
-    if (this.timeManager.isNighttime) {
-      for (let entity of this.entities) {
-        this.map.lightManager.UpdateFOV(entity);
-      }
-    }
-    // when render loop gets called later, it will use updated lightmap
-  }
+  // private calculateDynamicLighting() {
+  //   // if night, calculate fov for entities
+  //   if (this.timeManager.isNighttime) {
+  //     for (let entity of this.entities) {
+  //       this.map.lightManager.UpdateFOV(entity);
+  //     }
+  //   }
+  //   // when render loop gets called later, it will use updated lightmap
+  // }
 
-  private calculateLighting() {
-    this.map.lightManager.lightEmitters.clearLights();
-    this.map.lightManager.lightEmitters.setLight(12, 12, [240, 240, 30]);
-    this.map.lightManager.lightEmitters.setLight(20, 20, [240, 60, 60]);
-    this.map.lightManager.lightEmitters.setLight(45, 25, [200, 200, 200]);
-    if (this.timeManager.isNighttime) {
-      for (let entity of this.entities) {
-        this.map.lightManager.lightEmitters.setLight(
-          entity.position.x,
-          entity.position.y,
-          this.map.lightManager.lightDefaults.torchBright
-        );
-      }
-    }
-    //update lightmap object
-    this.map.lightManager.calculateLighting();
-  }
+  // private calculateLighting() {
+  //   // this.map.lightManager.lightEmitters.clearLights();
+  //   // this.map.lightManager.lightEmitters.setLight(12, 12, [240, 240, 30]);
+  //   // this.map.lightManager.lightEmitters.setLight(20, 20, [240, 60, 60]);
+  //   // this.map.lightManager.lightEmitters.setLight(45, 25, [200, 200, 200]);
+  //   if (this.timeManager.isNighttime) {
+  //     for (let entity of this.entities) {
+  //       this.map.lightManager.lightEmitters.setLight(
+  //         entity.position.x,
+  //         entity.position.y,
+  //         this.map.lightManager.lightDefaults.torchBright
+  //       );
+  //     }
+  //   }
+  //   //update lightmap object
+  //   this.map.lightManager.calculateLighting();
+  // }
 
   private getActorName(actor: Actor): string {
     switch (actor.type) {

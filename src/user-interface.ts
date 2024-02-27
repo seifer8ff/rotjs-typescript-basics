@@ -112,7 +112,6 @@ export class UserInterface {
       );
       this.timeControl.pauseBtn.addEventListener("click", () => {
         this.game.timeManager.togglePause();
-        this.timeControl.togglePauseBtn(this.game.timeManager.isPaused);
       });
       this.timeControl.timeSlider.addEventListener("sl-input", (e: any) => {
         this.game.timeManager.setTimescale(e.target.value);
@@ -172,7 +171,6 @@ export class UserInterface {
     this.messageLog.draw();
     this.updateTimeControl();
     const viewportInTiles = this.camera.getViewportInTiles(true);
-    // this.calculateEntityFOVs();
     this.drawPlants();
     this.drawEntities();
     this.game.renderer.renderLayers(
@@ -205,20 +203,12 @@ export class UserInterface {
     }
   }
 
-  // private calculateEntityFOVs(): void {
-  //   // this.game.map.clearLightMap();
-  //   // this.game.map.lightManager.clearLightMap();
-  //   for (let entity of this.game.entities) {
-  //     // this.game.map.UpdateFOV(entity);
-  //     this.game.map.lightManager.UpdateFOV(entity);
-  //   }
-  // }
-
   private updateTimeControl(): void {
     if (this.timeControl) {
       this.timeControl.updateTime(
         this.game.timeManager.getCurrentTimeForDisplay()
       );
+      this.timeControl.updatePauseBtn(this.game.timeManager.isPaused);
     }
   }
 
