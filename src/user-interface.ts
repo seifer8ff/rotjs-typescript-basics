@@ -233,6 +233,7 @@ export class UserInterface {
         console.log(`clicked on ${entity.id}`);
         this.camera.followActor(entity);
       },
+      label: entity.name,
       tooltip: `Entity: ${entity.id}`,
     };
   }

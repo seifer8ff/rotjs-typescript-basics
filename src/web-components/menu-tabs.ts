@@ -43,6 +43,7 @@ export interface MenuItem {
   name: string;
   icon: string;
   clickHandler?: () => void;
+  label?: string;
   tooltip?: string;
 }
 
@@ -81,6 +82,7 @@ export class MenuTabs extends HTMLElement {
     this.container.style.top = "120px";
     this.container.style.left = "0";
     this.container.style.bottom = "20px";
+    this.container.style.width = "120px";
     this.container.style.padding = "10px";
     this.container.style.paddingRight = "0px";
     this.container.style.paddingLeft = "0px";

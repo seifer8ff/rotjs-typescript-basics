@@ -12,10 +12,10 @@ import "@shoelace-style/shoelace/dist/components/divider/divider.js";
 import { MenuItem, MenuTab } from "./menu-tabs";
 import "@shoelace-style/shoelace/dist/components/tooltip/tooltip.js";
 import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
-import { SlIconButton } from "@shoelace-style/shoelace";
+import { SlButton, SlIconButton } from "@shoelace-style/shoelace";
 
 export class MenuTabContent extends HTMLElement {
-  public optionControls?: SlIconButton[];
+  public optionControls?: SlButton[];
 
   constructor(private tab: MenuTab, private options: MenuItem[]) {
     super();
@@ -26,7 +26,7 @@ export class MenuTabContent extends HTMLElement {
     container.style.pointerEvents = "auto";
     container.style.display = "flex";
     container.style.flexDirection = "column";
-    container.style.alignItems = "center";
+    container.style.alignItems = "end";
     container.style.justifyContent = "start";
     container.style.overflowY = "auto";
 
@@ -34,14 +34,38 @@ export class MenuTabContent extends HTMLElement {
       // const optionTooltip = document.createElement("sl-tooltip");
       // optionTooltip.setAttribute("content", option.tooltip);
       // optionTooltip.setAttribute("hoist", "true");
-      const optionBtn = document.createElement("sl-icon-button");
+      const optionBtn = document.createElement("sl-button");
       optionBtn.classList.add("menu-option");
-      optionBtn.setAttribute("src", option.icon);
+      optionBtn.setAttribute("variant", "text");
+      // optionBtn.setAttribute("size", "small");
+      optionBtn.textContent = option.label;
+      const icon = document.createElement("sl-icon");
+      icon.setAttribute("src", option.icon);
+      icon.setAttribute("slot", "suffix");
+      optionBtn.appendChild(icon);
       optionBtn.style.pointerEvents = "auto";
       optionBtn.addEventListener("click", option.clickHandler);
       // optionTooltip.appendChild(optionBtn);
       container.appendChild(optionBtn);
       return optionBtn;
+
+      //   <sl-button variant="default">
+      //   <sl-icon slot="suffix" name="arrow-counterclockwise"></sl-icon>
+      //   Refresh
+      // </sl-button>
+
+      // this.optionControls = this.options.map((option) => {
+      //   // const optionTooltip = document.createElement("sl-tooltip");
+      //   // optionTooltip.setAttribute("content", option.tooltip);
+      //   // optionTooltip.setAttribute("hoist", "true");
+      //   const optionBtn = document.createElement("sl-icon-button");
+      //   optionBtn.classList.add("menu-option");
+      //   optionBtn.setAttribute("src", option.icon);
+      //   optionBtn.style.pointerEvents = "auto";
+      //   optionBtn.addEventListener("click", option.clickHandler);
+      //   // optionTooltip.appendChild(optionBtn);
+      //   container.appendChild(optionBtn);
+      //   return optionBtn;
     });
 
     shadow.appendChild(container);

@@ -11,6 +11,7 @@ import { WanderAction } from "../actions/wanderAction";
 
 export class Animal implements Actor {
   id: number;
+  name: string;
   tile: Tile;
   type: TileType;
   action: Action;
@@ -21,6 +22,10 @@ export class Animal implements Actor {
 
   constructor(private game: Game, public position: Point) {
     this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.name = this.game.nameGenerator.generate();
+    console.log(
+      `Animal ${this.name} created at ${this.position.x}, ${this.position.y}`
+    );
     this.tile = Tile.animal;
     this.type = this.tile.type;
     this.path = [];

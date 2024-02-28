@@ -16,6 +16,7 @@ import { Renderer } from "./renderer";
 import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
+import { GeneratorNames } from "./generator-names";
 
 export class Game {
   public entityCount = 20;
@@ -30,6 +31,7 @@ export class Game {
   public renderer: Renderer;
   public timeManager: TimeManager;
   public userInterface: UserInterface;
+  public nameGenerator: GeneratorNames;
 
   private treePoint: Point;
 
@@ -59,6 +61,7 @@ export class Game {
     this.userInterface = new UserInterface(this);
     this.gameState = new GameState();
     this.map = new MapWorld(this);
+    this.nameGenerator = new GeneratorNames(this);
     this.renderer = new Renderer(this);
   }
 

@@ -4,6 +4,7 @@ import { Action } from "../actions/action";
 
 export interface Actor {
   id: number;
+  name?: string;
   position: Point;
   tile: Tile;
   type: TileType;
