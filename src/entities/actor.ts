@@ -4,6 +4,7 @@ import { Action } from "../actions/action";
 
 export interface Actor {
   id: number;
+  name?: string;
   position: Point;
   tile: Tile;
   type: TileType;
@@ -12,4 +13,14 @@ export interface Actor {
 
   plan(): void;
   act(): Promise<any>;
+  getDescription(): DescriptionBlock[];
+}
+
+export interface DescriptionBlock {
+  icon: string;
+  text: string;
+}
+
+export function isActor(object: any): object is Actor {
+  return "id" in object && "position" in object;
 }

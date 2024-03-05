@@ -5,6 +5,7 @@ import { MapWorld } from "./map-world";
 import { Color as ColorType } from "rot-js/lib/color";
 import { Tile } from "./tile";
 import { Viewport } from "./camera";
+import { multiColorLerp } from "./misc-utility";
 
 export class LightManager {
   public lightMap: { [key: string]: ColorType }; // x,y -> rgba color string
@@ -52,7 +53,7 @@ export class LightManager {
       ambientLightToUpdate = this.ambientLight;
     }
     if (this.game.timeManager.isDayTime) {
-      ambientLightToUpdate = this.multiColorLerp(
+      ambientLightToUpdate = multiColorLerp(
         [
           this.lightDefaults.ambientDaylight,
           this.lightDefaults.sunlight,
@@ -61,7 +62,7 @@ export class LightManager {
         this.game.timeManager.remainingCyclePercent
       );
     } else {
-      ambientLightToUpdate = this.multiColorLerp(
+      ambientLightToUpdate = multiColorLerp(
         [
           this.lightDefaults.ambientDaylight,
           this.lightDefaults.moonlight,
@@ -80,21 +81,6 @@ export class LightManager {
 
   lerp(x: number, y: number, a: number): number {
     return x * (1 - a) + y * a;
-  }
-
-  public multiColorLerp(colors: ColorType[], t: number): ColorType {
-    t = Math.max(0, Math.min(1, t));
-    const delta = 1 / (colors.length - 1);
-    const startIndex = Math.floor(t / delta);
-    if (startIndex === colors.length - 1) {
-      return colors[colors.length - 1];
-    }
-    const localT = (t % delta) / delta;
-    return [
-      this.lerp(colors[startIndex][0], colors[startIndex + 1][0], localT),
-      this.lerp(colors[startIndex][1], colors[startIndex + 1][1], localT),
-      this.lerp(colors[startIndex][2], colors[startIndex + 1][2], localT),
-    ];
   }
 
   private lightPasses(x: number, y: number): boolean {

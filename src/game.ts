@@ -16,6 +16,7 @@ import { Renderer } from "./renderer";
 import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
+import { GeneratorNames } from "./generator-names";
 
 export class Game {
   public entityCount = 20;
@@ -30,6 +31,7 @@ export class Game {
   public renderer: Renderer;
   public timeManager: TimeManager;
   public userInterface: UserInterface;
+  public nameGenerator: GeneratorNames;
 
   private treePoint: Point;
 
@@ -54,11 +56,14 @@ export class Game {
 
     this.gameSize = { width: width, height: height };
     this.mapSize = { width: this.gameSize.width, height: this.gameSize.height };
+    this.entities = [];
+    this.plants = [];
 
     this.timeManager = new TimeManager(this);
     this.userInterface = new UserInterface(this);
     this.gameState = new GameState();
     this.map = new MapWorld(this);
+    this.nameGenerator = new GeneratorNames(this);
     this.renderer = new Renderer(this);
   }
 
@@ -91,6 +96,28 @@ export class Game {
 
   getTileType(x: number, y: number): TileType {
     return this.map.getTileType(x, y);
+  }
+
+  getTerrainTileAt(x: number, y: number): Tile {
+    return this.map.getTile(x, y);
+  }
+
+  getEntityAt(x: number, y: number): Actor | null {
+    for (let entity of this.entities) {
+      if (entity.position.x === x && entity.position.y === y) {
+        return entity;
+      }
+    }
+    return null;
+  }
+
+  getPlantAt(x: number, y: number): Actor | null {
+    for (let plant of this.plants) {
+      if (plant.position.x === x && plant.position.y === y) {
+        return plant;
+      }
+    }
+    return null;
   }
 
   getRandomTilePositions(type: BiomeType, quantity: number = 1): Point[] {
@@ -272,20 +299,27 @@ export class Game {
     );
     // this.player = new Player(this, positions.splice(0, 1)[0]);
     for (let position of positions) {
-      this.entities.push(new Animal(this, position));
-      // if (RNG.getUniform() < 0.5) {
-      //   this.entities.push(new Person(this, position));
-      // } else {
-      //   this.entities.push(new Animal(this, position));
-      // }
+      // this.entities.push(new Animal(this, position));
+      if (RNG.getUniform() < 0.5) {
+        this.entities.push(new Person(this, position));
+      } else {
+        this.entities.push(new Animal(this, position));
+      }
     }
     for (let entity of this.entities) {
       this.timeManager.addToSchedule(entity, true);
     }
-    const entityMenuItems = this.entities.map((entity) => {
-      return this.userInterface.mapEntityToMenuItem(entity);
-    });
-    this.userInterface.sideMenu.setTabContent("Entities", entityMenuItems);
+    this.userInterface.components.updateSideBarContent(
+      "Entities",
+      this.entities
+    );
+    // const entityMenuItems = this.entities.map((entity) => {
+    //   return this.userInterface.components.mapEntityToMenuItem(entity);
+    // });
+    // this.userInterface.components.sideMenu.setTabContent(
+    //   "Entities",
+    //   entityMenuItems
+    // );
   }
 
   checkBox(x: number, y: number): void {

@@ -1,18 +1,23 @@
 import { Path, RNG } from "rot-js";
 import { Game } from "../game";
-import { Actor } from "./actor";
+import { Actor, DescriptionBlock } from "./actor";
 import { Point } from "../point";
-import { Tile, TileType } from "../tile";
+import { Tile, TileSubType, TileType } from "../tile";
 import { Action } from "../actions/action";
 import { MoveAction } from "../actions/moveAction";
 import { WaitAction } from "../actions/waitAction";
 import { HarvestAction } from "../actions/harvestAction";
 import { WanderAction } from "../actions/wanderAction";
+import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
+import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
+import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 
 export class Animal implements Actor {
   id: number;
+  name: string;
   tile: Tile;
   type: TileType;
+  subType: TileSubType;
   action: Action;
   goal: Action;
   private target: Point;
@@ -21,6 +26,11 @@ export class Animal implements Actor {
 
   constructor(private game: Game, public position: Point) {
     this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.subType = TileSubType.Animal;
+    this.name = this.game.nameGenerator.generate(this.subType);
+    console.log(
+      `Animal ${this.name} created at ${this.position.x}, ${this.position.y}`
+    );
     this.tile = Tile.animal;
     this.type = this.tile.type;
     this.path = [];
@@ -144,6 +154,18 @@ export class Animal implements Actor {
       this.action = null;
       return res;
     });
+  }
+
+  public getDescription(): DescriptionBlock[] {
+    const descriptionBlocks = [];
+    descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
+    if (this.goal) {
+      descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
+    }
+    if (this.action) {
+      descriptionBlocks.push({ icon: ActionIcon, text: this.action.name });
+    }
+    return descriptionBlocks;
   }
 
   private pathCallback(x: number, y: number): void {

@@ -4,16 +4,19 @@ import { Point } from "./point";
 import { Tile } from "./tile";
 import { Color } from "rot-js";
 import { Color as ColorType } from "rot-js/lib/color";
+import { MapWorld } from "./map-world";
 export enum Layer {
   TERRAIN,
   PLANT,
   ENTITY,
+  UI,
 }
 
 export class Renderer {
   public terrainLayer = new PIXI.Container();
   public plantLayer = new PIXI.Container();
   public entityLayer = new PIXI.Container();
+  public uiLayer = new PIXI.Container();
   private spriteCache: { [layer: string]: { [pos: string]: PIXI.Sprite } };
 
   constructor(private game: Game) {
@@ -22,10 +25,12 @@ export class Renderer {
     this.terrainLayer.zIndex = 5;
     this.plantLayer.zIndex = 10;
     this.entityLayer.zIndex = 15;
+    this.uiLayer.zIndex = 100;
     this.spriteCache = {
       [Layer.TERRAIN]: {},
       [Layer.PLANT]: {},
       [Layer.ENTITY]: {},
+      [Layer.UI]: {},
     };
   }
 
@@ -36,13 +41,11 @@ export class Renderer {
     viewportCenterTile: Point
   ): void {
     this.clearScene();
-    const terrainMap = this.game.map.terrainTileMap;
     const lightMap = this.game.map.lightManager.lightMap;
     const centeredWidth = viewportCenterTile.x + Math.ceil(width / 2);
     const centeredHeight = viewportCenterTile.y + Math.ceil(height / 2);
     const left = viewportCenterTile.x - Math.ceil(width / 2);
     const top = viewportCenterTile.y - Math.ceil(height / 2);
-    let ambientLight = this.game.map.lightManager.ambientLight;
 
     for (let x = left; x < centeredWidth; x++) {
       for (let y = top; y < centeredHeight; y++) {
@@ -55,24 +58,8 @@ export class Renderer {
           ) {
             continue;
           }
-          const key = `${x},${y}`;
+          const key = MapWorld.coordsToKey(x, y);
           let sprite = this.spriteCache[layer][key];
-          let light = ambientLight;
-
-          if (key in lightMap && lightMap[key] != null) {
-            /* add light from our computation */
-            light = Color.add(light, lightMap[key]);
-          }
-
-          const finalColor = Color.multiply(ambientLight, light);
-          // highlight the entity a little bit
-          const finalEntityColor = Color.interpolate(
-            finalColor,
-            this.game.map.lightManager.lightDefaults.sunlight,
-            0.4
-          );
-          const finalColorHex = Color.toHex(finalColor);
-          const finalEntityColorHex = Color.toHex(finalEntityColor);
 
           if (!sprite) {
             continue;
@@ -80,24 +67,53 @@ export class Renderer {
 
           switch (layer) {
             case Layer.TERRAIN: {
-              sprite.tint = finalColorHex;
+              sprite.tint = Color.toHex(this.calculateLight(x, y, lightMap));
               this.terrainLayer.addChild(sprite);
               break;
             }
             case Layer.PLANT: {
-              sprite.tint = finalColorHex;
+              sprite.tint = Color.toHex(this.calculateLight(x, y, lightMap));
               this.plantLayer.addChild(sprite);
               break;
             }
             case Layer.ENTITY: {
-              sprite.tint = finalEntityColorHex;
+              sprite.tint = Color.toHex(
+                this.calculateLight(x, y, lightMap, true)
+              );
               this.entityLayer.addChild(sprite);
+              break;
+            }
+            case Layer.UI: {
+              this.uiLayer.addChild(sprite);
               break;
             }
           }
         }
       }
     }
+  }
+
+  private calculateLight(
+    x: number,
+    y: number,
+    lightMap: { [pos: string]: ColorType } = null,
+    entity: boolean = false
+  ): ColorType {
+    const ambientLight = this.game.map.lightManager.ambientLight;
+    let light = ambientLight;
+    const key = MapWorld.coordsToKey(x, y);
+    if (key in lightMap && lightMap[key] != null) {
+      light = Color.add(light, lightMap[key]);
+    }
+    light = Color.multiply(ambientLight, light);
+    if (entity) {
+      light = Color.interpolate(
+        light,
+        this.game.map.lightManager.lightDefaults.sunlight,
+        0.4
+      );
+    }
+    return light;
   }
 
   addToScene(
@@ -113,6 +129,7 @@ export class Renderer {
     if (tint) {
       pixiSprite.tint = tint || "0xFFFFFF";
     }
+    // TODO: remove sprite from cache if it already exists
     this.spriteCache[layer][`${position.x},${position.y}`] = pixiSprite;
   }
 
@@ -141,6 +158,9 @@ export class Renderer {
       case Layer.ENTITY: {
         this.entityLayer.removeChild(spriteObj);
       }
+      case Layer.UI: {
+        this.uiLayer.removeChild(spriteObj);
+      }
     }
   }
 
@@ -152,6 +172,7 @@ export class Renderer {
         [Layer.TERRAIN]: {},
         [Layer.PLANT]: {},
         [Layer.ENTITY]: {},
+        [Layer.UI]: {},
       };
     }
   }
@@ -160,6 +181,7 @@ export class Renderer {
     this.clearLayer(Layer.TERRAIN, clearCache);
     this.clearLayer(Layer.PLANT, clearCache);
     this.clearLayer(Layer.ENTITY, clearCache);
+    this.clearLayer(Layer.UI, clearCache);
   }
 
   clearLayer(layer: Layer, clearCache = false): void {
@@ -177,6 +199,9 @@ export class Renderer {
       }
       case Layer.ENTITY: {
         this.entityLayer.removeChildren();
+      }
+      case Layer.UI: {
+        this.uiLayer.removeChildren();
       }
     }
   }

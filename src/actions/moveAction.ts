@@ -14,7 +14,7 @@ export class MoveAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
-    this.name = "Move Action";
+    this.name = "Move To Point";
     this.durationInTurns = 1;
   }
 

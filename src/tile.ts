@@ -10,6 +10,13 @@ export const enum TileType {
   TreeStump, // TODO: remove
 }
 
+export enum TileSubType {
+  Human = "Human",
+  Animal = "Animal",
+  Shrub = "Shrub",
+  Tree = "Tree",
+}
+
 export enum Season {
   Spring = "SPRING",
   Summer = "SUMMER",
@@ -31,6 +38,8 @@ export type BiomeType =
 
 export interface Biome {
   biome: BiomeType; // basic identifier for the tileset
+  name: string; // human readable name
+  description: string; // human readable description
   autotilePrefix?: string; // filename prefix to append the tileNumber to: grass_spring_ -> grass_spring_00
   color: string;
   season: Season;
@@ -58,7 +67,7 @@ export class Tile {
     "#D2D2D2"
   );
   static readonly person = new Tile(
-    TileType.Player,
+    TileType.Entity,
     "biomes/grassland/player_01",
     "#E7E6AC"
   );
@@ -108,6 +117,8 @@ export class Tile {
     grassland: {
       // key will match BiomeType
       biome: "grassland",
+      name: "Grassy Plains",
+      description: "Gentle plains able to support a variety of plant life.",
       autotilePrefix: "biomes/grassland/grassland_spring_ground_",
       color: "#d3ffd8",
       season: Season.Spring,
@@ -120,6 +131,8 @@ export class Tile {
     },
     hills: {
       biome: "hills",
+      name: "Hills",
+      description: "Rough terrain with a distinct lack of easy paths.",
       autotilePrefix: "biomes/hills/hills_grassland_",
       color: "#e48989",
       season: Season.Spring,
@@ -132,6 +145,9 @@ export class Tile {
     },
     forestgrass: {
       biome: "forestgrass",
+      name: "Forest Floor",
+      description:
+        "Layers of fallen leaves and thick grass covers the ground. ",
       autotilePrefix: "biomes/forestgrass/forestgrass_grassland_",
       color: "#2f9e77",
       season: Season.Spring,
@@ -144,6 +160,8 @@ export class Tile {
     },
     ocean: {
       biome: "ocean",
+      name: "Ocean",
+      description: "Endless water as far as the eye can see.",
       autotilePrefix: "biomes/ocean/ocean_dirt_",
       color: "#0080e5",
       season: Season.Spring,
@@ -155,6 +173,8 @@ export class Tile {
     },
     dirt: {
       biome: "dirt",
+      name: "Dirt",
+      description: "The dirty kind.",
       autotilePrefix: "biomes/dirt/dirt_dirt_",
       color: "#e5e5a0",
       season: Season.Spring,
@@ -167,6 +187,8 @@ export class Tile {
     },
     dirttextured: {
       biome: "dirttextured",
+      name: "Rough Dirt",
+      description: "The kind with little rocks and sharp bits.",
       autotilePrefix: "biomes/dirttextured/dirttextured_dirt_",
       color: "#ddd29b",
       season: Season.Spring,
@@ -178,6 +200,8 @@ export class Tile {
     },
     swampdirt: {
       biome: "swampdirt",
+      name: "Swampy Ground",
+      description: "Muddy, wet, and hard to move through.",
       autotilePrefix: "biomes/swampdirt/swampdirt_grassland_",
       color: "#665b47",
       season: Season.Spring,
@@ -190,6 +214,9 @@ export class Tile {
     },
     swampwater: {
       biome: "swampwater",
+      name: "Murky Water",
+      description:
+        "Anything could be down there, hidden by the shimmering blackness...",
       autotilePrefix: "biomes/swampwater/swampwater_swampdirt_",
       color: "#39512f",
       season: Season.Spring,
@@ -202,6 +229,8 @@ export class Tile {
     },
     sand: {
       biome: "sand",
+      name: "Sand",
+      description: "Soft, sifting, sand.",
       autotilePrefix: "biomes/sand/sand_dirt_",
       color: "#f4f0c3",
       season: Season.Spring,
@@ -214,6 +243,8 @@ export class Tile {
     },
     oceandeep: {
       biome: "oceandeep",
+      name: "Deep Ocean",
+      description: "Deep and dark.",
       autotilePrefix: "biomes/oceandeep/oceandeep_ocean_",
       color: "#004db2",
       season: Season.Spring,
