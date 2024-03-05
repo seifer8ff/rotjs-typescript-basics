@@ -9,6 +9,7 @@ import { Autotile } from "./autotile";
 import Simplex from "rot-js/lib/noise/simplex";
 import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
 import { LightManager } from "./light-manager";
+import { lerp } from "./misc-utility";
 
 export class MapWorld {
   public lightManager: LightManager;
@@ -74,10 +75,6 @@ export class MapWorld {
     this.lightManager = new LightManager(this.game, this);
   }
 
-  lerp(x: number, y: number, a: number): number {
-    return x * (1 - a) + y * a;
-  }
-
   getHeight(
     x: number,
     y: number,
@@ -116,7 +113,7 @@ export class MapWorld {
     const dx = (2 * x) / mapWidth - 1;
     const dy = (2 * y) / mapHeight - 1;
     const d = 1 - (1 - Math.pow(dx, 2)) * (1 - Math.pow(dy, 2));
-    height = this.lerp(height, 1 - d, this.islandMask);
+    height = lerp(this.islandMask, height, 1 - d);
 
     return height;
   }

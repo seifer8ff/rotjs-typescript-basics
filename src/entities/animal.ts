@@ -2,7 +2,7 @@ import { Path, RNG } from "rot-js";
 import { Game } from "../game";
 import { Actor, DescriptionBlock } from "./actor";
 import { Point } from "../point";
-import { Tile, TileType } from "../tile";
+import { Tile, TileSubType, TileType } from "../tile";
 import { Action } from "../actions/action";
 import { MoveAction } from "../actions/moveAction";
 import { WaitAction } from "../actions/waitAction";
@@ -17,6 +17,7 @@ export class Animal implements Actor {
   name: string;
   tile: Tile;
   type: TileType;
+  subType: TileSubType;
   action: Action;
   goal: Action;
   private target: Point;
@@ -25,7 +26,8 @@ export class Animal implements Actor {
 
   constructor(private game: Game, public position: Point) {
     this.id = Date.now() + RNG.getUniformInt(0, 100000);
-    this.name = this.game.nameGenerator.generate();
+    this.subType = TileSubType.Animal;
+    this.name = this.game.nameGenerator.generate(this.subType);
     console.log(
       `Animal ${this.name} created at ${this.position.x}, ${this.position.y}`
     );
@@ -156,7 +158,7 @@ export class Animal implements Actor {
 
   public getDescription(): DescriptionBlock[] {
     const descriptionBlocks = [];
-    descriptionBlocks.push({ icon: TypeIcon, text: "Animal" });
+    descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
     if (this.goal) {
       descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
     }

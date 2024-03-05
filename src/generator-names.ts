@@ -1,19 +1,21 @@
-import { KEYS, DIRS, Path, RNG, StringGenerator } from "rot-js";
+import { StringGenerator } from "rot-js";
 import { Game } from "./game";
-import { Actor } from "./entities/actor";
-import { Point } from "./point";
-import { InputUtility } from "./input-utility";
-import { Tile, TileType } from "./tile";
-import { WaitAction } from "./actions/waitAction";
-import { Action } from "./actions/action";
+import { TileSubType } from "./tile";
 
 export class GeneratorNames {
   private nameGenerator: StringGenerator;
-  public generate = () => this.nameGenerator.generate();
+  private nameGenerators: { [key: string]: StringGenerator };
 
   constructor(private game: Game) {
+    this.nameGenerators = {};
     this.nameGenerator = new StringGenerator({ words: true });
-    const exampleNames = [
+    this.nameGenerators[TileSubType.Animal] = new StringGenerator({
+      words: true,
+    });
+    this.nameGenerators[TileSubType.Human] = new StringGenerator({
+      words: true,
+    });
+    const exampleHumanNames = [
       "Brady",
       "Mario",
       "Luigi",
@@ -54,6 +56,51 @@ export class GeneratorNames {
       "Zoe",
       "Homer",
     ];
-    exampleNames.forEach((name) => this.nameGenerator.observe(name));
+    const exampleAnimalNames = [
+      "Spot",
+      "Rover",
+      "Fido",
+      "Rex",
+      "Rexy",
+      "Rexie",
+      "Bimbo",
+      "Firolais",
+      "Mancha",
+      "Gatito",
+      "Fido",
+      "Rocco",
+      "Dona",
+      "Donatello",
+      "Mustache",
+      "Fuzzy",
+      "Bigote",
+      "Fluffy",
+      "Lanudo",
+      "Paws",
+      "Patas",
+      "Pawsy",
+      "Pawsie",
+      "Pappas",
+      "Pappie",
+      "Zippy",
+      "Skippy",
+      "Skipper",
+      "Skip",
+      "Skunk",
+      "Boots",
+      "Bootsy",
+      "Bootsie",
+      "Bannana",
+    ];
+    exampleHumanNames.forEach((name) =>
+      this.nameGenerators[TileSubType.Human].observe(name)
+    );
+    exampleAnimalNames.forEach((name) =>
+      this.nameGenerators[TileSubType.Animal].observe(name)
+    );
+  }
+
+  public generate(subType: TileSubType): string {
+    return this.nameGenerators[subType].generate();
   }
 }

@@ -1,7 +1,7 @@
 import { Game } from "../game";
 import { Actor, DescriptionBlock } from "./actor";
 import { Point } from "../point";
-import { Tile, TileType } from "../tile";
+import { Tile, TileSubType, TileType } from "../tile";
 import { Action } from "../actions/action";
 import { WaitAction } from "../actions/waitAction";
 import { RNG } from "rot-js";
@@ -13,6 +13,7 @@ export class Shrub implements Actor {
   id: number;
   name?: string;
   tile: Tile;
+  subType: TileSubType;
   type: TileType;
   goal: Action;
   action: Action;
@@ -22,6 +23,7 @@ export class Shrub implements Actor {
     this.name = "Shrub";
     this.tile = Tile.shrub;
     this.type = this.tile.type;
+    this.subType = TileSubType.Shrub;
   }
 
   public plan(): void {
@@ -36,7 +38,7 @@ export class Shrub implements Actor {
 
   public getDescription(): DescriptionBlock[] {
     const descriptionBlocks = [];
-    descriptionBlocks.push({ icon: TypeIcon, text: "Shrub" });
+    descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
     if (this.goal) {
       descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
     }

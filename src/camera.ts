@@ -8,6 +8,7 @@ import { InputUtility } from "./input-utility";
 import TinyGesture from "tinygesture";
 import { Actor, isActor } from "./entities/actor";
 import { Layer } from "./renderer";
+import { lerp } from "./misc-utility";
 
 export interface Viewport {
   width: number;
@@ -331,10 +332,6 @@ export class Camera {
     this.ui.gameDisplay.stage.pivot.y -=
       g.velocityY / this.ui.gameDisplay.stage.scale.x;
   };
-
-  lerp(x: number, y: number, a: number): number {
-    return x * (1 - a) + y * a;
-  }
 
   private handleClick = (g: TinyGesture, e: MouseEvent | TouchEvent) => {
     let x, y;
@@ -850,15 +847,15 @@ export class Camera {
         Math.abs(this.ui.gameDisplay.stage.pivot.x - targetPos.x) > 0.1 &&
         Math.abs(this.ui.gameDisplay.stage.pivot.y - targetPos.y) > 0.1
       ) {
-        newPivotX = this.lerp(
+        newPivotX = lerp(
+          deltaTime,
           this.ui.gameDisplay.stage.pivot.x,
-          targetPos.x,
-          deltaTime
+          targetPos.x
         );
-        newPivotY = this.lerp(
+        newPivotY = lerp(
+          deltaTime,
           this.ui.gameDisplay.stage.pivot.y,
-          targetPos.y,
-          deltaTime
+          targetPos.y
         );
         this.ui.gameDisplay.stage.pivot.set(newPivotX, newPivotY);
         // newPivotX = this.roundStagevalue(newPivotX);

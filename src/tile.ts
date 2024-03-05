@@ -10,6 +10,13 @@ export const enum TileType {
   TreeStump, // TODO: remove
 }
 
+export enum TileSubType {
+  Human = "Human",
+  Animal = "Animal",
+  Shrub = "Shrub",
+  Tree = "Tree",
+}
+
 export enum Season {
   Spring = "SPRING",
   Summer = "SUMMER",
@@ -60,7 +67,7 @@ export class Tile {
     "#D2D2D2"
   );
   static readonly person = new Tile(
-    TileType.Player,
+    TileType.Entity,
     "biomes/grassland/player_01",
     "#E7E6AC"
   );

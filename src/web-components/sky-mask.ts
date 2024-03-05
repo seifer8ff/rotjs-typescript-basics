@@ -2,6 +2,7 @@ import CloudsSmall from "../assets/clouds-small.png";
 import CloudsMedium from "../assets/clouds-medium.png";
 import CloudsMedium2 from "../assets/clouds-medium-2.png";
 import CloudsLarge from "../assets/clouds-large.png";
+import { inverseLerp } from "../misc-utility";
 
 export class SkyMask extends HTMLElement {
   public container: HTMLDivElement;
@@ -72,41 +73,33 @@ export class SkyMask extends HTMLElement {
       this.setAllCloudLayersOpacity(0);
     }
     if (zoomLevel < 0.13) {
-      scaledZoom = this.inverseLerp(zoomLevel, 0.08, 0.13);
+      scaledZoom = inverseLerp(zoomLevel, 0.08, 0.13);
       opacity = 1 - scaledZoom;
       this.setCloudLayerOpacity(this.cloudLayers[0], opacity * 1);
     } else if (zoomLevel > 0.1) {
       this.setCloudLayerOpacity(this.cloudLayers[0], 0);
     }
     if (zoomLevel < 0.14) {
-      scaledZoom = this.inverseLerp(zoomLevel, 0.07, 0.14);
+      scaledZoom = inverseLerp(zoomLevel, 0.07, 0.14);
       opacity = 1 - scaledZoom;
       this.setCloudLayerOpacity(this.cloudLayers[1], opacity * 0.8);
     } else if (zoomLevel > 0.11) {
       this.setCloudLayerOpacity(this.cloudLayers[1], 0);
     }
     if (zoomLevel < 0.15) {
-      scaledZoom = this.inverseLerp(zoomLevel, 0.08, 0.15);
+      scaledZoom = inverseLerp(zoomLevel, 0.08, 0.15);
       opacity = 1 - scaledZoom;
       this.setCloudLayerOpacity(this.cloudLayers[2], opacity * 0.5);
     } else if (zoomLevel > 0.13) {
       this.setCloudLayerOpacity(this.cloudLayers[2], 0);
     }
     if (zoomLevel < 0.2) {
-      scaledZoom = this.inverseLerp(zoomLevel, 0.05, 0.2);
+      scaledZoom = inverseLerp(zoomLevel, 0.05, 0.2);
       opacity = 1 - scaledZoom;
       this.setCloudLayerOpacity(this.cloudLayers[3], opacity * 0.3);
     } else if (zoomLevel > 0.17) {
       this.setCloudLayerOpacity(this.cloudLayers[3], 0);
     }
-  }
-
-  private lerp(a: number, x: number, y: number): number {
-    return x * (1 - a) + y * a;
-  }
-
-  private inverseLerp(a: number, x: number, y: number): number {
-    return (a - x) / (y - x);
   }
 
   // private generateCloudCanvas(container: HTMLDivElement) {

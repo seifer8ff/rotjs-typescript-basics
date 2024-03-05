@@ -42,7 +42,7 @@ export class Game {
   private msPerLoop: number = 1000 / 2; // desired interval is 1000 ms / runs per second
 
   constructor() {
-    RNG.setSeed(1234);
+    // RNG.setSeed(1234);
 
     // sensible default
     // let width = 350;
@@ -299,12 +299,12 @@ export class Game {
     );
     // this.player = new Player(this, positions.splice(0, 1)[0]);
     for (let position of positions) {
-      this.entities.push(new Animal(this, position));
-      // if (RNG.getUniform() < 0.5) {
-      //   this.entities.push(new Person(this, position));
-      // } else {
-      //   this.entities.push(new Animal(this, position));
-      // }
+      // this.entities.push(new Animal(this, position));
+      if (RNG.getUniform() < 0.5) {
+        this.entities.push(new Person(this, position));
+      } else {
+        this.entities.push(new Animal(this, position));
+      }
     }
     for (let entity of this.entities) {
       this.timeManager.addToSchedule(entity, true);
