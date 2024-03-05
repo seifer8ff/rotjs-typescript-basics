@@ -12,7 +12,7 @@ import "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import "@shoelace-style/shoelace/dist/components/popup/popup.js";
 import "@shoelace-style/shoelace/dist/components/menu-label/menu-label.js";
 import "@shoelace-style/shoelace/dist/components/divider/divider.js";
-import { MenuTabContent } from "./menu-tab-content";
+import { SideMenuContent } from "./side-menu-content";
 import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import SlDropdown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
@@ -32,22 +32,27 @@ import FlowerIcon from "../shoelace/assets/icons/flower2.svg";
 import PencilIcon from "../shoelace/assets/icons/pencil.svg";
 import HandleIcon from "../shoelace/assets/icons/grip-vertical.svg";
 import { SlIconButton } from "@shoelace-style/shoelace";
+import { CachedSprite } from "../assets";
+import { PointerTarget } from "../camera";
+import { Actor } from "../entities/actor";
 
 export interface MenuTab {
-  name: string;
+  name: TopLevelMenu;
   icon: string;
   content: MenuItem[];
 }
 
+export type TopLevelMenu = "Entities" | "Cities" | "Resources" | "Build";
+
 export interface MenuItem {
-  name: string;
-  icon: string;
+  id: string;
+  icon: CachedSprite;
   clickHandler?: () => void;
   label?: string;
   tooltip?: string;
 }
 
-export class MenuTabs extends HTMLElement {
+export class SideMenu extends HTMLElement {
   public container: HTMLDivElement;
   public handle: SlIconButton;
   public tabGroup: SlTabGroup;
@@ -56,7 +61,7 @@ export class MenuTabs extends HTMLElement {
   private dropdown: SlDropdown;
   public dropdownMenu: SlMenu;
   public selectedTab: MenuTab;
-  public menuTabContent: MenuTabContent;
+  public menuContent: SideMenuContent;
   private topControls: HTMLDivElement;
   private midControls: HTMLDivElement;
   private dropdownMenuOptions: SlMenuItem[];
@@ -217,15 +222,15 @@ export class MenuTabs extends HTMLElement {
     //     ];
     //     break;
     // }
-    if (this.menuTabContent) {
-      this.midControls.removeChild(this.menuTabContent);
+    if (this.menuContent) {
+      this.midControls.removeChild(this.menuContent);
     }
 
-    this.menuTabContent = new MenuTabContent(
+    this.menuContent = new SideMenuContent(
       this.selectedTab,
       this.selectedTab.content
     );
-    this.midControls.appendChild(this.menuTabContent);
+    this.midControls.appendChild(this.menuContent);
   }
 
   public setVisible(visible: boolean): void {
@@ -245,5 +250,10 @@ export class MenuTabs extends HTMLElement {
     tab.content = content;
     this.buildTabContent();
     console.log("set tab content", this.tabs);
+  }
+
+  public setEntityTarget(target: Actor) {
+    console.log("set entity target", target);
+    this.menuContent.setOptionSelected(target?.id);
   }
 }

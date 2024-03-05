@@ -1,6 +1,6 @@
 import { Path, RNG } from "rot-js";
 import { Game } from "../game";
-import { Actor } from "./actor";
+import { Actor, DescriptionBlock } from "./actor";
 import { Point } from "../point";
 import { Tile, TileType } from "../tile";
 import { Action } from "../actions/action";
@@ -8,6 +8,9 @@ import { MoveAction } from "../actions/moveAction";
 import { WaitAction } from "../actions/waitAction";
 import { HarvestAction } from "../actions/harvestAction";
 import { WanderAction } from "../actions/wanderAction";
+import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
+import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
+import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 
 export class Animal implements Actor {
   id: number;
@@ -149,6 +152,18 @@ export class Animal implements Actor {
       this.action = null;
       return res;
     });
+  }
+
+  public getDescription(): DescriptionBlock[] {
+    const descriptionBlocks = [];
+    descriptionBlocks.push({ icon: TypeIcon, text: "Animal" });
+    if (this.goal) {
+      descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
+    }
+    if (this.action) {
+      descriptionBlocks.push({ icon: ActionIcon, text: this.action.name });
+    }
+    return descriptionBlocks;
   }
 
   private pathCallback(x: number, y: number): void {

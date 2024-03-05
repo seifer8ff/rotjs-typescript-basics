@@ -1,11 +1,14 @@
 import { KEYS, DIRS, Path, RNG } from "rot-js";
 import { Game } from "../game";
-import { Actor } from "./actor";
+import { Actor, DescriptionBlock } from "./actor";
 import { Point } from "../point";
 import { InputUtility } from "../input-utility";
 import { Tile, TileType } from "../tile";
 import { WaitAction } from "../actions/waitAction";
 import { Action } from "../actions/action";
+import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
+import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
+import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 
 export class Player implements Actor {
   id: number;
@@ -83,5 +86,17 @@ export class Player implements Actor {
     }
     this.game.userInterface.camera.centerOn(this.position.x, this.position.y);
     return validInput;
+  }
+
+  public getDescription(): DescriptionBlock[] {
+    const descriptionBlocks = [];
+    descriptionBlocks.push({ icon: TypeIcon, text: "Player" });
+    if (this.goal) {
+      descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
+    }
+    if (this.action) {
+      descriptionBlocks.push({ icon: ActionIcon, text: this.action.name });
+    }
+    return descriptionBlocks;
   }
 }

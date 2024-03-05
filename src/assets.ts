@@ -2,6 +2,12 @@ import { Assets, AssetsManifest } from "pixi.js";
 import * as PIXI from "pixi.js";
 import { Tile, Biome, TileType } from "./tile";
 
+export interface CachedSprite {
+  url: string;
+  xOffset: number;
+  yOffset: number;
+}
+
 /** List of assets grouped in bundles, for dynamic loading */
 let assetsManifest: AssetsManifest = { bundles: [] };
 
@@ -123,6 +129,15 @@ export function generateTileset(tilesetMeta: Biome) {
       )
     );
   }
+}
+
+export function getCachedTile(sprite: string): CachedSprite {
+  const pixiSprite = PIXI.Cache.get(sprite);
+  return {
+    url: pixiSprite.baseTexture.resource.src,
+    xOffset: pixiSprite._frame.x,
+    yOffset: pixiSprite._frame.y,
+  };
 }
 
 function addTileToTileset(tilesetMeta: Biome, tileIndex: number, tile: Tile) {

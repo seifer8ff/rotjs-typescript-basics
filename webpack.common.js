@@ -65,8 +65,10 @@ module.exports = {
             </head>
             <body>
                 <div id="uiContainer">
+                    <sky-mask></sky-mask>
                     <time-control></time-control>
-                    <menu-tabs></menu-tabs>
+                    <side-menu></side-menu>
+                    <tile-info></tile-info>
                 </div>
                 <div id="gameContainer">
                     <div id="canvasContainer"></div>

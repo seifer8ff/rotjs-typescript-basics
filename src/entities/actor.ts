@@ -13,4 +13,14 @@ export interface Actor {
 
   plan(): void;
   act(): Promise<any>;
+  getDescription(): DescriptionBlock[];
+}
+
+export interface DescriptionBlock {
+  icon: string;
+  text: string;
+}
+
+export function isActor(object: any): object is Actor {
+  return "id" in object && "position" in object;
 }

@@ -7,6 +7,7 @@ import { Actor } from "../entities/actor";
 
 export class HarvestAction implements Action {
   readonly name: string;
+  readonly description: string;
   durationInTurns: number; // how long the action lasts
 
   constructor(
@@ -14,7 +15,7 @@ export class HarvestAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
-    this.name = "Harvest Action";
+    this.name = "Harvest Shrubs";
     this.durationInTurns = 10;
   }
 

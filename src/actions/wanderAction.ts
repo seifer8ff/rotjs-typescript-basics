@@ -14,7 +14,7 @@ export class WanderAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
-    this.name = "Wander Action";
+    this.name = "Wander Around";
     this.durationInTurns = 3;
   }
 

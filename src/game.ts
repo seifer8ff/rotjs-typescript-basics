@@ -42,7 +42,7 @@ export class Game {
   private msPerLoop: number = 1000 / 2; // desired interval is 1000 ms / runs per second
 
   constructor() {
-    // RNG.setSeed(1234);
+    RNG.setSeed(1234);
 
     // sensible default
     // let width = 350;
@@ -56,6 +56,8 @@ export class Game {
 
     this.gameSize = { width: width, height: height };
     this.mapSize = { width: this.gameSize.width, height: this.gameSize.height };
+    this.entities = [];
+    this.plants = [];
 
     this.timeManager = new TimeManager(this);
     this.userInterface = new UserInterface(this);
@@ -94,6 +96,28 @@ export class Game {
 
   getTileType(x: number, y: number): TileType {
     return this.map.getTileType(x, y);
+  }
+
+  getTerrainTileAt(x: number, y: number): Tile {
+    return this.map.getTile(x, y);
+  }
+
+  getEntityAt(x: number, y: number): Actor | null {
+    for (let entity of this.entities) {
+      if (entity.position.x === x && entity.position.y === y) {
+        return entity;
+      }
+    }
+    return null;
+  }
+
+  getPlantAt(x: number, y: number): Actor | null {
+    for (let plant of this.plants) {
+      if (plant.position.x === x && plant.position.y === y) {
+        return plant;
+      }
+    }
+    return null;
   }
 
   getRandomTilePositions(type: BiomeType, quantity: number = 1): Point[] {
@@ -285,10 +309,17 @@ export class Game {
     for (let entity of this.entities) {
       this.timeManager.addToSchedule(entity, true);
     }
-    const entityMenuItems = this.entities.map((entity) => {
-      return this.userInterface.mapEntityToMenuItem(entity);
-    });
-    this.userInterface.sideMenu.setTabContent("Entities", entityMenuItems);
+    this.userInterface.components.updateSideBarContent(
+      "Entities",
+      this.entities
+    );
+    // const entityMenuItems = this.entities.map((entity) => {
+    //   return this.userInterface.components.mapEntityToMenuItem(entity);
+    // });
+    // this.userInterface.components.sideMenu.setTabContent(
+    //   "Entities",
+    //   entityMenuItems
+    // );
   }
 
   checkBox(x: number, y: number): void {

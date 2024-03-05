@@ -58,7 +58,7 @@ export class TimeControl extends HTMLElement {
     this.timeSlider.setAttribute("tooltip", "bottom");
 
     this.timeSlider.style.position = "absolute";
-    this.timeSlider.style.top = "50px";
+    this.timeSlider.style.top = "65px";
     this.timeSlider.style.left = "10px";
     this.timeSlider.style.right = "10px";
 

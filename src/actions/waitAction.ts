@@ -14,7 +14,7 @@ export class WaitAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
-    this.name = "Wait Action";
+    this.name = "Wait";
     this.durationInTurns = 1;
   }
 
