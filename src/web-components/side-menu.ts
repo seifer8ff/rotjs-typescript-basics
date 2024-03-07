@@ -1,39 +1,22 @@
-import "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
-import "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.js";
-import "@shoelace-style/shoelace/dist/components/tab/tab.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import "@shoelace-style/shoelace/dist/components/button/button.js";
 import SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
-import SlTabGroup from "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
-import SlTabPanel from "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.js";
 import "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
 import "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
-import "@shoelace-style/shoelace/dist/components/popup/popup.js";
 import "@shoelace-style/shoelace/dist/components/menu-label/menu-label.js";
 import "@shoelace-style/shoelace/dist/components/divider/divider.js";
 import { SideMenuContent } from "./side-menu-content";
 import SlMenu from "@shoelace-style/shoelace/dist/components/menu/menu.js";
 import SlDropdown from "@shoelace-style/shoelace/dist/components/dropdown/dropdown.js";
 import SlMenuItem from "@shoelace-style/shoelace/dist/components/menu-item/menu-item.js";
-import EntityIcon from "../shoelace/assets/icons/person-bounding-box.svg";
 import WrenchIcon from "../shoelace/assets/icons/wrench.svg";
 import HouseIcon from "../shoelace/assets/icons/house-door.svg";
 import BackpackIcon from "../shoelace/assets/icons/backpack4.svg";
 import PersonIcon from "../shoelace/assets/icons/person.svg";
-import HouseWithGearIcon from "../shoelace/assets/icons/house-gear.svg";
-import HouseDownIcon from "../shoelace/assets/icons/house-down-fill.svg";
-import GeoIcon from "../shoelace/assets/icons/geo-alt.svg";
-import ShopWindowIcon from "../shoelace/assets/icons/shop-window.svg";
-import CurrencyIcon from "../shoelace/assets/icons/currency-dollar.svg";
-import PiggyBankIcon from "../shoelace/assets/icons/piggy-bank.svg";
-import CapsuleIcon from "../shoelace/assets/icons/capsule.svg";
-import FlowerIcon from "../shoelace/assets/icons/flower2.svg";
-import PencilIcon from "../shoelace/assets/icons/pencil.svg";
 import HandleIcon from "../shoelace/assets/icons/grip-vertical.svg";
 import { SlIconButton } from "@shoelace-style/shoelace";
 import { CachedSprite } from "../assets";
-import { PointerTarget } from "../camera";
 import { Actor } from "../entities/actor";
 
 export interface MenuTab {
@@ -55,8 +38,6 @@ export interface MenuItem {
 export class SideMenu extends HTMLElement {
   public container: HTMLDivElement;
   public handle: SlIconButton;
-  public tabGroup: SlTabGroup;
-  public tabPanels: SlTabPanel[];
   private dropdownBtn: SlButton;
   private dropdown: SlDropdown;
   public dropdownMenu: SlMenu;
@@ -233,7 +214,17 @@ export class SideMenu extends HTMLElement {
     this.midControls.appendChild(this.menuContent);
   }
 
-  public setVisible(visible: boolean): void {
+  public setVisible(visible: boolean, includeToggle = false): void {
+    if (includeToggle) {
+      this.handle.style.display = visible ? "block" : "none";
+    }
+    if (this.isCollapsed) {
+      if (!visible) {
+        this.container.style.transform = "translateX(-100%)";
+        this.isVisible = false;
+      }
+      return;
+    }
     this.isVisible = visible;
     this.container.style.transform = this.isVisible
       ? "translateX(0)"
@@ -249,11 +240,9 @@ export class SideMenu extends HTMLElement {
     const tab = this.getTab(tabName);
     tab.content = content;
     this.buildTabContent();
-    console.log("set tab content", this.tabs);
   }
 
   public setEntityTarget(target: Actor) {
-    console.log("set entity target", target);
     this.menuContent.setOptionSelected(target?.id);
   }
 }

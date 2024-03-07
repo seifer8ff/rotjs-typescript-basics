@@ -84,7 +84,11 @@ export class TimeManager {
   }
 
   public togglePause(): void {
-    this.isPaused = !this.isPaused;
+    this.setIsPaused(!this.isPaused);
+  }
+
+  public setIsPaused(isPaused: boolean): void {
+    this.isPaused = isPaused;
     console.log("isPaused: ", this.isPaused);
   }
 

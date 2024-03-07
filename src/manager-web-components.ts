@@ -4,15 +4,20 @@ import { MenuItem, SideMenu, TopLevelMenu } from "./web-components/side-menu";
 import { SideMenuContent } from "./web-components/side-menu-content";
 import { TileInfo } from "./web-components/tile-info";
 import { SkyMask } from "./web-components/sky-mask";
+import { Overlay } from "./web-components/overlay";
+import { UtilityActions } from "./web-components/utility-actions";
 import { Actor } from "./entities/actor";
 import { UserInterface } from "./user-interface";
 import { getCachedTile } from "./assets";
+import OverlayIcon from "./shoelace/assets/icons/layers-half.svg";
 
 export class ManagerWebComponents {
   private timeControl: TimeControl;
   public sideMenu: SideMenu;
   public tileInfo: TileInfo;
   public skyMask: SkyMask;
+  public overlay: Overlay;
+  public utilityActions: UtilityActions;
 
   constructor(private game: Game, private ui: UserInterface) {
     this.initWebComponents();
@@ -25,6 +30,8 @@ export class ManagerWebComponents {
     customElements.define("side-menu", SideMenu);
     customElements.define("tile-info", TileInfo);
     customElements.define("sky-mask", SkyMask);
+    customElements.define("screen-overlay", Overlay);
+    customElements.define("utility-actions", UtilityActions);
   }
 
   private initControls() {
@@ -58,6 +65,17 @@ export class ManagerWebComponents {
     }
     this.tileInfo = document.querySelector("tile-info");
     this.skyMask = document.querySelector("sky-mask");
+    this.overlay = document.querySelector("screen-overlay");
+    if (this.overlay) {
+      this.overlay.closeBtn.addEventListener("click", () => {
+        this.overlay.toggleVisible();
+        this.setUIVisible(true, true);
+      });
+    }
+    if (this.timeControl) {
+      this.utilityActions = this.timeControl.utilityActions;
+      this.setUtilityActionsOptions();
+    }
   }
 
   public updateTimeControl(): void {
@@ -89,5 +107,38 @@ export class ManagerWebComponents {
       label: entity.name,
       tooltip: `Entity: ${entity.id}`,
     };
+  }
+
+  public setUtilityActionsOptions(): void {
+    this.utilityActions.setOptions([
+      {
+        label: "Overlays",
+        icon: OverlayIcon,
+        handler: () => {
+          console.log("overlays selected");
+          this.setUIVisible(false, true);
+          this.game.timeManager.setIsPaused(true);
+          this.overlay.setVisible(true);
+        },
+      },
+    ]);
+  }
+
+  public setSideMenuVisible(visible: boolean, includeToggle: boolean): void {
+    if (this.sideMenu) {
+      this.sideMenu.setVisible(visible, includeToggle);
+    }
+  }
+
+  public setTimeControlVisible(visible: boolean): void {
+    if (this.timeControl) {
+      this.timeControl.setVisible(visible);
+    }
+  }
+
+  public setUIVisible(visible: boolean, hideIndicators: boolean = true): void {
+    this.setSideMenuVisible(visible, hideIndicators);
+    this.setTimeControlVisible(visible);
+    this.tileInfo.setVisible(visible);
   }
 }
