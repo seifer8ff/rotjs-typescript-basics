@@ -42,7 +42,7 @@ export class Game {
   private msPerLoop: number = 1000 / 2; // desired interval is 1000 ms / runs per second
 
   constructor() {
-    // RNG.setSeed(1234);
+    RNG.setSeed(1234);
 
     // sensible default
     // let width = 350;
@@ -75,6 +75,37 @@ export class Game {
   public start() {
     requestAnimationFrame(this.gameLoop.bind(this));
     requestAnimationFrame(this.renderLoop.bind(this));
+
+    this.userInterface.components.overlay.generateBiomeOverlay(
+      this.map.terrainMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Terrain"
+    );
+    this.userInterface.components.overlay.generateBiomeOverlay(
+      this.map.biomeMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Biomes"
+    );
+    this.userInterface.components.overlay.generateOverlay(
+      this.map.heightMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Height"
+    );
+    // this.userInterface.components.overlay.generateOverlay(
+    //   this.map.tempMap.tempMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Temperature"
+    // );
+    this.userInterface.components.overlay.generateOverlay(
+      this.map.moistureMap.moistureMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Moisture"
+    );
   }
 
   mapIsPassable(x: number, y: number): boolean {

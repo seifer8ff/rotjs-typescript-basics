@@ -19,16 +19,22 @@ export class TileInfo extends HTMLElement {
   public avatar: HTMLDivElement;
   public body: HTMLDivElement;
   public infoCard: SlCard;
+  public target: PointerTarget;
 
   public timeText: HTMLSpanElement;
   public timeSlider: SlRange;
 
   public pauseBtn: SlIconButton;
 
+  private isVisible: boolean;
+
   constructor() {
     super();
 
     const shadow = this.attachShadow({ mode: "open" });
+
+    this.isVisible = false;
+    this.target = null;
 
     this.container = document.createElement("div");
     this.container.style.position = "absolute";
@@ -47,6 +53,7 @@ export class TileInfo extends HTMLElement {
     this.container.style.pointerEvents = "auto";
     this.container.style.height = "120px";
     this.container.style.width = "160px";
+    this.container.style.transition = "transform 0.3s ease-in-out";
 
     const header = document.createElement("div");
     header.style.width = "100%";
@@ -109,15 +116,29 @@ export class TileInfo extends HTMLElement {
     `;
 
     this.container.appendChild(this.body);
-    this.container.style.display = "none";
+    this.setVisible(false);
 
     shadow.appendChild(this.container);
   }
 
+  public setVisible(visible: boolean): void {
+    if (visible) {
+      if (!this.target) {
+        return;
+      }
+    }
+
+    this.isVisible = visible;
+    this.container.style.transform = this.isVisible
+      ? "translateY(0)"
+      : "translateY(100%)";
+  }
+
   public setContent(target: PointerTarget): void {
     console.log("set content to", target);
+    this.target = target;
     if (target == null) {
-      this.container.style.display = "none";
+      this.setVisible(false);
       return;
     }
 
@@ -148,6 +169,7 @@ export class TileInfo extends HTMLElement {
     this.avatar.style.backgroundPositionX = `-${cachedSprite.xOffset}px`;
     this.avatar.style.backgroundPositionY = `-${cachedSprite.yOffset}px`;
     this.setBodyContent(target);
+    this.setVisible(true);
   }
 
   public setBodyContent(target: PointerTarget) {

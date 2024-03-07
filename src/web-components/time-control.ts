@@ -5,13 +5,14 @@ import "@shoelace-style/shoelace/dist/components/range/range.js";
 import { SlIconButton, SlRange } from "@shoelace-style/shoelace";
 import PauseIcon from "../shoelace/assets/icons/pause-fill.svg";
 import PlayIcon from "../shoelace/assets/icons/play-fill.svg";
+import { UtilityActions } from "./utility-actions";
 
 export class TimeControl extends HTMLElement {
   public timeDisplay: HTMLDivElement;
   public timeText: HTMLSpanElement;
   public timeSlider: SlRange;
-
   public pauseBtn: SlIconButton;
+  public utilityActions: UtilityActions;
 
   constructor() {
     super();
@@ -27,7 +28,6 @@ export class TimeControl extends HTMLElement {
     container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
     container.style["backdropFilter"] = "blur(15px)";
-    // container.style.padding = "20px";
     container.style.padding = "0 20px 0 20px";
     container.style.fontFamily = "Arial";
     container.style.fontSize = "18px";
@@ -36,7 +36,6 @@ export class TimeControl extends HTMLElement {
 
     this.pauseBtn = document.createElement("sl-icon-button");
     this.pauseBtn.setAttribute("size", "large");
-    // this.pauseBtn.setAttribute("name", "pause-fill");
     this.pauseBtn.setAttribute("src", PauseIcon);
     this.pauseBtn.style.fontSize = "32px";
 
@@ -64,6 +63,14 @@ export class TimeControl extends HTMLElement {
 
     container.appendChild(this.timeSlider);
 
+    this.utilityActions = document.createElement(
+      "utility-actions"
+    ) as UtilityActions;
+    this.utilityActions.style.position = "absolute";
+    this.utilityActions.style.right = "-40px";
+    this.utilityActions.style.top = "10px";
+    container.appendChild(this.utilityActions);
+
     shadow.appendChild(container);
   }
 
@@ -82,5 +89,9 @@ export class TimeControl extends HTMLElement {
     // if (tooltip) {
     //   tooltip.setAttribute("open", "true");
     // }
+  }
+
+  public setVisible(visible: boolean): void {
+    this.style.display = visible ? "block" : "none";
   }
 }

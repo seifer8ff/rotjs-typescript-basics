@@ -10,13 +10,18 @@ import Simplex from "rot-js/lib/noise/simplex";
 import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
 import { LightManager } from "./light-manager";
 import { lerp } from "./misc-utility";
+import { MapTemperature } from "./map-temperature";
+import { MapMoisture, MoistureZoneMap, MoistureZones } from "./map-moisture";
 
 export class MapWorld {
   public lightManager: LightManager;
-  private biomeMap: { [key: string]: Biome };
+  public biomeMap: { [key: string]: Biome };
   public terrainTileMap: { [key: string]: Tile };
-  private heightMap: { [key: string]: number };
-  private terrainMap: { [key: string]: Biome };
+  public heightMap: { [key: string]: number };
+  public tempMap: MapTemperature;
+  public moistureMap: MapMoisture;
+  public terrainMap: { [key: string]: Biome };
+  public seaLevel: number;
   private adjacencyMap: { [key: string]: Biome[] };
   private dirtyTiles: string[];
   private landHeight: number;
@@ -28,7 +33,10 @@ export class MapWorld {
     this.terrainTileMap = {};
     this.biomeMap = {};
     this.heightMap = {};
+    this.moistureMap = new MapMoisture(this.game, this);
+    this.tempMap = new MapTemperature(this.game, this);
     this.terrainMap = {};
+    this.seaLevel = Tile.Biomes.ocean.generationOptions.height.max;
     this.adjacencyMap = {};
     this.dirtyTiles = [];
     this.landHeight = 0.5;
@@ -60,16 +68,20 @@ export class MapWorld {
         const key = MapWorld.coordsToKey(x, y);
         this.heightMap[key] = this.getHeight(x, y, width, height, noise);
         this.terrainMap[key] = this.assignTerrain(x, y);
+        this.adjacencyMap[key] = this.assignAdjacentTerrain(x, y);
+        this.moistureMap.generateMoistureFor(x, y, width, height, noise);
+        this.tempMap.generateInitialTemp(x, y, width, height, noise);
       }
     }
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
         const key = MapWorld.coordsToKey(x, y);
-        this.adjacencyMap[key] = this.assignAdjacentTerrain(x, y);
         this.biomeMap[key] = this.assignBiome(x, y);
+        this.adjacencyMap[key] = this.assignAdjacentTerrain(x, y); // re-assign the adjacency map to capture updated biomes
         this.dirtyTiles.push(key);
       }
     }
+    console.log("moistureMap", this.moistureMap.moistureMap);
 
     this.autotileMap(this.biomeMap);
     this.lightManager = new LightManager(this.game, this);
@@ -183,11 +195,17 @@ export class MapWorld {
     return false;
   }
 
+  getAdjacentTerrain(x: number, y: number): Biome[] {
+    return this.adjacencyMap[MapWorld.coordsToKey(x, y)];
+  }
+
   assignBiome(x: number, y: number): Biome {
     const key = MapWorld.coordsToKey(x, y);
     const heightVal = this.heightMap[key];
+    const moistureVal = this.moistureMap.getMoistureByKey(key);
+    const terrain = this.terrainMap[key];
 
-    if (this.terrainMap[key] === Tile.Biomes.ocean) {
+    if (terrain === Tile.Biomes.ocean) {
       if (
         Tile.inRange(
           heightVal,
@@ -213,28 +231,46 @@ export class MapWorld {
     if (
       Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
     ) {
+      // enable terrain based on moisture map
+      // console.log("moistureLevel: ", moistureVal);
+
+      if (
+        // this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt]) &&
+        moistureVal > MoistureZoneMap[MoistureZones.SuperSaturated].min &&
+        moistureVal < MoistureZoneMap[MoistureZones.SuperSaturated].max
+      ) {
+        return Tile.Biomes.swampwater;
+      }
+
+      if (
+        moistureVal > MoistureZoneMap[MoistureZones.Wet].min &&
+        moistureVal < MoistureZoneMap[MoistureZones.SuperSaturated].max
+      ) {
+        return Tile.Biomes.swampdirt;
+      }
+
       if (Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height)) {
         return Tile.Biomes.hills;
       }
 
-      if (
-        Tile.inRange(
-          heightVal,
-          Tile.Biomes.swampdirt.generationOptions.height
-        ) &&
-        !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
-      ) {
-        if (
-          Tile.inRange(
-            heightVal,
-            Tile.Biomes.swampwater.generationOptions.height
-          ) &&
-          this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt])
-        ) {
-          return Tile.Biomes.swampwater;
-        }
-        return Tile.Biomes.swampdirt;
-      }
+      // if (
+      //   Tile.inRange(
+      //     heightVal,
+      //     Tile.Biomes.swampdirt.generationOptions.height
+      //   ) &&
+      //   !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+      // ) {
+      //   if (
+      //     Tile.inRange(
+      //       heightVal,
+      //       Tile.Biomes.swampwater.generationOptions.height
+      //     ) &&
+      //     this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt])
+      //   ) {
+      //     return Tile.Biomes.swampwater;
+      //   }
+      //   return Tile.Biomes.swampdirt;
+      // }
 
       if (
         Tile.inRange(
@@ -248,6 +284,72 @@ export class MapWorld {
       return Tile.Biomes.grassland;
     }
   }
+
+  // assignBiome(x: number, y: number): Biome {
+  //   const key = MapWorld.coordsToKey(x, y);
+  //   const heightVal = this.heightMap[key];
+
+  //   if (this.terrainMap[key] === Tile.Biomes.ocean) {
+  //     if (
+  //       Tile.inRange(
+  //         heightVal,
+  //         Tile.Biomes.oceandeep.generationOptions.height
+  //       ) &&
+  //       !this.isAdjacentToTerrain(x, y, [
+  //         Tile.Biomes.dirt,
+  //         Tile.Biomes.grassland,
+  //       ])
+  //     ) {
+  //       return Tile.Biomes.oceandeep;
+  //     }
+  //     return Tile.Biomes.ocean;
+  //   }
+
+  //   if (Tile.inRange(heightVal, Tile.Biomes.dirt.generationOptions.height)) {
+  //     if (Tile.inRange(heightVal, Tile.Biomes.sand.generationOptions.height)) {
+  //       return Tile.Biomes.sand;
+  //     }
+  //     return Tile.Biomes.dirt;
+  //   }
+
+  //   if (
+  //     Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
+  //   ) {
+  //     if (Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height)) {
+  //       return Tile.Biomes.hills;
+  //     }
+
+  //     if (
+  //       Tile.inRange(
+  //         heightVal,
+  //         Tile.Biomes.swampdirt.generationOptions.height
+  //       ) &&
+  //       !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+  //     ) {
+  //       if (
+  //         Tile.inRange(
+  //           heightVal,
+  //           Tile.Biomes.swampwater.generationOptions.height
+  //         ) &&
+  //         this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt])
+  //       ) {
+  //         return Tile.Biomes.swampwater;
+  //       }
+  //       return Tile.Biomes.swampdirt;
+  //     }
+
+  //     if (
+  //       Tile.inRange(
+  //         heightVal,
+  //         Tile.Biomes.forestgrass.generationOptions.height
+  //       ) &&
+  //       !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+  //     ) {
+  //       return Tile.Biomes.forestgrass;
+  //     }
+  //     return Tile.Biomes.grassland;
+  //   }
+  // }
 
   autotileMap(rawMap: { [key: string]: Biome }) {
     // console.log("rawMap to start with: ", rawMap);
