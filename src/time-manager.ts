@@ -27,8 +27,8 @@ export class TimeManager {
     this.isPaused = false;
 
     this.maxTimeScale = 10;
-    this.dayLength = 20;
-    this.nightLength = 60;
+    this.dayLength = 15;
+    this.nightLength = 15;
     this.daysPerYear = 10;
 
     // this.transitionTime = 10;
