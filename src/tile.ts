@@ -134,7 +134,7 @@ export class Tile {
       name: "Hills",
       description: "Rough terrain with a distinct lack of easy paths.",
       autotilePrefix: "biomes/hills/hills_grassland_",
-      color: "#e48989",
+      color: "#6e6864",
       season: Season.Spring,
       generationOptions: {
         height: {
