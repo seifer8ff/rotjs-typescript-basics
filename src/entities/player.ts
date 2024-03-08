@@ -3,7 +3,7 @@ import { Game } from "../game";
 import { Actor, DescriptionBlock } from "./actor";
 import { Point } from "../point";
 import { InputUtility } from "../input-utility";
-import { Tile, TileType } from "../tile";
+import { Tile, TileSubType, TileType } from "../tile";
 import { WaitAction } from "../actions/waitAction";
 import { Action } from "../actions/action";
 import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
@@ -14,6 +14,7 @@ export class Player implements Actor {
   id: number;
   tile: Tile;
   type: TileType;
+  subType: TileSubType;
   action: Action;
   goal: Action;
   private keyMap: { [key: number]: number };
@@ -22,6 +23,7 @@ export class Player implements Actor {
     this.id = Date.now() + RNG.getUniformInt(0, 100000);
     this.tile = Tile.player;
     this.type = this.tile.type;
+    this.subType = TileSubType.Human;
 
     this.keyMap = {};
     this.keyMap[KEYS.VK_W] = 0; // up
@@ -79,7 +81,7 @@ export class Player implements Actor {
       this.position = newPoint;
       validInput = true;
     } else if (code === KEYS.VK_RETURN || code === KEYS.VK_SPACE) {
-      this.game.checkBox(this.position.x, this.position.y);
+      // this.game.checkBox(this.position.x, this.position.y);
       validInput = true;
     } else {
       validInput = code === KEYS.VK_NUMPAD5; // Wait a turn

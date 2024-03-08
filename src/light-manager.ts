@@ -86,7 +86,8 @@ export class LightManager {
   private lightPasses(x: number, y: number): boolean {
     var key = MapWorld.coordsToKey(x, y);
     if (key in this.map.terrainTileMap) {
-      return this.map.terrainTileMap[key].biomeType != "hills";
+      // return this.map.terrainTileMap[key].biomeType != "hills";
+      return true;
     }
     return false;
   }
@@ -102,24 +103,26 @@ export class LightManager {
       return 0;
     }
     const isBlocking = tile.biomeType == "hills";
-    const isWater =
-      tile.biomeType == "ocean" ||
-      tile.biomeType == "oceandeep" ||
-      tile.biomeType == "swampwater";
-    const isReflectiveDirt = tile.biomeType == "sand";
-    const isShadowed =
-      tile.biomeType == "forestgrass" || tile.biomeType == "swampdirt";
+    // const isWater =
+    //   tile.biomeType == "ocean" ||
+    //   tile.biomeType == "oceandeep" ||
+    //   tile.biomeType == "swampwater";
+    const isReflectiveDirt = tile.biomeType == "sandydirt";
+    // const isShadowed =
+    //   tile.biomeType == "forestgrass" || tile.biomeType == "swampdirt";
+    const isWater = tile.biomeType == "ocean";
+    const isShadowed = false;
     if (isBlocking) {
       return 0;
     }
     if (isShadowed) {
-      return 0.15;
+      return 0.13;
     }
     if (isReflectiveDirt) {
-      return 0.26;
+      return 0.28;
     }
     if (isWater) {
-      return 0.35;
+      return 0.37;
     }
     return 0.22;
   }

@@ -2,6 +2,13 @@ import { Game } from "./game";
 import { Actor } from "./entities/actor";
 import Action from "rot-js/lib/scheduler/action";
 
+export enum Season {
+  Spring = "spring",
+  Summer = "summer",
+  Fall = "fall",
+  Winter = "winter",
+}
+
 export class TimeManager {
   private scheduler: Action;
   public timeScale: number;
@@ -14,6 +21,7 @@ export class TimeManager {
   public dayLength: number;
   public nightLength: number;
   // public transitionTime: number;
+  public season: Season;
   public isDayTime: boolean;
   public isNighttime: boolean;
   public currentYear: number;
@@ -27,9 +35,10 @@ export class TimeManager {
     this.isPaused = false;
 
     this.maxTimeScale = 10;
-    this.dayLength = 15;
+    this.dayLength = 25;
     this.nightLength = 15;
     this.daysPerYear = 10;
+    this.season = Season.Spring;
 
     // this.transitionTime = 10;
     this.timeScale = 1;
@@ -39,6 +48,15 @@ export class TimeManager {
     this.currentTurn = 0;
     this.isDayTime = true;
     this.isNighttime = !this.isDayTime;
+
+    if (!this.game.dayStart) {
+      const temp = this.scheduler.add(null, false, this.dayLength);
+      for (let i = 0; i < this.dayLength; i++) {
+        this.scheduler.next();
+      }
+      this.scheduler.remove(temp);
+    }
+
     this.calculateCurrentTime();
   }
 

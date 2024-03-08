@@ -1,12 +1,15 @@
 import { Assets, AssetsManifest } from "pixi.js";
 import * as PIXI from "pixi.js";
-import { Tile, Biome, TileType } from "./tile";
+import { Tile, Biome, TileType, BiomeId, BaseTileKey } from "./tile";
+import { Season } from "./time-manager";
 
 export interface CachedSprite {
   url: string;
   xOffset: number;
   yOffset: number;
 }
+
+export const AssetSeasons = [Season.Spring];
 
 /** List of assets grouped in bundles, for dynamic loading */
 let assetsManifest: AssetsManifest = { bundles: [] };
@@ -116,19 +119,47 @@ export function ProcessTilesetsIntoTiles() {
 export function generateTileset(tilesetMeta: Biome) {
   console.log(tilesetMeta);
   let tilesetUrl;
-  for (let i = 1; i < 48; i++) {
-    tilesetUrl = `${tilesetMeta.autotilePrefix}${tileFormat.format(i)}`;
-    addTileToTileset(
-      tilesetMeta,
-      i,
-      new Tile(
-        TileType.Floor,
-        `${tilesetMeta.autotilePrefix}${tileFormat.format(i)}`,
-        tilesetMeta.color,
-        tilesetMeta.biome
-      )
-    );
+  const autoTilePrefixes = tilesetMeta.autotileAgainst;
+  if (autoTilePrefixes?.length) {
+    for (let i = 0; i < autoTilePrefixes.length; i++) {
+      for (let j = 0; j < 48; j++) {
+        tilesetUrl = `${autoTilePrefixes[i].prefix}${tileFormat.format(j)}`;
+        addTileToTileset(
+          tilesetMeta,
+          autoTilePrefixes[i].biome,
+          j,
+          new Tile(
+            TileType.Terrain,
+            tilesetUrl,
+            tilesetMeta.color,
+            tilesetMeta.id
+          )
+        );
+      }
+      addTileToTileset(
+        tilesetMeta,
+        autoTilePrefixes[i].biome,
+        BaseTileKey,
+        new Tile(
+          TileType.Terrain,
+          tilesetMeta.baseTile,
+          tilesetMeta.color,
+          tilesetMeta.id
+        )
+      );
+    }
   }
+  addTileToTileset(
+    tilesetMeta,
+    "default",
+    BaseTileKey,
+    new Tile(
+      TileType.Terrain,
+      tilesetMeta.baseTile,
+      tilesetMeta.color,
+      tilesetMeta.id
+    )
+  );
 }
 
 export function getCachedTile(sprite: string): CachedSprite {
@@ -140,18 +171,45 @@ export function getCachedTile(sprite: string): CachedSprite {
   };
 }
 
-function addTileToTileset(tilesetMeta: Biome, tileIndex: number, tile: Tile) {
+function addTileToTileset(
+  tilesetMeta: Biome,
+  tileAgainstBiome: BiomeId,
+  tileIndex: number | string,
+  tile: Tile
+) {
   // add entry for tileset if it doesn't already exist.
   // it could exist already if other seasons have been added
-  if (!Tile.Tilesets[tilesetMeta.biome]) {
-    Tile.Tilesets[tilesetMeta.biome] = {};
+  if (!Tile.Tilesets[tilesetMeta.id]) {
+    Tile.Tilesets[tilesetMeta.id] = {};
   }
 
-  // add entry for season if it doesn't already exist
-  if (!Tile.Tilesets[tilesetMeta.biome][tilesetMeta.season]) {
-    Tile.Tilesets[tilesetMeta.biome][tilesetMeta.season] = {};
+  if (!Tile.Tilesets[tilesetMeta.id][tileAgainstBiome]) {
+    Tile.Tilesets[tilesetMeta.id][tileAgainstBiome] = {};
   }
 
-  // add the generated tile to the tileset object
-  Tile.Tilesets[tilesetMeta.biome][tilesetMeta.season][tileIndex] = tile;
+  for (const season of AssetSeasons) {
+    if (!Tile.Tilesets[tilesetMeta.id][tileAgainstBiome][season]) {
+      // add entry for season if it doesn't already exist
+      Tile.Tilesets[tilesetMeta.id][tileAgainstBiome][season] = {};
+    }
+    // add the generated tile to the tileset object
+    Tile.Tilesets[tilesetMeta.id][tileAgainstBiome][season][tileIndex] = tile;
+  }
 }
+
+// function addBaseTileToTileset(tilesetMeta: Biome, tile: Tile) {
+//   // add entry for tileset if it doesn't already exist.
+//   // it could exist already if other seasons have been added
+//   if (!Tile.Tilesets[tilesetMeta.id]) {
+//     Tile.Tilesets[tilesetMeta.id] = {};
+//   }
+
+//   for (const season of AssetSeasons) {
+//     if (!Tile.Tilesets[tilesetMeta.id][season]) {
+//       // add entry for season if it doesn't already exist
+//       Tile.Tilesets[tilesetMeta.id][season] = {};
+//     }
+//     // add the generated tile to the tileset object
+//     Tile.Tilesets[tilesetMeta.id][season]["base"] = tile;
+//   }
+// }

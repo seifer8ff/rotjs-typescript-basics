@@ -53,8 +53,8 @@ export class Renderer {
           if (
             x < 0 ||
             y < 0 ||
-            x >= this.game.mapSize.width ||
-            y >= this.game.mapSize.height
+            x >= this.game.gameSize.width ||
+            y >= this.game.gameSize.height
           ) {
             continue;
           }

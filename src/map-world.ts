@@ -1,17 +1,15 @@
-import { Color, Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { Game } from "./game";
-import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
+import { BaseTileKey, Biome, BiomeId, Tile } from "./tile";
 import { Point } from "./point";
-import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
 import Simplex from "rot-js/lib/noise/simplex";
-import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
 import { LightManager } from "./light-manager";
 import { lerp } from "./misc-utility";
 import { MapTemperature } from "./map-temperature";
-import { MapMoisture, MoistureZoneMap, MoistureZones } from "./map-moisture";
+import { MapMoisture } from "./map-moisture";
+import { Season } from "./time-manager";
 
 export class MapWorld {
   public lightManager: LightManager;
@@ -83,8 +81,30 @@ export class MapWorld {
     }
     console.log("moistureMap", this.moistureMap.moistureMap);
 
-    this.autotileMap(this.biomeMap);
+    if (this.game.shouldAutotile) {
+      this.autotileMap(this.biomeMap);
+    } else {
+      this.basetileMap(this.biomeMap);
+    }
+
     this.lightManager = new LightManager(this.game, this);
+  }
+
+  private basetileMap(rawMap: { [key: string]: Biome }) {
+    for (let key in rawMap) {
+      const biome = rawMap[key];
+      const tile =
+        Tile.Tilesets[biome.id]["default"][this.game.timeManager.season][
+          BaseTileKey
+        ];
+
+      if (!tile) {
+        console.log(
+          `BASETILE ERROR: ${biome.id} - ${this.game.timeManager.season}`
+        );
+      }
+      this.terrainTileMap[key] = tile;
+    }
   }
 
   getHeight(
@@ -142,14 +162,16 @@ export class MapWorld {
       return Tile.Biomes.ocean;
     }
 
-    if (Tile.inRange(heightVal, Tile.Biomes.dirt.generationOptions.height)) {
-      return Tile.Biomes.dirt;
+    if (
+      Tile.inRange(heightVal, Tile.Biomes.moistdirt.generationOptions.height)
+    ) {
+      return Tile.Biomes.moistdirt;
     }
 
     if (
-      Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
+      Tile.inRange(heightVal, Tile.Biomes.sandydirt.generationOptions.height)
     ) {
-      return Tile.Biomes.grassland;
+      return Tile.Biomes.sandydirt;
     }
   }
 
@@ -206,83 +228,102 @@ export class MapWorld {
     const terrain = this.terrainMap[key];
 
     if (terrain === Tile.Biomes.ocean) {
-      if (
-        Tile.inRange(
-          heightVal,
-          Tile.Biomes.oceandeep.generationOptions.height
-        ) &&
-        !this.isAdjacentToTerrain(x, y, [
-          Tile.Biomes.dirt,
-          Tile.Biomes.grassland,
-        ])
-      ) {
-        return Tile.Biomes.oceandeep;
-      }
-      return Tile.Biomes.ocean;
-    }
-
-    if (Tile.inRange(heightVal, Tile.Biomes.dirt.generationOptions.height)) {
-      if (Tile.inRange(heightVal, Tile.Biomes.sand.generationOptions.height)) {
-        return Tile.Biomes.sand;
-      }
-      return Tile.Biomes.dirt;
-    }
-
-    if (
-      Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
-    ) {
-      // enable terrain based on moisture map
-      // console.log("moistureLevel: ", moistureVal);
-
-      if (
-        // this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt]) &&
-        moistureVal > MoistureZoneMap[MoistureZones.SuperSaturated].min &&
-        moistureVal < MoistureZoneMap[MoistureZones.SuperSaturated].max
-      ) {
-        return Tile.Biomes.swampwater;
-      }
-
-      if (
-        moistureVal > MoistureZoneMap[MoistureZones.Wet].min &&
-        moistureVal < MoistureZoneMap[MoistureZones.SuperSaturated].max
-      ) {
-        return Tile.Biomes.swampdirt;
-      }
-
-      if (Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height)) {
-        return Tile.Biomes.hills;
-      }
-
       // if (
       //   Tile.inRange(
       //     heightVal,
-      //     Tile.Biomes.swampdirt.generationOptions.height
+      //     Tile.Biomes.oceandeep.generationOptions.height
       //   ) &&
-      //   !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+      //   !this.isAdjacentToTerrain(x, y, [
+      //     Tile.Biomes.dirt,
+      //     Tile.Biomes.grassland,
+      //   ])
       // ) {
-      //   if (
-      //     Tile.inRange(
-      //       heightVal,
-      //       Tile.Biomes.swampwater.generationOptions.height
-      //     ) &&
-      //     this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt])
-      //   ) {
-      //     return Tile.Biomes.swampwater;
-      //   }
-      //   return Tile.Biomes.swampdirt;
+      //   return Tile.Biomes.oceandeep;
       // }
-
-      if (
-        Tile.inRange(
-          heightVal,
-          Tile.Biomes.forestgrass.generationOptions.height
-        ) &&
-        !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
-      ) {
-        return Tile.Biomes.forestgrass;
-      }
-      return Tile.Biomes.grassland;
+      return Tile.Biomes.ocean;
     }
+
+    if (
+      Tile.inRange(heightVal, Tile.Biomes.moistdirt.generationOptions.height) &&
+      Tile.inRange(
+        moistureVal,
+        Tile.Biomes.moistdirt.generationOptions.moisture
+      )
+    ) {
+      if (
+        Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height) &&
+        Tile.inRange(moistureVal, Tile.Biomes.hills.generationOptions.moisture)
+      ) {
+        return Tile.Biomes.hills;
+      }
+      return Tile.Biomes.moistdirt;
+    }
+
+    if (
+      Tile.inRange(heightVal, Tile.Biomes.sandydirt.generationOptions.height) &&
+      Tile.inRange(
+        moistureVal,
+        Tile.Biomes.sandydirt.generationOptions.moisture
+      )
+    ) {
+      return Tile.Biomes.sandydirt;
+    }
+
+    // if (
+    //   Tile.inRange(heightVal, Tile.Biomes.grassland.generationOptions.height)
+    // ) {
+    //   // enable terrain based on moisture map
+    //   // console.log("moistureLevel: ", moistureVal);
+
+    //   if (
+    //     // this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt]) &&
+    //     moistureVal > MoistureZoneMap[MoistureZones.SuperSaturated].min &&
+    //     moistureVal < MoistureZoneMap[MoistureZones.SuperSaturated].max
+    //   ) {
+    //     return Tile.Biomes.swampwater;
+    //   }
+
+    //   if (
+    //     moistureVal > MoistureZoneMap[MoistureZones.Wet].min &&
+    //     moistureVal < MoistureZoneMap[MoistureZones.SuperSaturated].max
+    //   ) {
+    //     return Tile.Biomes.swampdirt;
+    //   }
+
+    //   if (Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height)) {
+    //     return Tile.Biomes.hills;
+    //   }
+
+    //   // if (
+    //   //   Tile.inRange(
+    //   //     heightVal,
+    //   //     Tile.Biomes.swampdirt.generationOptions.height
+    //   //   ) &&
+    //   //   !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+    //   // ) {
+    //   //   if (
+    //   //     Tile.inRange(
+    //   //       heightVal,
+    //   //       Tile.Biomes.swampwater.generationOptions.height
+    //   //     ) &&
+    //   //     this.isAdjacentToTerrain(x, y, [Tile.Biomes.swampdirt])
+    //   //   ) {
+    //   //     return Tile.Biomes.swampwater;
+    //   //   }
+    //   //   return Tile.Biomes.swampdirt;
+    //   // }
+
+    //   if (
+    //     Tile.inRange(
+    //       heightVal,
+    //       Tile.Biomes.forestgrass.generationOptions.height
+    //     ) &&
+    //     !this.isAdjacentToTerrain(x, y, [Tile.Biomes.dirt, Tile.Biomes.ocean])
+    //   ) {
+    //     return Tile.Biomes.forestgrass;
+    //   }
+    //   return Tile.Biomes.grassland;
+    // }
   }
 
   // assignBiome(x: number, y: number): Biome {
@@ -355,29 +396,62 @@ export class MapWorld {
     // console.log("rawMap to start with: ", rawMap);
     const autotileMap = Autotile.autotile(rawMap);
     let tileIndex;
-    let biome: BiomeType;
+    let biome: Biome;
+    let biomeId: BiomeId;
     let season: Season;
     let tile: Tile;
+    season = this.game.timeManager.season;
 
     Object.keys(autotileMap).forEach((pos) => {
       tileIndex = autotileMap[pos];
-      biome = rawMap[pos].biome;
-      season = rawMap[pos].season;
-      tile = Tile.Tilesets[biome][season][tileIndex];
+      biome = rawMap[pos];
+      biomeId = biome.id;
+      if (!biome?.autotileAgainst?.length) {
+        // use the base tile rather than autotiling
+        tile = Tile.Tilesets[biomeId]["default"][season][BaseTileKey];
+      } else {
+        tile = Tile.Tilesets[biomeId]["default"][season][tileIndex];
+      }
+
+      // console.log("biome", biomeId, "season", season, "tileIndex", tileIndex);
 
       if (!tile) {
-        console.log(`AUTOTILE ERROR: ${biome} - ${season} - ${tileIndex}`);
+        console.log(`AUTOTILE ERROR: ${biomeId} - ${season} - ${tileIndex}`);
       }
       this.terrainTileMap[pos] = tile;
     });
   }
+
+  // autotileMap(rawMap: { [key: string]: Biome }) {
+  //   // console.log("rawMap to start with: ", rawMap);
+  //   const autotileMap = Autotile.autotile(rawMap);
+  //   let tileIndex;
+  //   let biome: Biome;
+  //   let biomeId: BiomeId;
+  //   let season: Season;
+  //   let tile: Tile;
+
+  //   Object.keys(autotileMap).forEach((pos) => {
+  //     tileIndex = autotileMap[pos];
+  //     biome = rawMap[pos];
+  //     biomeId = biome.id;
+  //     season = this.game.timeManager.season;
+  //     console.log("biome", biomeId, "season", season, "tileIndex", tileIndex);
+  //     tile = Tile.Tilesets[biomeId]["default"][season][tileIndex];
+
+  //     if (!tile) {
+  //       console.log(`AUTOTILE ERROR: ${biomeId} - ${season} - ${tileIndex}`);
+  //     }
+  //     this.terrainTileMap[pos] = tile;
+  //   });
+  // }
 
   setTile(x: number, y: number, tile: Tile): void {
     this.terrainTileMap[MapWorld.coordsToKey(x, y)] = tile;
     this.dirtyTiles.push(MapWorld.coordsToKey(x, y));
   }
 
-  getRandomTilePositions(biomeType: BiomeType, quantity: number = 1): Point[] {
+  getRandomTilePositions(biomeType: BiomeId, quantity: number = 1): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
     for (let key in this.terrainTileMap) {
@@ -399,18 +473,14 @@ export class MapWorld {
     return this.terrainTileMap[MapWorld.coordsToKey(x, y)];
   }
 
-  getTileType(x: number, y: number): TileType {
-    return this.terrainTileMap[MapWorld.coordsToKey(x, y)].type;
-  }
-
   isPassable(x: number, y: number): boolean {
     const key = MapWorld.coordsToKey(x, y);
     const tile = this.terrainTileMap[key];
     return (
       key in this.terrainTileMap &&
-      tile?.biomeType !== Tile.Biomes.ocean.biome &&
-      tile?.biomeType !== Tile.Biomes.oceandeep.biome &&
-      tile?.biomeType !== Tile.Biomes.hills.biome
+      tile?.biomeType !== Tile.Biomes.ocean.id &&
+      tile?.biomeType !== Tile.Biomes.hills.id
+      // && tile?.biomeType !== Tile.Biomes.oceandeep.biome
     );
   }
 

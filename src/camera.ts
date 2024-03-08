@@ -600,7 +600,7 @@ export class Camera {
         elapsed < this.momentum.durationMs &&
         (Math.abs(this.momentum.x) > 0.1 || Math.abs(this.momentum.y) > 0.1)
       ) {
-        console.log("momentum", this.momentum.x, this.momentum.y);
+        // console.log("momentum", this.momentum.x, this.momentum.y);
         // keep this running for durationMs to allow multiple drags
         // before the side menu is shown again
         this.momentum.handlerRef = requestAnimationFrame(
@@ -608,7 +608,7 @@ export class Camera {
         );
       } else {
         // momentum done
-        console.log("momentum done");
+        // console.log("momentum done");
         if (this.showSidebarHandler) {
           clearTimeout(this.showSidebarHandler);
         }
@@ -629,7 +629,7 @@ export class Camera {
           Math.floor(this.ui.gameDisplay.stage.pivot.x),
           Math.floor(this.ui.gameDisplay.stage.pivot.y)
         );
-        console.log("this.momentum", this.momentum);
+        // console.log("this.momentum", this.momentum);
         cancelAnimationFrame(this.momentum.handlerRef);
       }
     };
@@ -758,7 +758,9 @@ export class Camera {
       pivotX,
       pivotY
     );
-    this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
+    if (this.game.showCloudmap) {
+      this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
+    }
   };
 
   private handleDoubleTap = (g: TinyGesture) => {
@@ -769,7 +771,9 @@ export class Camera {
     scale = this.roundStagevalue(scale);
 
     this.ui.gameDisplay.stage.scale.set(scale);
-    this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
+    if (this.game.showCloudmap) {
+      this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
+    }
   };
 
   private roundStagevalue(value: number, scaleValue = 100): number {
@@ -817,7 +821,9 @@ export class Camera {
       pivotX,
       pivotY
     );
-    this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
+    if (this.game.showCloudmap) {
+      this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
+    }
   };
 
   public updateViewport() {
