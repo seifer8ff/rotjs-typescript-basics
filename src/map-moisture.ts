@@ -1,7 +1,7 @@
 import { Color, Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { Game } from "./game";
-import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
+import { Biome, BiomeId, Tile, TileType } from "./tile";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
@@ -65,7 +65,7 @@ export class MapMoisture {
     const terrainType = this.map.terrainTileMap[key];
     const nearWater = this.map.isAdjacentToTerrain(x, y, [
       Tile.Biomes.ocean,
-      Tile.Biomes.oceandeep,
+      // Tile.Biomes.oceandeep,
     ]);
 
     let noiseX = x / width - 0.5;

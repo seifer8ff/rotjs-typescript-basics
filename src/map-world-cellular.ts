@@ -2,11 +2,12 @@ import { Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { FOV } from "rot-js/lib/index";
 import { Game } from "./game";
-import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
+import { Biome, BiomeId, Tile, TileType } from "./tile";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
+import { Season } from "./time-manager";
 
 export class MapWorldCellular {
   private rawMap: { [key: string]: Biome };
@@ -42,15 +43,15 @@ export class MapWorldCellular {
     console.log("rawMap to start with: ", rawMap);
     const autotileMap = Autotile.autotile(rawMap);
     let tileIndex;
-    let biome: BiomeType;
+    let biome: BiomeId;
     let season: Season;
     let tile: Tile;
 
     Object.keys(autotileMap).forEach((pos) => {
       tileIndex = autotileMap[pos];
-      biome = rawMap[pos].biome;
-      season = rawMap[pos].season;
-      tile = Tile.Tilesets[biome][season][tileIndex];
+      biome = rawMap[pos].id;
+      season = this.game.timeManager.season;
+      tile = Tile.Tilesets[biome]["default"][season][tileIndex];
 
       if (!tile) {
         console.log(`AUTOTILE ERROR: ${biome} - ${season} - ${tileIndex}`);
@@ -94,10 +95,11 @@ export class MapWorldCellular {
   // }
 
   isPassable(x: number, y: number): boolean {
-    return (
-      this.coordinatesToKey(x, y) in this.map &&
-      this.map[this.coordinatesToKey(x, y)]?.type !== Tile.water.type
-    );
+    return false;
+    // return (
+    //   this.coordinatesToKey(x, y) in this.map &&
+    //   this.map[this.coordinatesToKey(x, y)]?.type !== Tile.water.type
+    // );
     // return this.coordinatesToKey(x, y) in this.map;
   }
 
@@ -148,7 +150,8 @@ export class MapWorldCellular {
   private lightPasses(x, y): boolean {
     var key = x + "," + y;
     if (key in this.map) {
-      return this.map[key] != Tile.water;
+      return false;
+      // return this.map[key] != Tile.water;
     }
     return false;
   }

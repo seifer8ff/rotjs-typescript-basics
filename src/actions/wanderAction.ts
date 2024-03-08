@@ -1,7 +1,6 @@
 import { Path } from "rot-js";
 import { Game } from "../game";
 import { Point } from "../point";
-import { Tile, TileType } from "../tile";
 import { Action } from "./action";
 import { Actor } from "../entities/actor";
 

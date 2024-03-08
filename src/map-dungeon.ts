@@ -51,7 +51,8 @@ export class MapDungeon {
   // }
 
   isPassable(x: number, y: number): boolean {
-    return this.map[this.coordinatesToKey(x, y)]?.type !== Tile.water.type;
+    return false;
+    // return this.map[this.coordinatesToKey(x, y)]?.type !== Tile.water.type;
     // return this.coordinatesToKey(x, y) in this.map;
   }
 

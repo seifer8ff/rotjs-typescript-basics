@@ -1,4 +1,4 @@
-import { Biome, BiomeType, TileType } from "./tile";
+import { Biome, BiomeId } from "./tile";
 
 export class Autotile {
   static NW = Math.pow(2, 0);
@@ -64,34 +64,25 @@ export class Autotile {
     neighborBiome: Biome,
     tileBiome: Biome
   ): boolean {
-    if (tileBiome?.biome == "oceandeep" && neighborBiome?.biome == "ocean") {
-      return false;
-    }
+    // if (tileBiome?.id == "oceandeep" && neighborBiome?.id == "ocean") {
+    //   return false;
+    // }
 
-    if (
-      tileBiome?.biome == "forestgrass" &&
-      neighborBiome?.biome == "grassland"
-    ) {
-      return false;
-    }
+    // if (tileBiome?.id == "forestgrass" && neighborBiome?.id == "grassland") {
+    //   return false;
+    // }
 
-    if (
-      tileBiome?.biome == "swampdirt" &&
-      neighborBiome?.biome == "grassland"
-    ) {
-      return false;
-    }
+    // if (tileBiome?.id == "swampdirt" && neighborBiome?.id == "grassland") {
+    //   return false;
+    // }
 
-    if (tileBiome?.biome == "hills" && neighborBiome?.biome == "grassland") {
-      return false;
-    }
+    // if (tileBiome?.id == "hills" && neighborBiome?.id == "grassland") {
+    //   return false;
+    // }
 
-    if (
-      tileBiome?.biome == "grassland" &&
-      neighborBiome?.biome == "forestgrass"
-    ) {
-      return true;
-    }
+    // if (tileBiome?.id == "grassland" && neighborBiome?.id == "forestgrass") {
+    //   return true;
+    // }
 
     if (neighborBiome == null) {
       return false;
@@ -106,8 +97,9 @@ export class Autotile {
     y: number,
     tileBiome: Biome
   ): boolean {
-    const skipAutoTileTypes: BiomeType[] = ["dirt", "dirttextured"];
-    if (skipAutoTileTypes.includes(tileBiome?.biome)) {
+    // const skipAutoTileTypes: BiomeId[] = ["dirt", "dirttextured"];
+    const skipAutoTileTypes: BiomeId[] = [];
+    if (skipAutoTileTypes.includes(tileBiome?.id)) {
       return false;
     }
 
@@ -147,19 +139,19 @@ export class Autotile {
     let s = false;
     let w = false;
 
-    if (y > 0 && mapObject[`${x},${y - 1}`].biome == tileBiome.biome) {
+    if (y > 0 && mapObject[`${x},${y - 1}`].id == tileBiome.id) {
       n = true;
       sum += Autotile.N;
     }
-    if (x > 0 && mapObject[`${x - 1},${y}`].biome == tileBiome.biome) {
+    if (x > 0 && mapObject[`${x - 1},${y}`].id == tileBiome.id) {
       w = true;
       sum += Autotile.W;
     }
-    if (x < x_boundary && mapObject[`${x + 1},${y}`].biome == tileBiome.biome) {
+    if (x < x_boundary && mapObject[`${x + 1},${y}`].id == tileBiome.id) {
       e = true;
       sum += Autotile.E;
     }
-    if (y < y_boundary && mapObject[`${x},${y + 1}`].biome == tileBiome.biome) {
+    if (y < y_boundary && mapObject[`${x},${y + 1}`].id == tileBiome.id) {
       s = true;
       sum += Autotile.S;
     }
@@ -169,7 +161,7 @@ export class Autotile {
       w &&
       y > 0 &&
       x > 0 &&
-      mapObject[`${x - 1},${y - 1}`].biome == tileBiome.biome
+      mapObject[`${x - 1},${y - 1}`].id == tileBiome.id
     )
       sum += Autotile.NW;
     if (
@@ -177,7 +169,7 @@ export class Autotile {
       e &&
       y > 0 &&
       x < x_boundary &&
-      mapObject[`${x + 1},${y - 1}`].biome == tileBiome.biome
+      mapObject[`${x + 1},${y - 1}`].id == tileBiome.id
     )
       sum += Autotile.NE;
     if (
@@ -185,7 +177,7 @@ export class Autotile {
       w &&
       y < y_boundary &&
       x > 0 &&
-      mapObject[`${x - 1},${y + 1}`].biome == tileBiome.biome
+      mapObject[`${x - 1},${y + 1}`].id == tileBiome.id
     )
       sum += Autotile.SW;
     if (
@@ -193,7 +185,7 @@ export class Autotile {
       e &&
       x < x_boundary &&
       y < y_boundary &&
-      mapObject[`${x + 1},${y + 1}`].biome == tileBiome.biome
+      mapObject[`${x + 1},${y + 1}`].id == tileBiome.id
     )
       sum += Autotile.SE;
 
@@ -201,7 +193,7 @@ export class Autotile {
   }
 
   public static autotile(mapObject: { [pos: string]: Biome }): {
-    [pos: string]: TileType;
+    [pos: string]: number;
   } {
     console.log("autotile rawMapObj: ", mapObject);
     const tiles = {};

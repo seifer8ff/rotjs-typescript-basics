@@ -1,7 +1,7 @@
 import { Color, Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { Game } from "./game";
-import { Biome, BiomeType, Season, Tile, TileType } from "./tile";
+import { Biome, BiomeId, Tile, TileType } from "./tile";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
