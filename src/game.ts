@@ -27,8 +27,8 @@ export class Game {
   public showCloudmap = true;
   public dayStart = true;
   public gameSize = {
-    width: 200,
-    height: 200,
+    width: 250,
+    height: 250,
   };
   public useSeed = true;
   public gameSeed = 1234;

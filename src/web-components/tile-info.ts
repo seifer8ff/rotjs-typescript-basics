@@ -11,6 +11,8 @@ import { PointerTarget } from "../camera";
 import { isActor } from "../entities/actor";
 import { Tile } from "../tile";
 import { CachedSprite, getCachedTile } from "../assets";
+import PinIcon from "../shoelace/assets/icons/pin-map.svg";
+import TextIcon from "../shoelace/assets/icons/card-text.svg";
 
 export class TileInfo extends HTMLElement {
   public container: HTMLDivElement;
@@ -154,7 +156,7 @@ export class TileInfo extends HTMLElement {
     }
 
     if (target.target instanceof Tile) {
-      const biome = Tile.Biomes[target.target.biomeType];
+      const biome = Tile.Biomes[target.target.biomeId];
       this.label.textContent = `${biome.name}`;
       cachedSprite = getCachedTile(target.target.sprite);
       this.avatar.style.transform = "translateX(0%) translateY(0%) scale(1)";
@@ -175,41 +177,61 @@ export class TileInfo extends HTMLElement {
   public setBodyContent(target: PointerTarget) {
     this.body.removeChild(this.body.firstChild);
     this.body.textContent = "";
+    const bodyContainer = document.createElement("div");
+    bodyContainer.style.display = "flex";
+    bodyContainer.style.flexDirection = "column";
+    bodyContainer.style.alignItems = "start";
+    bodyContainer.style.justifyContent = "start";
+    bodyContainer.style.padding = "0 0 0 0";
+    bodyContainer.style.margin = "0 0 0 0";
+    bodyContainer.style.width = "100%";
+
     if (isActor(target.target)) {
       const dBlocks = target.target.getDescription();
-      const dContainer = document.createElement("div");
-      dContainer.style.display = "flex";
-      dContainer.style.flexDirection = "column";
-      dContainer.style.alignItems = "start";
-      dContainer.style.justifyContent = "start";
-      dContainer.style.padding = "0 0 0 0";
-      dContainer.style.margin = "0 0 0 0";
-      dContainer.style.width = "100%";
       dBlocks.forEach((block) => {
-        const blockContainer = document.createElement("div");
-        blockContainer.style.display = "flex";
-        blockContainer.style.alignItems = "center";
-        blockContainer.style.justifyContent = "start";
-        blockContainer.style.padding = "0 0 0 0";
-        blockContainer.style.margin = "0 0 0 0";
-        blockContainer.style.width = "100%";
-        const icon = document.createElement("sl-icon");
-        icon.src = block.icon;
-        const text = document.createElement("span");
-        text.textContent = block.text;
-        text.style.marginLeft = "var(--sl-spacing-x-small)";
-
-        blockContainer.appendChild(icon);
-        blockContainer.appendChild(text);
-        dContainer.appendChild(blockContainer);
-
-        this.body.appendChild(dContainer);
+        const blockContainer = this.generateDescriptionBlock(
+          block.icon,
+          block.text
+        );
+        bodyContainer.appendChild(blockContainer);
       });
     }
 
     if (target.target instanceof Tile) {
-      const biome = Tile.Biomes[target.target.biomeType];
-      this.body.textContent = `${biome.description}`;
+      const biome = Tile.Biomes[target.target.biomeId];
+      const posBlock = this.generateDescriptionBlock(
+        PinIcon,
+        `${target.position.x}, ${target.position.y}`
+      );
+      const descBlock = this.generateDescriptionBlock(
+        TextIcon,
+        `${biome.description}`
+      );
+
+      bodyContainer.appendChild(posBlock);
+      bodyContainer.appendChild(descBlock);
     }
+
+    this.body.appendChild(bodyContainer);
+  }
+
+  private generateDescriptionBlock(icon: string, text: string): HTMLDivElement {
+    const block = document.createElement("div");
+    block.style.display = "flex";
+    block.style.alignItems = "center";
+    block.style.justifyContent = "start";
+    block.style.padding = "0 0 0 0";
+    block.style.margin = "2px 0 0 0";
+    block.style.width = "100%";
+    const iconEl = document.createElement("sl-icon");
+    iconEl.src = icon;
+    iconEl.style.flexShrink = "0";
+    const textEl = document.createElement("span");
+    textEl.textContent = text;
+    textEl.style.marginLeft = "var(--sl-spacing-x-small)";
+
+    block.appendChild(iconEl);
+    block.appendChild(textEl);
+    return block;
   }
 }

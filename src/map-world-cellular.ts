@@ -51,7 +51,7 @@ export class MapWorldCellular {
       tileIndex = autotileMap[pos];
       biome = rawMap[pos].id;
       season = this.game.timeManager.season;
-      tile = Tile.Tilesets[biome]["default"][season][tileIndex];
+      tile = Tile.Tilesets[biome][season][tileIndex];
 
       if (!tile) {
         console.log(`AUTOTILE ERROR: ${biome} - ${season} - ${tileIndex}`);
