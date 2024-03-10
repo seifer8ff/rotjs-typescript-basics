@@ -119,30 +119,16 @@ export function ProcessTilesetsIntoTiles() {
 export function generateTileset(tilesetMeta: Biome) {
   console.log(tilesetMeta);
   let tilesetUrl;
-  const autoTilePrefixes = tilesetMeta.autotileAgainst;
-  if (autoTilePrefixes?.length) {
-    for (let i = 0; i < autoTilePrefixes.length; i++) {
-      for (let j = 0; j < 48; j++) {
-        tilesetUrl = `${autoTilePrefixes[i].prefix}${tileFormat.format(j)}`;
-        addTileToTileset(
-          tilesetMeta,
-          autoTilePrefixes[i].biome,
-          j,
-          new Tile(
-            TileType.Terrain,
-            tilesetUrl,
-            tilesetMeta.color,
-            tilesetMeta.id
-          )
-        );
-      }
+  const autoTilePrefix = tilesetMeta.autotilePrefix;
+  if (autoTilePrefix) {
+    for (let j = 0; j < 48; j++) {
+      tilesetUrl = `${autoTilePrefix}${tileFormat.format(j)}`;
       addTileToTileset(
         tilesetMeta,
-        autoTilePrefixes[i].biome,
-        BaseTileKey,
+        j,
         new Tile(
           TileType.Terrain,
-          tilesetMeta.baseTile,
+          tilesetUrl,
           tilesetMeta.color,
           tilesetMeta.id
         )
@@ -151,7 +137,6 @@ export function generateTileset(tilesetMeta: Biome) {
   }
   addTileToTileset(
     tilesetMeta,
-    "default",
     BaseTileKey,
     new Tile(
       TileType.Terrain,
@@ -173,7 +158,6 @@ export function getCachedTile(sprite: string): CachedSprite {
 
 function addTileToTileset(
   tilesetMeta: Biome,
-  tileAgainstBiome: BiomeId,
   tileIndex: number | string,
   tile: Tile
 ) {
@@ -183,17 +167,13 @@ function addTileToTileset(
     Tile.Tilesets[tilesetMeta.id] = {};
   }
 
-  if (!Tile.Tilesets[tilesetMeta.id][tileAgainstBiome]) {
-    Tile.Tilesets[tilesetMeta.id][tileAgainstBiome] = {};
-  }
-
   for (const season of AssetSeasons) {
-    if (!Tile.Tilesets[tilesetMeta.id][tileAgainstBiome][season]) {
+    if (!Tile.Tilesets[tilesetMeta.id][season]) {
       // add entry for season if it doesn't already exist
-      Tile.Tilesets[tilesetMeta.id][tileAgainstBiome][season] = {};
+      Tile.Tilesets[tilesetMeta.id][season] = {};
     }
     // add the generated tile to the tileset object
-    Tile.Tilesets[tilesetMeta.id][tileAgainstBiome][season][tileIndex] = tile;
+    Tile.Tilesets[tilesetMeta.id][season][tileIndex] = tile;
   }
 }
 

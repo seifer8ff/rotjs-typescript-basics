@@ -85,7 +85,7 @@ export class LightManager {
 
   private lightPasses(x: number, y: number): boolean {
     var key = MapWorld.coordsToKey(x, y);
-    if (key in this.map.terrainTileMap) {
+    if (key in this.map.tileMap) {
       // return this.map.terrainTileMap[key].biomeType != "hills";
       return true;
     }
@@ -98,20 +98,15 @@ export class LightManager {
 
   public reflectivity(x: number, y: number) {
     const key = MapWorld.coordsToKey(x, y);
-    const tile = this.map.terrainTileMap[key];
-    if (!tile) {
+    const biome = this.map.biomeMap[key];
+    if (!biome) {
       return 0;
     }
-    const isBlocking = tile.biomeType == "hills";
-    // const isWater =
-    //   tile.biomeType == "ocean" ||
-    //   tile.biomeType == "oceandeep" ||
-    //   tile.biomeType == "swampwater";
-    const isReflectiveDirt = tile.biomeType == "sandydirt";
-    // const isShadowed =
-    //   tile.biomeType == "forestgrass" || tile.biomeType == "swampdirt";
-    const isWater = tile.biomeType == "ocean";
-    const isShadowed = false;
+    const isBlocking = biome.id == "hills" || biome.id == "grass";
+    const isWater =
+      biome.id == "ocean" || biome.id == "oceandeep" || biome.id == "swamp";
+    const isReflectiveDirt = biome.id == "sandydirt" || biome.id == "beach";
+    const isShadowed = biome.id == "forestgrass" || biome.id == "valley";
     if (isBlocking) {
       return 0;
     }

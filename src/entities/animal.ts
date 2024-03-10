@@ -11,6 +11,7 @@ import { WanderAction } from "../actions/wanderAction";
 import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
 import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
 import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
+import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 
 export class Animal implements Actor {
   id: number;
@@ -158,6 +159,10 @@ export class Animal implements Actor {
 
   public getDescription(): DescriptionBlock[] {
     const descriptionBlocks = [];
+    descriptionBlocks.push({
+      icon: PinIcon,
+      text: `${this.position.x}, ${this.position.y}`,
+    });
     descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
     if (this.goal) {
       descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });

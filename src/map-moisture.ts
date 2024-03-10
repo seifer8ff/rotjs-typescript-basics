@@ -62,11 +62,16 @@ export class MapMoisture {
   ): number {
     const key = MapWorld.coordsToKey(x, y);
     const terrainHeight = this.map.heightMap[key];
-    const terrainType = this.map.terrainTileMap[key];
-    const nearWater = this.map.isAdjacentToTerrain(x, y, [
-      Tile.Biomes.ocean,
-      // Tile.Biomes.oceandeep,
-    ]);
+    const terrainType = this.map.tileMap[key];
+    const nearWater = this.map.isAdjacentToBiome(
+      x,
+      y,
+      this.map.adjacencyD2Map,
+      [
+        Tile.Biomes.ocean,
+        // Tile.Biomes.oceandeep,
+      ]
+    );
 
     let noiseX = x / width - 0.5;
     let noiseY = y / height - 0.5;
