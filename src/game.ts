@@ -8,7 +8,7 @@ import { Actor } from "./entities/actor";
 import { Person } from "./entities/person";
 import { GameState } from "./game-state";
 import { InputUtility } from "./input-utility";
-import { BiomeId, Tile, TileType } from "./tile";
+import { Tile, TileType } from "./tile";
 import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
 import { Animal } from "./entities/animal";
@@ -17,6 +17,7 @@ import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
 import { GeneratorNames } from "./generator-names";
+import { BiomeId, Biomes } from "./biomes";
 
 export class Game {
   // starting options
@@ -277,12 +278,8 @@ export class Game {
 
   private generatePlants(): void {
     this.plants = [];
-    // let positions = this.map.getRandomTilePositions(
-    //   Tile.Biomes.grassland.biome,
-    //   this.treeCount
-    // );
     let positions = this.map.getRandomTilePositions(
-      Tile.Biomes.moistdirt.id,
+      Biomes.Biomes.moistdirt.id,
       this.treeCount
     );
     for (let position of positions) {
@@ -292,14 +289,17 @@ export class Game {
   }
 
   private generatePlayer(): void {
-    const pos = this.map.getRandomTilePositions(Tile.Biomes.moistdirt.id, 1)[0];
+    const pos = this.map.getRandomTilePositions(
+      Biomes.Biomes.moistdirt.id,
+      1
+    )[0];
     this.player = new Player(this, pos);
   }
 
   private generateBeings(): void {
     this.entities = [];
     let positions = this.map.getRandomTilePositions(
-      Tile.Biomes.moistdirt.id,
+      Biomes.Biomes.moistdirt.id,
       this.entityCount
     );
     console.log("got positions", positions);

@@ -1,17 +1,9 @@
-import { Color, Map as RotJsMap } from "rot-js/lib/index";
-import { RNG } from "rot-js";
 import { Game } from "./game";
-import { Biome, BiomeId, Tile, TileType } from "./tile";
-import { Point } from "./point";
-import { Actor } from "./entities/actor";
-import { Layer } from "./renderer";
-import { Autotile } from "./autotile";
+import { Tile, TileType } from "./tile";
 import Simplex from "rot-js/lib/noise/simplex";
-import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
 import { LightManager } from "./light-manager";
 import { lerp } from "./misc-utility";
 import { MapWorld } from "./map-world";
-import { clamp } from "rot-js/lib/util";
 
 export enum Climates {
   Scorching = "Scorching",

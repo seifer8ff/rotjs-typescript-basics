@@ -1,7 +1,8 @@
 import { Assets, AssetsManifest } from "pixi.js";
 import * as PIXI from "pixi.js";
-import { Tile, Biome, TileType, BiomeId, BaseTileKey } from "./tile";
+import { Tile, TileType, BaseTileKey } from "./tile";
 import { Season } from "./time-manager";
+import { Biome, BiomeId, Biomes } from "./biomes";
 
 export interface CachedSprite {
   url: string;
@@ -110,8 +111,8 @@ export function initPixiOptions(): void {
 export function ProcessTilesetsIntoTiles() {
   console.log("process tilesets into tiles");
   // for each tileset, create new Tile 0 through 47
-  Object.keys(Tile.Biomes).forEach((tilesetId: string) => {
-    generateTileset(Tile.Biomes[tilesetId]);
+  Object.keys(Biomes.Biomes).forEach((biomeId: BiomeId) => {
+    generateTileset(Biomes.Biomes[biomeId]);
   });
   console.log("end result: ", Tile.Tilesets);
 }

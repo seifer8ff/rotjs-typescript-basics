@@ -1,4 +1,4 @@
-import { Biome, BiomeId } from "./tile";
+import { Biome } from "./biomes";
 
 export class Autotile {
   static NW = Math.pow(2, 0);
