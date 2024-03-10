@@ -1,6 +1,6 @@
 import { RNG } from "rot-js";
 import { Game } from "./game";
-import { BaseTileKey, Biome, BiomeId, Impassible, Tile } from "./tile";
+import { BaseTileKey, Tile } from "./tile";
 import { Point } from "./point";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
@@ -10,6 +10,7 @@ import { lerp } from "./misc-utility";
 import { MapTemperature } from "./map-temperature";
 import { MapMoisture } from "./map-moisture";
 import { Season } from "./time-manager";
+import { Biome, BiomeId, Biomes, Impassible } from "./biomes";
 
 export class MapWorld {
   public lightManager: LightManager;
@@ -36,7 +37,7 @@ export class MapWorld {
     this.moistureMap = new MapMoisture(this.game, this);
     this.tempMap = new MapTemperature(this.game, this);
     this.terrainMap = {};
-    this.seaLevel = Tile.Biomes.ocean.generationOptions.height.max;
+    this.seaLevel = Biomes.Biomes.ocean.generationOptions.height.max;
     this.adjacencyD1Map = {};
     this.adjacencyD2Map = {};
     this.dirtyTiles = [];
@@ -213,20 +214,28 @@ export class MapWorld {
     // assign the high level terrain types
     // features will be placed within these terrain types for tiling transition purposes
     const heightVal = this.heightMap[MapWorld.coordsToKey(x, y)];
-    if (Tile.inRange(heightVal, Tile.Biomes.ocean.generationOptions.height)) {
-      return Tile.Biomes.ocean;
+    if (
+      Biomes.inRange(heightVal, Biomes.Biomes.ocean.generationOptions.height)
+    ) {
+      return Biomes.Biomes.ocean;
     }
 
     if (
-      Tile.inRange(heightVal, Tile.Biomes.moistdirt.generationOptions.height)
+      Biomes.inRange(
+        heightVal,
+        Biomes.Biomes.moistdirt.generationOptions.height
+      )
     ) {
-      return Tile.Biomes.moistdirt;
+      return Biomes.Biomes.moistdirt;
     }
 
     if (
-      Tile.inRange(heightVal, Tile.Biomes.sandydirt.generationOptions.height)
+      Biomes.inRange(
+        heightVal,
+        Biomes.Biomes.sandydirt.generationOptions.height
+      )
     ) {
-      return Tile.Biomes.sandydirt;
+      return Biomes.Biomes.sandydirt;
     }
   }
 
@@ -239,17 +248,17 @@ export class MapWorld {
 
     // check if any adjacent terrain is null- if so, set to ocean
     if (adjacentTerrain.some((terrain) => terrain == null)) {
-      const newHeight = Tile.Biomes.ocean.generationOptions.height.max - 0.1;
+      const newHeight = Biomes.Biomes.ocean.generationOptions.height.max - 0.1;
       this.heightMap[key] = newHeight;
-      return Tile.Biomes.ocean;
+      return Biomes.Biomes.ocean;
     }
 
     // add a single tile thick border of sandydirt around moistdirt coasts to improve autotiling
-    if (terrain === Tile.Biomes.moistdirt) {
+    if (terrain === Biomes.Biomes.moistdirt) {
       if (
-        this.isAdjacentToBiome(x, y, this.adjacencyD2Map, [Tile.Biomes.ocean])
+        this.isAdjacentToBiome(x, y, this.adjacencyD2Map, [Biomes.Biomes.ocean])
       ) {
-        return Tile.Biomes.sandydirt;
+        return Biomes.Biomes.sandydirt;
       }
     }
     return terrain;
@@ -261,13 +270,13 @@ export class MapWorld {
     const biome = this.biomeMap[key];
     const adjacentBiomes = this.adjacencyD2Map[key];
 
-    if (biome.id == Tile.Biomes.beach.id) {
+    if (biome.id == Biomes.Biomes.beach.id) {
       if (
         this.isAdjacentToBiome(x, y, this.adjacencyD1Map, [
-          Tile.Biomes.moistdirt,
+          Biomes.Biomes.moistdirt,
         ])
       ) {
-        return Tile.Biomes.sandydirt;
+        return Biomes.Biomes.sandydirt;
       }
     }
 
@@ -320,62 +329,103 @@ export class MapWorld {
     const moistureVal = this.moistureMap.getMoistureByKey(key);
     const terrain = this.terrainMap[key];
 
-    if (terrain === Tile.Biomes.ocean) {
+    if (terrain === Biomes.Biomes.ocean) {
       if (
-        Tile.inRange(heightVal, Tile.Biomes.oceandeep.generationOptions.height)
-      ) {
-        return Tile.Biomes.oceandeep;
-      }
-      return Tile.Biomes.ocean;
-    }
-
-    if (terrain === Tile.Biomes.sandydirt) {
-      if (
-        Tile.inRange(heightVal, Tile.Biomes.beach.generationOptions.height)
-        // && Tile.inRange(moistureVal, Tile.Biomes.beach.generationOptions.moisture)
-      ) {
-        return Tile.Biomes.beach;
-      }
-      return Tile.Biomes.sandydirt;
-    }
-
-    if (terrain === Tile.Biomes.moistdirt) {
-      if (
-        Tile.inRange(heightVal, Tile.Biomes.swamp.generationOptions.height) &&
-        Tile.inRange(moistureVal, Tile.Biomes.swamp.generationOptions.moisture)
-      ) {
-        return Tile.Biomes.swamp;
-      }
-
-      if (
-        Tile.inRange(heightVal, Tile.Biomes.valley.generationOptions.height) &&
-        Tile.inRange(moistureVal, Tile.Biomes.valley.generationOptions.moisture)
-      ) {
-        return Tile.Biomes.valley;
-      }
-
-      if (
-        Tile.inRange(heightVal, Tile.Biomes.hills.generationOptions.height) &&
-        Tile.inRange(moistureVal, Tile.Biomes.hills.generationOptions.moisture)
-      ) {
-        return Tile.Biomes.hills;
-      }
-
-      if (
-        Tile.inRange(
-          moistureVal,
-          Tile.Biomes.forestgrass.generationOptions.moisture
+        Biomes.inRange(
+          heightVal,
+          Biomes.Biomes.oceandeep.generationOptions.height
         )
       ) {
-        return Tile.Biomes.forestgrass;
+        return Biomes.Biomes.oceandeep;
+      }
+      return Biomes.Biomes.ocean;
+    }
+
+    if (terrain === Biomes.Biomes.sandydirt) {
+      if (
+        Biomes.inRange(heightVal, Biomes.Biomes.beach.generationOptions.height)
+        // && Biomes.inRange(moistureVal, Biomes.Biomes.beach.generationOptions.moisture)
+      ) {
+        return Biomes.Biomes.beach;
+      }
+      return Biomes.Biomes.sandydirt;
+    }
+
+    if (terrain === Biomes.Biomes.moistdirt) {
+      if (
+        Biomes.inRange(
+          heightVal,
+          Biomes.Biomes.swamp.generationOptions.height
+        ) &&
+        Biomes.inRange(
+          moistureVal,
+          Biomes.Biomes.swamp.generationOptions.moisture
+        )
+      ) {
+        return Biomes.Biomes.swamp;
       }
 
       if (
-        Tile.inRange(moistureVal, Tile.Biomes.grass.generationOptions.moisture)
+        Biomes.inRange(
+          heightVal,
+          Biomes.Biomes.valley.generationOptions.height
+        ) &&
+        Biomes.inRange(
+          moistureVal,
+          Biomes.Biomes.valley.generationOptions.moisture
+        )
       ) {
-        return Tile.Biomes.grass;
+        return Biomes.Biomes.valley;
       }
-      return Tile.Biomes.moistdirt;
+
+      if (
+        Biomes.inRange(
+          heightVal,
+          Biomes.Biomes.hills.generationOptions.height
+        ) &&
+        Biomes.inRange(
+          moistureVal,
+          Biomes.Biomes.hills.generationOptions.moisture
+        )
+      ) {
+        return Biomes.Biomes.hills;
+      }
+
+      if (
+        Biomes.inRange(
+          heightVal,
+          Biomes.Biomes.hillgrass.generationOptions.height
+        ) &&
+        Biomes.inRange(
+          moistureVal,
+          Biomes.Biomes.hillgrass.generationOptions.moisture
+        )
+      ) {
+        return Biomes.Biomes.hillgrass;
+      }
+
+      if (
+        Biomes.inRange(
+          heightVal,
+          Biomes.Biomes.shortgrass.generationOptions.height
+        ) &&
+        Biomes.inRange(
+          moistureVal,
+          Biomes.Biomes.shortgrass.generationOptions.moisture
+        )
+      ) {
+        return Biomes.Biomes.shortgrass;
+      }
+
+      if (
+        Biomes.inRange(
+          moistureVal,
+          Biomes.Biomes.grass.generationOptions.moisture
+        )
+      ) {
+        return Biomes.Biomes.grass;
+      }
+      return Biomes.Biomes.moistdirt;
     }
   }
 

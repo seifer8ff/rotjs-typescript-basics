@@ -1,7 +1,7 @@
-import { Biome } from "../tile";
 import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
 import CloseIcon from "../shoelace/assets/icons/x.svg";
 import { SlIconButton } from "@shoelace-style/shoelace";
+import { Biome } from "../biomes";
 
 export class Overlay extends HTMLElement {
   public container: HTMLDivElement;

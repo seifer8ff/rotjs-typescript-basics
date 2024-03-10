@@ -13,6 +13,7 @@ import { Tile } from "../tile";
 import { CachedSprite, getCachedTile } from "../assets";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import TextIcon from "../shoelace/assets/icons/card-text.svg";
+import { Biomes } from "../biomes";
 
 export class TileInfo extends HTMLElement {
   public container: HTMLDivElement;
@@ -156,7 +157,7 @@ export class TileInfo extends HTMLElement {
     }
 
     if (target.target instanceof Tile) {
-      const biome = Tile.Biomes[target.target.biomeId];
+      const biome = Biomes.Biomes[target.target.biomeId];
       this.label.textContent = `${biome.name}`;
       cachedSprite = getCachedTile(target.target.sprite);
       this.avatar.style.transform = "translateX(0%) translateY(0%) scale(1)";
@@ -198,7 +199,7 @@ export class TileInfo extends HTMLElement {
     }
 
     if (target.target instanceof Tile) {
-      const biome = Tile.Biomes[target.target.biomeId];
+      const biome = Biomes.Biomes[target.target.biomeId];
       const posBlock = this.generateDescriptionBlock(
         PinIcon,
         `${target.position.x}, ${target.position.y}`

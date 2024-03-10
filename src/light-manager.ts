@@ -106,7 +106,7 @@ export class LightManager {
     const isWater =
       biome.id == "ocean" || biome.id == "oceandeep" || biome.id == "swamp";
     const isReflectiveDirt = biome.id == "sandydirt" || biome.id == "beach";
-    const isShadowed = biome.id == "forestgrass" || biome.id == "valley";
+    const isShadowed = biome.id == "hillgrass" || biome.id == "valley";
     if (isBlocking) {
       return 0;
     }

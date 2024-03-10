@@ -1,17 +1,8 @@
-import { Color, Map as RotJsMap } from "rot-js/lib/index";
-import { RNG } from "rot-js";
 import { Game } from "./game";
-import { Biome, BiomeId, Tile, TileType } from "./tile";
-import { Point } from "./point";
-import { Actor } from "./entities/actor";
-import { Layer } from "./renderer";
-import { Autotile } from "./autotile";
 import Simplex from "rot-js/lib/noise/simplex";
-import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
-import { LightManager } from "./light-manager";
 import { lerp } from "./misc-utility";
 import { MapWorld } from "./map-world";
-import { clamp } from "rot-js/lib/util";
+import { Biomes } from "./biomes";
 
 export enum MoistureZones {
   SuperSaturated = "Super Saturated",
@@ -67,10 +58,7 @@ export class MapMoisture {
       x,
       y,
       this.map.adjacencyD2Map,
-      [
-        Tile.Biomes.ocean,
-        // Tile.Biomes.oceandeep,
-      ]
+      [Biomes.Biomes.ocean, Biomes.Biomes.oceandeep]
     );
 
     let noiseX = x / width - 0.5;

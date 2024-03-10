@@ -2,12 +2,13 @@ import { Map as RotJsMap } from "rot-js/lib/index";
 import { RNG } from "rot-js";
 import { FOV } from "rot-js/lib/index";
 import { Game } from "./game";
-import { Biome, BiomeId, Tile, TileType } from "./tile";
+import { Tile, TileType } from "./tile";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
 import { Season } from "./time-manager";
+import { Biome, BiomeId, Biomes } from "./biomes";
 
 export class MapWorldCellular {
   private rawMap: { [key: string]: Biome };
@@ -168,9 +169,9 @@ export class MapWorldCellular {
   private cellularCallback(x: number, y: number, wall: number): void {
     // wall meaning impassible/water
     if (wall) {
-      this.rawMap[this.coordinatesToKey(x, y)] = Tile.Biomes["ocean"];
+      this.rawMap[this.coordinatesToKey(x, y)] = Biomes.Biomes["ocean"];
       return;
     }
-    this.rawMap[this.coordinatesToKey(x, y)] = Tile.Biomes["grassland"];
+    this.rawMap[this.coordinatesToKey(x, y)] = Biomes.Biomes["grassland"];
   }
 }
