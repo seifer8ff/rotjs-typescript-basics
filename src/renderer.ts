@@ -4,7 +4,8 @@ import { Point } from "./point";
 import { Tile } from "./tile";
 import { Color } from "rot-js";
 import { Color as ColorType } from "rot-js/lib/color";
-import { MapWorld } from "./map-world";
+import { HeightLayer, MapWorld } from "./map-world";
+import { adjustRgbSaturation, rgbToGrayscale } from "./misc-utility";
 export enum Layer {
   TERRAIN,
   PLANT,
@@ -99,13 +100,25 @@ export class Renderer {
     lightMap: { [pos: string]: ColorType } = null,
     entity: boolean = false
   ): ColorType {
-    const ambientLight = this.game.map.lightManager.ambientLight;
-    let light = ambientLight;
     const key = MapWorld.coordsToKey(x, y);
+    const ambientLight = this.game.map.lightManager.ambientLight;
+    const sunlight = this.game.map.lightManager.lightDefaults.sunlight;
+    const moonlight = this.game.map.lightManager.lightDefaults.moonlight;
+    const heightLevel = this.game.map.heightMap[key];
+
+    let light = ambientLight;
+
+    // const heightLayer = MapWorld.heightToLayer(heightLevel);
+    // const heightColor = MapWorld.heightToColor(heightLevel);
+    // if (heightColor) {
+    //   light = Color.add(light, heightColor);
+    // }
+
     if (key in lightMap && lightMap[key] != null) {
       light = Color.add(light, lightMap[key]);
     }
     light = Color.multiply(ambientLight, light);
+
     if (entity) {
       light = Color.interpolate(
         light,

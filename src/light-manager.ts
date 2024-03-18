@@ -6,6 +6,14 @@ import { Color as ColorType } from "rot-js/lib/color";
 import { Tile } from "./tile";
 import { Viewport } from "./camera";
 import { multiColorLerp } from "./misc-utility";
+import { Autotile } from "./autotile";
+import { BiomeId } from "./biomes";
+
+export const ImpassibleLightBorder: BiomeId[] = [
+  "hillslow",
+  "hillsmid",
+  "hillshigh",
+];
 
 export class LightManager {
   public lightMap: { [key: string]: ColorType }; // x,y -> rgba color string
@@ -84,12 +92,19 @@ export class LightManager {
   }
 
   private lightPasses(x: number, y: number): boolean {
-    var key = MapWorld.coordsToKey(x, y);
-    if (key in this.map.tileMap) {
-      // return this.map.terrainTileMap[key].biomeType != "hills";
-      return true;
+    const tile = this.map.getTile(x, y);
+    if (!tile) {
+      return false;
     }
-    return false;
+    if (ImpassibleLightBorder.includes(tile.biomeId)) {
+      return false;
+    }
+
+    if (this.game.isOccupiedByPlant(x, y)) {
+      return false;
+    }
+
+    return true;
   }
 
   public clearLightMap() {
@@ -102,11 +117,12 @@ export class LightManager {
     if (!biome) {
       return 0;
     }
-    const isBlocking = biome.id == "hills" || biome.id == "grass";
+    const isBlocking =
+      biome.id == "hillsmid" || biome.id == "hillshigh" || biome.id == "grass";
     const isWater =
       biome.id == "ocean" || biome.id == "oceandeep" || biome.id == "swamp";
     const isReflectiveDirt = biome.id == "sandydirt" || biome.id == "beach";
-    const isShadowed = biome.id == "hillgrass" || biome.id == "valley";
+    const isShadowed = biome.id == "grass" || biome.id == "valley";
     if (isBlocking) {
       return 0;
     }

@@ -69,7 +69,7 @@ export class Person implements Actor {
   }
 
   private isGoalReachable(goal: Action): boolean {
-    return this.game.mapIsPassable(goal.targetPos.x, goal.targetPos.y);
+    return !this.game.isMapBlocked(goal.targetPos.x, goal.targetPos.y);
   }
 
   public plan(): void {
@@ -79,7 +79,7 @@ export class Person implements Actor {
       : false;
     let hasPath = this.path?.length > 0;
     const isOccupied = hasPath
-      ? this.game.occupiedByEntity(this.path[0].x, this.path[0].y)
+      ? this.game.isOccupiedByEntity(this.path[0].x, this.path[0].y)
       : false;
 
     if (!hasGoal) {
@@ -123,7 +123,7 @@ export class Person implements Actor {
 
   private canPathTo(x: number, y: number): boolean {
     const distanceFromTarget = this.position.manhattanDistance(new Point(x, y));
-    return distanceFromTarget <= this.range && this.game.mapIsPassable(x, y);
+    return distanceFromTarget <= this.range && !this.game.isMapBlocked(x, y);
   }
 
   private pathTo(target: Point) {

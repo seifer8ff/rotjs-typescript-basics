@@ -75,7 +75,7 @@ export class Player implements Actor {
         this.position.x + diff[0],
         this.position.y + diff[1]
       );
-      if (!this.game.mapIsPassable(newPoint.x, newPoint.y)) {
+      if (!this.game.isMapBlocked(newPoint.x, newPoint.y)) {
         return;
       }
       this.position = newPoint;

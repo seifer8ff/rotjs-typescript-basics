@@ -18,6 +18,7 @@ import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
 import { GeneratorNames } from "./generator-names";
 import { BiomeId, Biomes } from "./biomes";
+import { TileStats } from "./web-components/tile-info";
 
 export class Game {
   // starting options
@@ -28,8 +29,8 @@ export class Game {
   public showCloudmap = true;
   public dayStart = true;
   public gameSize = {
-    width: 250,
-    height: 250,
+    width: 200,
+    height: 200,
   };
   public useSeed = true;
   public gameSeed = 1234;
@@ -78,49 +79,82 @@ export class Game {
       requestAnimationFrame(this.renderLoop.bind(this));
     }
 
-    this.userInterface.components.overlay.generateBiomeOverlay(
-      this.map.terrainMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Terrain"
-    );
-    this.userInterface.components.overlay.generateBiomeOverlay(
-      this.map.biomeMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Biomes"
-    );
+    // this.userInterface.components.overlay.generateOverlay(
+    //   this.map.heightMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Height"
+    // );
+
+    // this.userInterface.components.overlay.generateBiomeOverlay(
+    //   this.map.terrainMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Terrain"
+    // );
+
     this.userInterface.components.overlay.generateOverlay(
-      this.map.heightMap,
+      this.map.polesMap.magnetismMap,
       this.gameSize.width,
       this.gameSize.height,
-      "Height"
+      "Magnetism"
     );
+
     // this.userInterface.components.overlay.generateOverlay(
     //   this.map.tempMap.tempMap,
     //   this.gameSize.width,
     //   this.gameSize.height,
     //   "Temperature"
     // );
-    this.userInterface.components.overlay.generateOverlay(
-      this.map.moistureMap.moistureMap,
+
+    this.userInterface.components.overlay.generateGradientOverlay(
+      this.map.tempMap.tempMap,
       this.gameSize.width,
       this.gameSize.height,
-      "Moisture"
+      "Temperature",
+      { min: "blue", max: "red" }
+    );
+
+    // this.userInterface.components.overlay.generateOverlay(
+    //   this.map.moistureMap.moistureMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Moisture"
+    // );
+
+    // this.userInterface.components.overlay.generateOverlay(
+    //   this.map.sunMap.sunMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Sunlight"
+    // );
+
+    this.userInterface.components.overlay.generateBiomeOverlay(
+      this.map.biomeMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Biomes"
     );
   }
 
-  mapIsPassable(x: number, y: number): boolean {
-    return this.map.isPassable(x, y);
+  isMapBlocked(x: number, y: number): boolean {
+    return !this.map.isPassable(x, y);
   }
 
-  occupiedByEntity(x: number, y: number): boolean {
-    for (let enemy of this.entities) {
-      if (enemy.position.x == x && enemy.position.y == y) {
-        return true;
-      }
-    }
-    return false;
+  isOccupiedByEntity(x: number, y: number): boolean {
+    return this.entities.some(
+      (entity) => entity.position.x === x && entity.position.y === y
+    );
+  }
+
+  isBlocked(x: number, y: number): boolean {
+    return this.isMapBlocked(x, y);
+  }
+
+  isOccupiedByPlant(x: number, y: number): boolean {
+    return this.plants.some(
+      (plant) => plant.position.x === x && plant.position.y === y
+    );
   }
 
   getPlayerPosition(): Point | undefined {
@@ -129,6 +163,17 @@ export class Game {
 
   getTerrainTileAt(x: number, y: number): Tile {
     return this.map.getTile(x, y);
+  }
+
+  getInfoAt(x: number, y: number): TileStats {
+    return {
+      height: this.map.heightMap[MapWorld.coordsToKey(x, y)],
+      magnetism: this.map.polesMap.magnetismMap[MapWorld.coordsToKey(x, y)],
+      temperature: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
+      moisture: this.map.moistureMap.moistureMap[MapWorld.coordsToKey(x, y)],
+      sunlight: this.map.sunMap.sunMap[MapWorld.coordsToKey(x, y)],
+      biome: this.map.biomeMap[MapWorld.coordsToKey(x, y)],
+    };
   }
 
   getEntityAt(x: number, y: number): Actor | null {
@@ -260,19 +305,6 @@ export class Game {
       this.map.lightManager.calculateLighting(deltaTime);
       this.userInterface.refreshPanel();
       this.lastRenderTime = now;
-    }
-  }
-
-  private getActorName(actor: Actor): string {
-    switch (actor.type) {
-      case TileType.Player:
-        return `Player`;
-      case TileType.Entity:
-        return `%c{${actor.tile.color}}Entity%c{}`;
-      case TileType.Plant:
-        return `%c{${actor.tile.color}}Plant%c{}`;
-      default:
-        return "unknown actor";
     }
   }
 

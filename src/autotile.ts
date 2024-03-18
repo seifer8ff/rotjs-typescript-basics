@@ -1,4 +1,5 @@
-import { Biome } from "./biomes";
+import { Biome, BiomeId } from "./biomes";
+import { BaseTileKey, Tile } from "./tile";
 
 export class Autotile {
   static NW = Math.pow(2, 0);
@@ -60,6 +61,31 @@ export class Autotile {
     0: 46,
   };
 
+  public static isAutoTileBorder(
+    x: number,
+    y: number,
+    mapObject: { [pos: string]: number }
+  ): boolean {
+    const key = `${x},${y}`;
+    const tileIndex = mapObject[key];
+    if ((tileIndex as any) == BaseTileKey) {
+      console.log(`tileIndex for ${key} is ${tileIndex}`);
+    }
+    if (tileIndex === 47) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public static isTileIndexAutoTileBorder(tileIndex: number): boolean {
+    if (tileIndex === 47) {
+      return false;
+    }
+
+    return true;
+  }
+
   public static shouldAutoTile(
     mapObject: { [pos: string]: Biome },
     x: number,
@@ -76,15 +102,28 @@ export class Autotile {
       [x - 1, y + 1], // southwest
       [x + 1, y + 1], // southeast
     ];
+    // let isMoistDirt;
 
     if (tileBiome == null) {
       return false;
     }
+    // if (tileBiome.id === "moistdirt") {
+    //   isMoistDirt = true;
+    // }
     for (const [nx, ny] of neighborPositions) {
       const neighborBiome = mapObject[`${nx},${ny}`];
       if (neighborBiome == null) {
         return false;
       }
+      // if (isMoistDirt) {
+      //   if (
+      //     neighborBiome.id === "snowmoistdirt" ||
+      //     neighborBiome.id === "moistdirt"
+      //   ) {
+      //     return true;
+      //   }
+      //   return false;
+      // }
     }
 
     return true;
@@ -104,25 +143,58 @@ export class Autotile {
     let s = false;
     let w = false;
     let skipBiomes;
+    let onlyBiomes;
     if (tileBiome.skipAutoTileTypes) {
       skipBiomes = [tileBiome.id, ...tileBiome.skipAutoTileTypes];
     } else {
       skipBiomes = [tileBiome.id];
     }
+    if (tileBiome.onlyAutoTileTypes) {
+      onlyBiomes = tileBiome.onlyAutoTileTypes;
+      skipBiomes = undefined; // if onlyBiomes is set, skipBiomes is ignored
+    }
 
-    if (y > 0 && skipBiomes.includes(mapObject[`${x},${y - 1}`].id)) {
+    if (
+      y > 0 &&
+      this.betterShouldAutotile(
+        mapObject[`${x},${y - 1}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
+    ) {
       n = true;
       sum += Autotile.N;
     }
-    if (x > 0 && skipBiomes.includes(mapObject[`${x - 1},${y}`].id)) {
+    if (
+      x > 0 &&
+      this.betterShouldAutotile(
+        mapObject[`${x - 1},${y}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
+    ) {
       w = true;
       sum += Autotile.W;
     }
-    if (x < x_boundary && skipBiomes.includes(mapObject[`${x + 1},${y}`].id)) {
+    if (
+      x < x_boundary &&
+      this.betterShouldAutotile(
+        mapObject[`${x + 1},${y}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
+    ) {
       e = true;
       sum += Autotile.E;
     }
-    if (y < y_boundary && skipBiomes.includes(mapObject[`${x},${y + 1}`].id)) {
+    if (
+      y < y_boundary &&
+      this.betterShouldAutotile(
+        mapObject[`${x},${y + 1}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
+    ) {
       s = true;
       sum += Autotile.S;
     }
@@ -132,7 +204,11 @@ export class Autotile {
       w &&
       y > 0 &&
       x > 0 &&
-      skipBiomes.includes(mapObject[`${x - 1},${y - 1}`].id)
+      this.betterShouldAutotile(
+        mapObject[`${x - 1},${y - 1}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
     )
       sum += Autotile.NW;
     if (
@@ -140,7 +216,11 @@ export class Autotile {
       e &&
       y > 0 &&
       x < x_boundary &&
-      skipBiomes.includes(mapObject[`${x + 1},${y - 1}`].id)
+      this.betterShouldAutotile(
+        mapObject[`${x + 1},${y - 1}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
     )
       sum += Autotile.NE;
     if (
@@ -148,7 +228,11 @@ export class Autotile {
       w &&
       y < y_boundary &&
       x > 0 &&
-      skipBiomes.includes(mapObject[`${x - 1},${y + 1}`].id)
+      this.betterShouldAutotile(
+        mapObject[`${x - 1},${y + 1}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
     )
       sum += Autotile.SW;
     if (
@@ -156,12 +240,108 @@ export class Autotile {
       e &&
       x < x_boundary &&
       y < y_boundary &&
-      skipBiomes.includes(mapObject[`${x + 1},${y + 1}`].id)
+      this.betterShouldAutotile(
+        mapObject[`${x + 1},${y + 1}`].id,
+        onlyBiomes,
+        skipBiomes
+      )
     )
       sum += Autotile.SE;
 
     return Autotile.BITMASK[sum];
   }
+
+  public static betterShouldAutotile(
+    biome: BiomeId,
+    onlyBiomes: BiomeId[],
+    skipBiomes: BiomeId[]
+  ): boolean {
+    if (onlyBiomes) {
+      return !onlyBiomes.includes(biome);
+    }
+    if (skipBiomes) {
+      return skipBiomes.includes(biome);
+    }
+    return true;
+  }
+
+  // public static autotileLookup(
+  //   mapObject: { [pos: string]: Biome },
+  //   x_boundary: number,
+  //   y_boundary: number,
+  //   x: number,
+  //   y: number,
+  //   tileBiome: Biome
+  // ): number {
+  //   let sum = 0;
+  //   let n = false;
+  //   let e = false;
+  //   let s = false;
+  //   let w = false;
+  //   let skipBiomes;
+  //   let onlyBiomes;
+  //   if (tileBiome.skipAutoTileTypes) {
+  //     skipBiomes = [tileBiome.id, ...tileBiome.skipAutoTileTypes];
+  //   } else {
+  //     skipBiomes = [tileBiome.id];
+  //   }
+  //   if (tileBiome.onlyAutoTileTypes) {
+  //     onlyBiomes = tileBiome.onlyAutoTileTypes;
+  //     skipBiomes = undefined; // if onlyBiomes is set, skipBiomes is ignored
+  //   }
+
+  //   if (y > 0 && skipBiomes.includes(mapObject[`${x},${y - 1}`].id)) {
+  //     n = true;
+  //     sum += Autotile.N;
+  //   }
+  //   if (x > 0 && skipBiomes.includes(mapObject[`${x - 1},${y}`].id)) {
+  //     w = true;
+  //     sum += Autotile.W;
+  //   }
+  //   if (x < x_boundary && skipBiomes.includes(mapObject[`${x + 1},${y}`].id)) {
+  //     e = true;
+  //     sum += Autotile.E;
+  //   }
+  //   if (y < y_boundary && skipBiomes.includes(mapObject[`${x},${y + 1}`].id)) {
+  //     s = true;
+  //     sum += Autotile.S;
+  //   }
+
+  //   if (
+  //     n &&
+  //     w &&
+  //     y > 0 &&
+  //     x > 0 &&
+  //     skipBiomes.includes(mapObject[`${x - 1},${y - 1}`].id)
+  //   )
+  //     sum += Autotile.NW;
+  //   if (
+  //     n &&
+  //     e &&
+  //     y > 0 &&
+  //     x < x_boundary &&
+  //     skipBiomes.includes(mapObject[`${x + 1},${y - 1}`].id)
+  //   )
+  //     sum += Autotile.NE;
+  //   if (
+  //     s &&
+  //     w &&
+  //     y < y_boundary &&
+  //     x > 0 &&
+  //     skipBiomes.includes(mapObject[`${x - 1},${y + 1}`].id)
+  //   )
+  //     sum += Autotile.SW;
+  //   if (
+  //     s &&
+  //     e &&
+  //     x < x_boundary &&
+  //     y < y_boundary &&
+  //     skipBiomes.includes(mapObject[`${x + 1},${y + 1}`].id)
+  //   )
+  //     sum += Autotile.SE;
+
+  //   return Autotile.BITMASK[sum];
+  // }
 
   public static autotile(mapObject: { [pos: string]: Biome }): {
     [pos: string]: number;
