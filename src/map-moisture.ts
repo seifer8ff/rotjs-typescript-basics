@@ -57,8 +57,8 @@ export class MapMoisture {
     const nearWater = this.map.isAdjacentToBiome(
       x,
       y,
-      this.map.adjacencyD2Map,
-      [Biomes.Biomes.ocean, Biomes.Biomes.oceandeep]
+      this.map.terrainAdjacencyD2Map,
+      [Biomes.Biomes.ocean]
     );
 
     let noiseX = x / width - 0.5;

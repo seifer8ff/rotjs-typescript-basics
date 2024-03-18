@@ -9,6 +9,8 @@ import TinyGesture from "tinygesture";
 import { Actor, isActor } from "./entities/actor";
 import { Layer } from "./renderer";
 import { lerp } from "./misc-utility";
+import { HeightLayer } from "./map-world";
+import { TileStats } from "./web-components/tile-info";
 
 export interface Viewport {
   width: number;
@@ -19,6 +21,7 @@ export interface Viewport {
 export interface PointerTarget {
   position: Point;
   target: Tile | Actor;
+  info?: TileStats;
 }
 
 export class Camera {
@@ -129,6 +132,7 @@ export class Camera {
       this.pointerTarget = {
         position: pos,
         target: target,
+        info: this.game.getInfoAt(pos.x, pos.y),
       };
       this.ui.components.sideMenu.setEntityTarget(null);
       if (viewportTarget) {

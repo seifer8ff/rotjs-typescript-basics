@@ -2,8 +2,9 @@ import { Game } from "./game";
 import { Tile, TileType } from "./tile";
 import Simplex from "rot-js/lib/noise/simplex";
 import { LightManager } from "./light-manager";
-import { lerp } from "./misc-utility";
+import { lerp, normalizeNoise } from "./misc-utility";
 import { MapWorld } from "./map-world";
+import { Biomes } from "./biomes";
 
 export enum Climates {
   Scorching = "Scorching",
@@ -46,10 +47,11 @@ export class MapTemperature {
   public tempMap: { [key: string]: number };
   public terrainTileMap: { [key: string]: Tile };
   public temperatureScale: number;
+  private tempNoise: Simplex;
 
   constructor(private game: Game, private map: MapWorld) {
     this.tempMap = {};
-    this.temperatureScale = 1;
+    this.temperatureScale = 1.5;
   }
 
   public generateInitialTemp(
@@ -62,46 +64,40 @@ export class MapTemperature {
     const key = MapWorld.coordsToKey(x, y);
     const terrainHeight = this.map.heightMap[key];
     const terrainAboveSeaLevel = this.map.seaLevel - terrainHeight;
-    // console.log("terrainAboveSeaLevel", terrainAboveSeaLevel);
-
-    // could just start with height map and don't do any extra noise
-    // calculate distance from water for each tile
-    // increase temp based on distance from water
-    // decrease temp based on height
-    // add noise to temp
+    const magnetism = this.map.polesMap.magnetismMap[key];
+    let heightModifier = terrainHeight;
+    // higher terrain is colder
+    if (terrainHeight > Biomes.Biomes.hillsmid.generationOptions.height.min) {
+      heightModifier =
+        Biomes.Biomes.hillsmid.generationOptions.height.min / 1.1;
+    }
+    if (terrainHeight > Biomes.Biomes.hillshigh.generationOptions.height.min) {
+      heightModifier =
+        Biomes.Biomes.hillshigh.generationOptions.height.min / 1.3;
+    }
     // add seasonality
     // add humidity
     // add wind
 
     let noiseX = x / width - 0.5;
     let noiseY = y / height - 0.5;
-    noiseX = x / 35;
-    noiseY = y / 35;
+    noiseX = x / 60;
+    noiseY = y / 60;
     let noiseValue = noise.get(noiseX, noiseY);
-    noiseValue = Math.min(1, Math.max(-1, noiseValue));
-    noiseValue = (noiseValue + 1) / 2;
-    noiseValue = noiseValue * terrainHeight;
-    // console.log("temp", noiseValue, terrainHeight);
-    this.tempMap[key] = lerp(noiseValue * this.temperatureScale, 0, 1);
-    // console.log("scaled temp", this.tempMap[key]);
-    // this.tempMap[key] = lerp(noiseValue, 0, 1);
+    // mix multiple levels of noise
+    // then divide by the sum of the weights to get back to between 0 and 1
+    noiseValue += noise.get(noiseX * 2, noiseY * 2) * 0.5;
+    noiseValue += noise.get(noiseX * 5, noiseY * 5) * 0.25;
+    noiseValue = noiseValue / (1 + 0.5 + 0.25);
+    noiseValue = normalizeNoise(noiseValue);
+    // increase temp for low height and decrease for high height
+    noiseValue = noiseValue * heightModifier;
+    // reduce temp at high magnetism
+    noiseValue -= magnetism;
+    noiseValue = normalizeNoise(noiseValue * this.temperatureScale);
+    this.tempMap[key] = noiseValue;
     return this.tempMap[key];
   }
-
-  // generateMap(width: number, height: number): void {
-  //   this.tempMap = {};
-
-  //   const noise = new Simplex();
-
-  //   for (let x = 0; x < width; x++) {
-  //     for (let y = 0; y < height; y++) {
-  //       const key = MapWorld.coordsToKey(x, y);
-  //       const initialTemp = noise.get(x / 30, y / 30);
-  //       this.tempMap[key] = lerp(initialTemp, 0, 1);
-  //     }
-  //   }
-  //   console.log("tempMap", this.tempMap);
-  // }
 
   setTemp(x: number, y: number, temp: number): void {
     this.tempMap[MapWorld.coordsToKey(x, y)] = temp;

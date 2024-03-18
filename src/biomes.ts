@@ -1,4 +1,14 @@
-export const Impassible: BiomeId[] = ["ocean", "oceandeep", "hills", "valley"];
+import { Map, ValueMap, BiomeMap, MapWorld } from "./map-world";
+
+export const ImpassibleBorder: BiomeId[] = [
+  "ocean",
+  "oceandeep",
+  "hillslow",
+  "hillsmid",
+  "hillshigh",
+  "valley",
+  "snowhillshillsmid",
+];
 
 export type BiomeId =
   | "default"
@@ -6,13 +16,33 @@ export type BiomeId =
   | "beach"
   | "moistdirt"
   | "sandydirt"
-  | "hills"
+  | "hillslow"
+  | "hillsmid"
+  | "hillshigh"
   | "valley"
   | "grass"
   | "shortgrass"
   | "hillgrass"
   | "swamp"
-  | "oceandeep";
+  | "oceandeep"
+  | "snowsandydirt"
+  | "snowmoistdirt"
+  | "snowhillshillsmid";
+
+export interface GenerationOptions {
+  height?: {
+    min?: number;
+    max?: number;
+  };
+  moisture?: {
+    min?: number;
+    max?: number;
+  };
+  temperature?: {
+    min?: number;
+    max?: number;
+  };
+}
 
 export interface Biome {
   id: BiomeId; // basic identifier for the tileset
@@ -20,22 +50,14 @@ export interface Biome {
   description: string; // human readable description
   baseTile: string; // filename of the base tile
   autotilePrefix?: string; // filename prefix to append the tileNumber to: grass_spring_ -> grass_spring_00
-  skipAutoTileTypes?: BiomeId[]; // list of biomes that should not be autotiled against
+  skipAutoTileTypes?: BiomeId[]; // list of biomes that should not be autotiled against (autotile against all but these)
+  onlyAutoTileTypes?: BiomeId[]; // list of biomes that should only be autotiled against (autotile against only these)
   color: string;
-  generationOptions: {
-    height?: {
-      min?: number;
-      max?: number;
-    };
-    moisture?: {
-      min?: number;
-      max?: number;
-    };
-  };
+  generationOptions: GenerationOptions;
 }
 
 export class Biomes {
-  public static inRange(
+  public static inRangeOf(
     value: number,
     range?: { min?: number; max?: number }
   ): boolean {
@@ -54,11 +76,43 @@ export class Biomes {
     return true;
   }
 
+  public static inRangeOfAll(
+    x: number,
+    y: number,
+    maps: {
+      height: ValueMap;
+      temperature: ValueMap;
+      moisture: ValueMap;
+    },
+    generationOptions: GenerationOptions
+  ): boolean {
+    const pos = MapWorld.coordsToKey(x, y);
+    // loop through values in GenerationOptions
+    if (generationOptions.height) {
+      if (!Biomes.inRangeOf(maps.height[pos], generationOptions.height)) {
+        return false;
+      }
+    }
+    if (generationOptions.moisture) {
+      if (!Biomes.inRangeOf(maps.moisture[pos], generationOptions.moisture)) {
+        return false;
+      }
+    }
+    if (generationOptions.temperature) {
+      if (
+        !Biomes.inRangeOf(maps.temperature[pos], generationOptions.temperature)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   static readonly Biomes: { [key in BiomeId]?: Biome } = {
     ocean: {
       id: "ocean",
       name: "Ocean",
-      description: "Endless water as far as the eye can see.",
+      description: "Salty water- not suitable for drinking.",
       baseTile: "biomes/ocean/ocean_spring_sandydirt_00",
       autotilePrefix: "biomes/ocean/ocean_spring_sandydirt_",
       skipAutoTileTypes: ["oceandeep"],
@@ -103,17 +157,12 @@ export class Biomes {
       name: "Dirt",
       description: "Thick soil.",
       baseTile: "biomes/moistdirt/moistdirt_base",
-      // autotileAgainst: [
-      //   {
-      //     biome: "default",
-      //     prefix: "biomes/moistdirt/moistdirt_spring_sandydirt_",
-      //   },
-      // ],
+      autotilePrefix: "biomes/snow/snow_spring_moistdirt_", //  moist dirt only tiles against snow
+      onlyAutoTileTypes: ["snowmoistdirt"],
       color: "#665b47",
       generationOptions: {
         height: {
           min: 0.52,
-          max: 0.82,
         },
         moisture: {
           min: 0.35,
@@ -138,21 +187,47 @@ export class Biomes {
         },
       },
     },
-    hills: {
-      id: "hills",
-      name: "Hills",
-      description: "Rough terrain with a distinct lack of easy paths.",
+    hillslow: {
+      id: "hillslow",
+      name: "Low Hills",
+      description: "low hills.",
       color: "#6e6864",
-      baseTile: "biomes/hills/hills_spring_moistdirt_47",
-      autotilePrefix: "biomes/hills/hills_spring_moistdirt_",
-      // { biome: "default", prefix: "biomes/hills/hills_spring_sandydirt_" },
+      baseTile: "biomes/hillslow/hillslow_spring_moistdirt_47",
+      autotilePrefix: "biomes/hillslow/hillslow_spring_moistdirt_",
+      skipAutoTileTypes: ["hillsmid", "hillshigh"],
       generationOptions: {
         height: {
-          min: 0.75,
-          max: 0.87,
+          min: 0.64,
+          max: 0.7,
         },
-        moisture: {
-          min: 0.3,
+      },
+    },
+    hillsmid: {
+      id: "hillsmid",
+      name: "Mid Hills",
+      description: "Mid hills.",
+      color: "#6e6864",
+      baseTile: "biomes/hillsmid/hillsmid_spring_moistdirt_47",
+      autotilePrefix: "biomes/hillsmid/hillsmid_spring_moistdirt_",
+      skipAutoTileTypes: ["hillshigh", "snowhillshillsmid"],
+      generationOptions: {
+        height: {
+          min: 0.7,
+          max: 0.78,
+        },
+      },
+    },
+    hillshigh: {
+      id: "hillshigh",
+      name: "High Hills",
+      description: "High hills.",
+      color: "#6e6864",
+      baseTile: "biomes/hillshigh/hillshigh_spring_moistdirt_47",
+      autotilePrefix: "biomes/hillshigh/hillshigh_spring_moistdirt_",
+      // skipAutoTileTypes: ["hillsmid", "hillslow"],
+      generationOptions: {
+        height: {
+          min: 0.78,
         },
       },
     },
@@ -168,6 +243,10 @@ export class Biomes {
           min: 0.5,
           max: 0.7,
         },
+        temperature: {
+          min: 0.4,
+          max: 0.7,
+        },
       },
     },
     shortgrass: {
@@ -181,6 +260,10 @@ export class Biomes {
         moisture: {
           min: 0.6,
           max: 0.8,
+        },
+        temperature: {
+          min: 0.28,
+          max: 0.6,
         },
       },
     },
@@ -216,6 +299,10 @@ export class Biomes {
         moisture: {
           min: 0.8,
         },
+        temperature: {
+          min: 0.5,
+          max: 0.8,
+        },
       },
     },
     valley: {
@@ -233,6 +320,64 @@ export class Biomes {
         moisture: {
           min: 0.5,
           max: 0.8,
+        },
+        temperature: {
+          min: 0.4,
+          max: 0.8,
+        },
+      },
+    },
+    // snowsandydirt: {
+    //   id: "snowsandydirt",
+    //   name: "Snow",
+    //   description: "A blanket of snow covers the ground.",
+    //   baseTile: "biomes/snow/snow_base",
+    //   // autotilePrefix: "biomes/sandydirt/sandydirt_spring_snow_",
+    //   color: "#fefefe",
+    //   generationOptions: {
+    //     height: {
+    //       min: 0.6,
+    //     },
+    //     temperature: {
+    //       max: 0.3,
+    //     },
+    //   },
+    // },
+    snowmoistdirt: {
+      id: "snowmoistdirt",
+      name: "Snow",
+      description: "A blanket of snow covers the ground.",
+      baseTile: "biomes/snow/snow_base",
+      // autotilePrefix: "biomes/snow/snow_spring_moistdirt_",
+      color: "#fefefe",
+      generationOptions: {
+        height: {
+          min: 0.6,
+        },
+        // moisture: {
+        //   min: 0.3,
+        // },
+        temperature: {
+          max: 0.3,
+        },
+      },
+    },
+    snowhillshillsmid: {
+      id: "snowhillshillsmid",
+      name: "Snow",
+      description: "A blanket of snow covers the ground.",
+      baseTile: "biomes/snowhills/snowhills_spring_hillsmid_47",
+      autotilePrefix: "biomes/snowhills/snowhills_spring_hillsmid_",
+      color: "#fefefe",
+      generationOptions: {
+        height: {
+          min: 0.6,
+        },
+        // moisture: {
+        //   min: 0.3,
+        // },
+        temperature: {
+          max: 0.3,
         },
       },
     },

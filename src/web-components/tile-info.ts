@@ -13,7 +13,16 @@ import { Tile } from "../tile";
 import { CachedSprite, getCachedTile } from "../assets";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import TextIcon from "../shoelace/assets/icons/card-text.svg";
-import { Biomes } from "../biomes";
+import { Biome, Biomes } from "../biomes";
+
+export interface TileStats {
+  height: number;
+  magnetism: number;
+  temperature: number;
+  moisture: number;
+  sunlight: number;
+  biome: Biome;
+}
 
 export class TileInfo extends HTMLElement {
   public container: HTMLDivElement;
@@ -55,7 +64,7 @@ export class TileInfo extends HTMLElement {
     this.container.style.borderTopRightRadius = "10px";
     this.container.style.pointerEvents = "auto";
     this.container.style.height = "120px";
-    this.container.style.width = "160px";
+    this.container.style.width = "200px";
     this.container.style.transition = "transform 0.3s ease-in-out";
 
     const header = document.createElement("div");
@@ -64,7 +73,7 @@ export class TileInfo extends HTMLElement {
     header.style.alignItems = "center";
     header.style.justifyContent = "start";
     header.style.paddingBottom = "var(--sl-spacing-small)";
-    header.style.fontSize = "var(--sl-font-size-medium)";
+    header.style.fontSize = "var(--sl-font-size-small)";
     this.avatar = document.createElement("div");
     this.avatar.style.height = "32px";
     this.avatar.style.width = "32px";
@@ -74,7 +83,7 @@ export class TileInfo extends HTMLElement {
     this.label = document.createElement("span");
     this.label.textContent = "Tile Info";
     this.label.style.fontWeight = "var(--sl-font-weight-semibold)";
-    this.label.style.fontSize = "var(--sl-font-size-medium)";
+    this.label.style.fontSize = "var(--sl-font-size-small)";
     this.label.style.marginLeft = "var(--sl-spacing-small)";
     this.label.style.whiteSpace = "nowrap";
     this.label.style.overflow = "hidden";
@@ -109,7 +118,7 @@ export class TileInfo extends HTMLElement {
     this.body.style.overflow = "auto";
     this.body.style.paddingLeft = "var(--sl-spacing-2x-small)";
     this.body.style.paddingRight = "var(--sl-spacing-2x-small)";
-    this.body.style.fontSize = "var(--sl-font-size-small)";
+    this.body.style.fontSize = "var(--sl-font-size-x-small)";
     this.body.style.width = "100%";
     this.body.textContent = `Grassland.
     Gentle hills able to support a variety of wild grass and plant life.
@@ -199,18 +208,26 @@ export class TileInfo extends HTMLElement {
     }
 
     if (target.target instanceof Tile) {
-      const biome = Biomes.Biomes[target.target.biomeId];
-      const posBlock = this.generateDescriptionBlock(
-        PinIcon,
-        `${target.position.x}, ${target.position.y}`
-      );
-      const descBlock = this.generateDescriptionBlock(
-        TextIcon,
-        `${biome.description}`
-      );
+      const dBlocks = Tile.getDescription(target);
+      dBlocks.forEach((block) => {
+        const blockContainer = this.generateDescriptionBlock(
+          block.icon,
+          block.text
+        );
+        bodyContainer.appendChild(blockContainer);
+      });
+      // const biome = Biomes.Biomes[target.target.biomeId];
+      // const posBlock = this.generateDescriptionBlock(
+      //   PinIcon,
+      //   `${target.position.x}, ${target.position.y}`
+      // );
+      // const descBlock = this.generateDescriptionBlock(
+      //   TextIcon,
+      //   `${biome.description}`
+      // );
 
-      bodyContainer.appendChild(posBlock);
-      bodyContainer.appendChild(descBlock);
+      // bodyContainer.appendChild(posBlock);
+      // bodyContainer.appendChild(descBlock);
     }
 
     this.body.appendChild(bodyContainer);
@@ -219,7 +236,7 @@ export class TileInfo extends HTMLElement {
   private generateDescriptionBlock(icon: string, text: string): HTMLDivElement {
     const block = document.createElement("div");
     block.style.display = "flex";
-    block.style.alignItems = "center";
+    // block.style.alignItems = "center";
     block.style.justifyContent = "start";
     block.style.padding = "0 0 0 0";
     block.style.margin = "2px 0 0 0";
@@ -230,6 +247,9 @@ export class TileInfo extends HTMLElement {
     const textEl = document.createElement("span");
     textEl.textContent = text;
     textEl.style.marginLeft = "var(--sl-spacing-x-small)";
+    textEl.style.overflow = "hidden";
+    textEl.style.textOverflow = "ellipsis";
+    textEl.style.whiteSpace = "nowrap";
 
     block.appendChild(iconEl);
     block.appendChild(textEl);

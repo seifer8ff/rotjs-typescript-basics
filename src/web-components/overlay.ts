@@ -51,6 +51,10 @@ export class Overlay extends HTMLElement {
 
     this.label = document.createElement("h1");
     this.label.textContent = "Overlay";
+    this.label.style.textShadow = "0px 4px 3px rgba(0,0,0,0.4)";
+    this.label.style.textShadow += ", 0px 8px 13px rgba(0,0,0,0.1)";
+    this.label.style.textShadow += ", 0px 18px 23px rgba(0,0,0,0.1)";
+    this.label.style.zIndex = "100";
     this.label.style.display = "none";
 
     this.container.appendChild(this.label);
@@ -86,6 +90,61 @@ export class Overlay extends HTMLElement {
       data[i + 1] = value;
       data[i + 2] = value;
       data[i + 3] = 255;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  public generateGradientOverlay(
+    greyscaleMap: { [key: string]: number },
+    width: number,
+    height: number,
+    label: string = "Greyscale Overlay",
+    gradient: {
+      min: "red" | "green" | "blue";
+      max: "red" | "green" | "blue";
+    }
+  ) {
+    const overlay = this.generateOverlayContainer(label, width, height);
+    const canvas = overlay.canvas;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) {
+      return;
+    }
+    const imageData = ctx.createImageData(canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const x = (i / 4) % canvas.width;
+      const y = Math.floor(i / 4 / canvas.width);
+      const key = `${x},${y}`;
+      const value = greyscaleMap[key];
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      if (gradient.min === "red") {
+        red = (1 - value) * 255;
+      }
+      if (gradient.min === "green") {
+        green = (1 - value) * 255;
+      }
+      if (gradient.min === "blue") {
+        blue = (1 - value) * 255;
+      }
+      if (gradient.max === "red") {
+        red = value * 255;
+      }
+      if (gradient.max === "green") {
+        green = value * 255;
+      }
+      if (gradient.max === "blue") {
+        blue = value * 255;
+      }
+      data[i] = red; // Red
+      data[i + 1] = green; // Green
+      data[i + 2] = blue; // Blue
+      data[i + 3] = 255; // Alpha
     }
 
     ctx.putImageData(imageData, 0, 0);
