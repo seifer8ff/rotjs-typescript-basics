@@ -8,6 +8,7 @@ import { Viewport } from "./camera";
 import { multiColorLerp } from "./misc-utility";
 import { Autotile } from "./autotile";
 import { BiomeId } from "./biomes";
+import { LightPhase } from "./map-sunlight";
 
 export const ImpassibleLightBorder: BiomeId[] = [
   "hillslow",
@@ -30,10 +31,13 @@ export class LightManager {
       sunlight: [255, 255, 255],
       moonlight: [70, 70, 135],
       ambientDaylight: [100, 100, 100],
+      ambientSunset: [250, 215, 200],
       ambientNightLight: [60, 60, 60],
       torchBright: [235, 165, 30],
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
+      shadowSunset: [255, 230, 180], // orange
+      shadowSunrise: [215, 215, 225], // blue
     };
     this.lightMap = {};
     this.lightEmitterById = {};
@@ -57,27 +61,52 @@ export class LightManager {
   public calculateLightLevel(calculateTarget = true) {
     // Set the target light state instead of the current light state
     let ambientLightToUpdate = this.targetAmbientLight;
+    const isDaytime = this.game.timeManager.isDayTime;
+    const phase = this.game.timeManager.lightPhase;
     if (!calculateTarget) {
       ambientLightToUpdate = this.ambientLight;
     }
-    if (this.game.timeManager.isDayTime) {
-      ambientLightToUpdate = multiColorLerp(
-        [
+    if (isDaytime) {
+      if (phase === LightPhase.rising) {
+        ambientLightToUpdate = Color.lerp(
           this.lightDefaults.ambientDaylight,
           this.lightDefaults.sunlight,
-          this.lightDefaults.ambientNightLight,
-        ],
-        this.game.timeManager.remainingCyclePercent
-      );
+          this.game.timeManager.remainingPhasePercent
+        );
+      } else if (phase === LightPhase.peak) {
+        ambientLightToUpdate = this.lightDefaults.sunlight;
+      } else {
+        ambientLightToUpdate = multiColorLerp(
+          [
+            this.lightDefaults.ambientDaylight,
+            this.lightDefaults.ambientSunset,
+            this.lightDefaults.sunlight,
+          ],
+          this.game.timeManager.remainingPhasePercent
+        );
+      }
     } else {
-      ambientLightToUpdate = multiColorLerp(
-        [
-          this.lightDefaults.ambientDaylight,
-          this.lightDefaults.moonlight,
-          this.lightDefaults.ambientNightLight,
-        ],
-        this.game.timeManager.remainingCyclePercent
-      );
+      if (phase === LightPhase.rising) {
+        ambientLightToUpdate = multiColorLerp(
+          [
+            this.lightDefaults.ambientDaylight,
+            this.lightDefaults.ambientNightLight,
+            this.lightDefaults.moonlight,
+          ],
+          this.game.timeManager.remainingPhasePercent
+        );
+      } else if (phase === LightPhase.peak) {
+        ambientLightToUpdate = this.lightDefaults.moonlight;
+      } else {
+        ambientLightToUpdate = multiColorLerp(
+          [
+            this.lightDefaults.ambientDaylight,
+            this.lightDefaults.ambientNightLight,
+            this.lightDefaults.moonlight,
+          ],
+          this.game.timeManager.remainingPhasePercent
+        );
+      }
     }
 
     if (!calculateTarget) {
@@ -85,10 +114,6 @@ export class LightManager {
     } else {
       this.targetAmbientLight = ambientLightToUpdate;
     }
-  }
-
-  lerp(x: number, y: number, a: number): number {
-    return x * (1 - a) + y * a;
   }
 
   private lightPasses(x: number, y: number): boolean {
@@ -118,7 +143,10 @@ export class LightManager {
       return 0;
     }
     const isBlocking =
-      biome.id == "hillsmid" || biome.id == "hillshigh" || biome.id == "grass";
+      biome.id == "hillsmid" ||
+      biome.id == "hillslow" ||
+      biome.id == "hillshigh" ||
+      biome.id == "grass";
     const isWater =
       biome.id == "ocean" || biome.id == "oceandeep" || biome.id == "swamp";
     const isReflectiveDirt = biome.id == "sandydirt" || biome.id == "beach";
@@ -196,5 +224,73 @@ export class LightManager {
         );
       }
     }
+  }
+
+  public getLightColorFor(
+    x: number,
+    y: number,
+    lightMap: { [pos: string]: ColorType } = null, // x,y -> color based on light sources
+    sunlightMap: { [pos: string]: number } = null, // x,y -> number based on sun position
+    highlight: boolean = false
+  ): ColorType {
+    const key = MapWorld.coordsToKey(x, y);
+    const ambientLight = this.game.map.lightManager.ambientLight;
+    const sunlight = this.game.map.lightManager.lightDefaults.sunlight;
+    const moonlight = this.game.map.lightManager.lightDefaults.moonlight;
+    const isDaytime = this.game.timeManager.isDayTime;
+    // let shadow = this.game.map.lightManager.lightDefaults.shadow;
+
+    const phase = this.game.timeManager.lightPhase;
+    let shadow =
+      phase === LightPhase.rising
+        ? this.game.map.lightManager.lightDefaults.shadowSunrise
+        : this.game.map.lightManager.lightDefaults.shadowSunset;
+    const heightLevel = this.game.map.heightMap[key];
+    const sunLevel = sunlightMap[key] || 1;
+    const shadowStrength = this.game.map.sunMap.shadowStrength;
+
+    let light = ambientLight;
+
+    // const heightLayer = MapWorld.heightToLayer(heightLevel);
+    // const heightColor = MapWorld.heightToColor(heightLevel);
+    // if (heightColor) {
+    //   light = Color.add(light, heightColor);
+    // }
+
+    if (key in lightMap && lightMap[key] != null) {
+      // override shadows light if there is a light source
+      light = Color.add(light, lightMap[key]);
+    } else {
+      if (isDaytime && sunLevel < 1 && phase !== LightPhase.peak) {
+        // shadow = Color.multiply(ambientLight, shadow);
+        // console.log("shadow", shadow, sunLevel);
+        // light = Color.interpolate(light, shadow, 1 - sunLevel);
+        shadow = Color.interpolate(
+          shadow,
+          // this.game.map.lightManager.lightDefaults.shadow,
+          phase == LightPhase.rising
+            ? this.game.map.lightManager.lightDefaults.shadowSunrise
+            : this.game.map.lightManager.lightDefaults.shadowSunset,
+          shadowStrength
+        );
+        light = Color.multiply(light, shadow);
+      }
+    }
+    light = Color.multiply(ambientLight, light);
+
+    // if (sunLevel < 1) {
+    //   // shadow = Color.multiply(ambientLight, shadow);
+    //   console.log("light", light, sunLevel);
+    //   light = Color.interpolate(light, shadow, sunLevel);
+    // }
+
+    if (highlight) {
+      light = Color.interpolate(
+        light,
+        this.game.map.lightManager.lightDefaults.sunlight,
+        0.4
+      );
+    }
+    return light;
   }
 }

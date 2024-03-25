@@ -51,6 +51,7 @@ export class MapWorld {
   public autotileMap: ValueMap; // the final map of autotile indices
   public tileMap: TileMap; // the final map of tiles to be drawn (may or may not be autotiled)
   public heightMap: ValueMap;
+  public heightLayerMap: { [key: string]: HeightLayer };
   public tempMap: MapTemperature;
   public moistureMap: MapMoisture;
   public sunMap: MapSunlight;
@@ -72,6 +73,7 @@ export class MapWorld {
     this.biomeMap = {};
     this.autotileMap = {};
     this.heightMap = {};
+    this.heightLayerMap = {};
     this.moistureMap = new MapMoisture(this.game, this);
     this.tempMap = new MapTemperature(this.game, this);
     this.sunMap = new MapSunlight(this.game, this);
@@ -135,14 +137,18 @@ export class MapWorld {
     this.terrainMap = {};
     this.dirtyTiles = [];
 
-    const noise = new Simplex();
-
     // first pass, generate base height and assign terrain
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
         const key = MapWorld.coordsToKey(x, y);
-        this.polesMap.generateMagnetism(x, y, width, height, noise);
-        this.heightMap[key] = this.getHeight(x, y, width, height, noise);
+        this.polesMap.generateMagnetism(x, y, width, height, this.game.noise);
+        this.heightMap[key] = this.getHeight(
+          x,
+          y,
+          width,
+          height,
+          this.game.noise
+        );
         this.terrainMap[key] = this.assignTerrain(x, y);
       }
     }
@@ -156,14 +162,26 @@ export class MapWorld {
         this.terrainMap[key] = this.processTerrain(x, y);
       }
     }
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        const key = MapWorld.coordsToKey(x, y);
+        this.heightLayerMap[key] = this.getHeightLayer(x, y);
+      }
+    }
     // update adjacency maps again
     this.regenerateAdjacencyMap("terrain");
     // third pass, generate climate maps
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
         const key = MapWorld.coordsToKey(x, y);
-        this.moistureMap.generateMoistureFor(x, y, width, height, noise);
-        this.tempMap.generateInitialTemp(x, y, width, height, noise);
+        this.moistureMap.generateMoistureFor(
+          x,
+          y,
+          width,
+          height,
+          this.game.noise
+        );
+        this.tempMap.generateInitialTemp(x, y, width, height, this.game.noise);
       }
     }
 
@@ -246,6 +264,11 @@ export class MapWorld {
     }
 
     this.lightManager = new LightManager(this.game, this);
+  }
+
+  public getHeightLayer(x: number, y: number): HeightLayer {
+    const key = MapWorld.coordsToKey(x, y);
+    return MapWorld.heightToLayer(this.heightMap[key]);
   }
 
   private generateBasetileMap(rawMap: { [key: string]: Biome }) {

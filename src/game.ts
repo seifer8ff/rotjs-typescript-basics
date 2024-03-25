@@ -19,6 +19,7 @@ import { TimeManager } from "./time-manager";
 import { GeneratorNames } from "./generator-names";
 import { BiomeId, Biomes } from "./biomes";
 import { TileStats } from "./web-components/tile-info";
+import Simplex from "rot-js/lib/noise/simplex";
 
 export class Game {
   // starting options
@@ -34,6 +35,7 @@ export class Game {
   };
   public useSeed = true;
   public gameSeed = 1234;
+  public noise;
 
   public map: MapWorld;
   public player: Player;
@@ -57,6 +59,7 @@ export class Game {
     if (this.useSeed) {
       RNG.setSeed(this.gameSeed);
     }
+    this.noise = new Simplex(this.gameSeed);
     this.entities = [];
     this.plants = [];
 
@@ -79,13 +82,6 @@ export class Game {
       requestAnimationFrame(this.renderLoop.bind(this));
     }
 
-    // this.userInterface.components.overlay.generateOverlay(
-    //   this.map.heightMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Height"
-    // );
-
     // this.userInterface.components.overlay.generateBiomeOverlay(
     //   this.map.terrainMap,
     //   this.gameSize.width,
@@ -93,12 +89,12 @@ export class Game {
     //   "Terrain"
     // );
 
-    this.userInterface.components.overlay.generateOverlay(
-      this.map.polesMap.magnetismMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Magnetism"
-    );
+    // this.userInterface.components.overlay.generateOverlay(
+    //   this.map.polesMap.magnetismMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Magnetism"
+    // );
 
     // this.userInterface.components.overlay.generateOverlay(
     //   this.map.tempMap.tempMap,
@@ -107,13 +103,13 @@ export class Game {
     //   "Temperature"
     // );
 
-    this.userInterface.components.overlay.generateGradientOverlay(
-      this.map.tempMap.tempMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Temperature",
-      { min: "blue", max: "red" }
-    );
+    // this.userInterface.components.overlay.generateGradientOverlay(
+    //   this.map.tempMap.tempMap,
+    //   this.gameSize.width,
+    //   this.gameSize.height,
+    //   "Temperature",
+    //   { min: "blue", max: "red" }
+    // );
 
     // this.userInterface.components.overlay.generateOverlay(
     //   this.map.moistureMap.moistureMap,
@@ -122,12 +118,19 @@ export class Game {
     //   "Moisture"
     // );
 
-    // this.userInterface.components.overlay.generateOverlay(
-    //   this.map.sunMap.sunMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Sunlight"
-    // );
+    this.userInterface.components.overlay.generateOverlay(
+      this.map.heightMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Height"
+    );
+
+    this.userInterface.components.overlay.generateOverlay(
+      this.map.sunMap.sunMap,
+      this.gameSize.width,
+      this.gameSize.height,
+      "Sunlight"
+    );
 
     this.userInterface.components.overlay.generateBiomeOverlay(
       this.map.biomeMap,
@@ -303,6 +306,7 @@ export class Game {
       this.map.lightManager.clearLightMap();
       this.map.lightManager.calculateLightLevel();
       this.map.lightManager.calculateLighting(deltaTime);
+      this.map.sunMap.update(deltaTime);
       this.userInterface.refreshPanel();
       this.lastRenderTime = now;
     }
