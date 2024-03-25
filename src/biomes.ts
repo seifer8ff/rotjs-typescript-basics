@@ -206,7 +206,7 @@ export class Biomes {
       id: "hillsmid",
       name: "Mid Hills",
       description: "Mid hills.",
-      color: "#6e6864",
+      color: "#918379",
       baseTile: "biomes/hillsmid/hillsmid_spring_moistdirt_47",
       autotilePrefix: "biomes/hillsmid/hillsmid_spring_moistdirt_",
       skipAutoTileTypes: ["hillshigh", "snowhillshillsmid"],
@@ -221,7 +221,7 @@ export class Biomes {
       id: "hillshigh",
       name: "High Hills",
       description: "High hills.",
-      color: "#6e6864",
+      color: "#b59e8d",
       baseTile: "biomes/hillshigh/hillshigh_spring_moistdirt_47",
       autotilePrefix: "biomes/hillshigh/hillshigh_spring_moistdirt_",
       // skipAutoTileTypes: ["hillsmid", "hillslow"],
@@ -368,7 +368,7 @@ export class Biomes {
       description: "A blanket of snow covers the ground.",
       baseTile: "biomes/snowhills/snowhills_spring_hillsmid_47",
       autotilePrefix: "biomes/snowhills/snowhills_spring_hillsmid_",
-      color: "#fefefe",
+      color: "#c2eaf0",
       generationOptions: {
         height: {
           min: 0.6,

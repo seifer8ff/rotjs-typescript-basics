@@ -1,6 +1,7 @@
 import { Game } from "./game";
 import { Actor } from "./entities/actor";
 import Action from "rot-js/lib/scheduler/action";
+import { LightPhase } from "./map-sunlight";
 
 export enum Season {
   Spring = "spring",
@@ -20,33 +21,40 @@ export class TimeManager {
   public daysPerYear: number;
   public dayLength: number;
   public nightLength: number;
+  // what percent of a day is spent on sun/moonlight transitions
+  // for instance, 0.33 means 33% of the day is rising sun, 33% noon, 33% setting sun
+  // 0.2 means 20% rising sun, 60% noon, 20% setting sun
+  public lightTransitionPercent: number;
   // public transitionTime: number;
   public season: Season;
   public isDayTime: boolean;
   public isNighttime: boolean;
+  public lightPhase: LightPhase;
   public currentYear: number;
   public currentDay: number;
   public currentTime: number;
   public currentTurn: number;
   public remainingCyclePercent: number; // how much time left before day/night cycles. expressed as decimal
+  public remainingPhasePercent: number; // how much time left before light phase changes. expressed as decimal
 
   constructor(private game: Game) {
     this.scheduler = new Action();
     this.isPaused = false;
 
     this.maxTimeScale = 10;
-    this.dayLength = 25;
-    this.nightLength = 15;
+    this.dayLength = 40;
+    this.nightLength = 30;
     this.daysPerYear = 10;
     this.season = Season.Spring;
+    this.lightTransitionPercent = 0.4;
 
-    // this.transitionTime = 10;
     this.timeScale = 1;
     this.currentYear = 1;
     this.currentDay = 1;
     this.currentTime = 0;
     this.currentTurn = 0;
     this.isDayTime = true;
+    this.lightPhase = LightPhase.rising;
     this.isNighttime = !this.isDayTime;
 
     if (!this.game.dayStart) {
@@ -88,7 +96,26 @@ export class TimeManager {
     // at start: 1, mid: 0.5, end: 0
     this.remainingCyclePercent = this.isDayTime
       ? 1 - this.currentTime / this.dayLength
-      : (this.currentTime - this.dayLength) / this.nightLength;
+      : 1 - (this.currentTime - this.dayLength) / this.nightLength;
+
+    this.calculateLightPhase();
+  }
+
+  public calculateLightPhase(): void {
+    if (this.remainingCyclePercent >= 1 - this.lightTransitionPercent) {
+      this.lightPhase = LightPhase.rising;
+    } else if (this.remainingCyclePercent < this.lightTransitionPercent) {
+      this.lightPhase = LightPhase.setting;
+    } else {
+      this.lightPhase = LightPhase.peak;
+    }
+    if (this.lightPhase === LightPhase.rising) {
+      this.remainingPhasePercent =
+        (1 - this.remainingCyclePercent) / this.lightTransitionPercent;
+    } else if (this.lightPhase === LightPhase.setting) {
+      this.remainingPhasePercent =
+        this.remainingCyclePercent / this.lightTransitionPercent;
+    }
   }
 
   public getCurrentTimeForDisplay(): string {

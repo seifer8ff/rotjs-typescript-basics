@@ -43,6 +43,7 @@ export class Renderer {
   ): void {
     this.clearScene();
     const lightMap = this.game.map.lightManager.lightMap;
+    const sunMap = this.game.map.sunMap.sunMap;
     const centeredWidth = viewportCenterTile.x + Math.ceil(width / 2);
     const centeredHeight = viewportCenterTile.y + Math.ceil(height / 2);
     const left = viewportCenterTile.x - Math.ceil(width / 2);
@@ -68,18 +69,38 @@ export class Renderer {
 
           switch (layer) {
             case Layer.TERRAIN: {
-              sprite.tint = Color.toHex(this.calculateLight(x, y, lightMap));
+              sprite.tint = Color.toHex(
+                this.game.map.lightManager.getLightColorFor(
+                  x,
+                  y,
+                  lightMap,
+                  sunMap
+                )
+              );
               this.terrainLayer.addChild(sprite);
               break;
             }
             case Layer.PLANT: {
-              sprite.tint = Color.toHex(this.calculateLight(x, y, lightMap));
+              sprite.tint = Color.toHex(
+                this.game.map.lightManager.getLightColorFor(
+                  x,
+                  y,
+                  lightMap,
+                  sunMap
+                )
+              );
               this.plantLayer.addChild(sprite);
               break;
             }
             case Layer.ENTITY: {
               sprite.tint = Color.toHex(
-                this.calculateLight(x, y, lightMap, true)
+                this.game.map.lightManager.getLightColorFor(
+                  x,
+                  y,
+                  lightMap,
+                  sunMap,
+                  true
+                )
               );
               this.entityLayer.addChild(sprite);
               break;
@@ -92,41 +113,6 @@ export class Renderer {
         }
       }
     }
-  }
-
-  private calculateLight(
-    x: number,
-    y: number,
-    lightMap: { [pos: string]: ColorType } = null,
-    entity: boolean = false
-  ): ColorType {
-    const key = MapWorld.coordsToKey(x, y);
-    const ambientLight = this.game.map.lightManager.ambientLight;
-    const sunlight = this.game.map.lightManager.lightDefaults.sunlight;
-    const moonlight = this.game.map.lightManager.lightDefaults.moonlight;
-    const heightLevel = this.game.map.heightMap[key];
-
-    let light = ambientLight;
-
-    // const heightLayer = MapWorld.heightToLayer(heightLevel);
-    // const heightColor = MapWorld.heightToColor(heightLevel);
-    // if (heightColor) {
-    //   light = Color.add(light, heightColor);
-    // }
-
-    if (key in lightMap && lightMap[key] != null) {
-      light = Color.add(light, lightMap[key]);
-    }
-    light = Color.multiply(ambientLight, light);
-
-    if (entity) {
-      light = Color.interpolate(
-        light,
-        this.game.map.lightManager.lightDefaults.sunlight,
-        0.4
-      );
-    }
-    return light;
   }
 
   addToScene(
