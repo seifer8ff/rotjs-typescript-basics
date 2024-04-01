@@ -247,15 +247,13 @@ export class LightManager {
       ? this.lightDefaults.shadow
       : this.lightDefaults.shadow;
     let ambientOccShadow = this.lightDefaults.ambientOcc;
-    // let shadow =
-    //   phase === LightPhase.rising
-    //     ? this.game.map.lightManager.lightDefaults.shadowSunrise
-    //     : this.game.map.lightManager.lightDefaults.shadowSunset;
-    // const sunLevel = sunlightMap[key] || 1;
     const shadowLevel = shadowMap[key];
     const occlusionLevel = occlusionMap[key];
-    const isShadowed = Math.abs(shadowLevel - 1) > 0.01;
-    const isOccluded = Math.abs(occlusionLevel - 1) > 0.01;
+    const isShadowed =
+      Math.abs(shadowLevel - this.game.map.sunMap.ambientLightStrength) > 0.01;
+    const isOccluded =
+      Math.abs(occlusionLevel - this.game.map.sunMap.ambientLightStrength) >
+      0.01;
 
     const shadowStrength = this.game.map.sunMap.shadowStrength;
     const ambOccShadowStrength =
