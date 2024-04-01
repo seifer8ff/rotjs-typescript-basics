@@ -237,6 +237,19 @@ export class Camera {
     return true;
   }
 
+  public getViewportTiles(pad: boolean = false): string[] {
+    const { width, height, center } = this.getViewportInTiles(pad);
+    const tiles = [];
+    const halfWidth = Math.floor(width / 2);
+    const halfHeight = Math.floor(height / 2);
+    for (let x = center.x - halfWidth; x < center.x + halfWidth; x++) {
+      for (let y = center.y - halfHeight; y < center.y + halfHeight; y++) {
+        tiles.push(`${x},${y}`);
+      }
+    }
+    return tiles;
+  }
+
   public getViewportInTiles(pad: boolean = false): Viewport {
     const normalizedZoom = this.getNormalizedZoom();
     let width =

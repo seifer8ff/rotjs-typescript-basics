@@ -126,7 +126,7 @@ export class Game {
     );
 
     this.userInterface.components.overlay.generateOverlay(
-      this.map.sunMap.sunMap,
+      this.map.sunMap.shadowMap,
       this.gameSize.width,
       this.gameSize.height,
       "Sunlight"
@@ -174,7 +174,7 @@ export class Game {
       magnetism: this.map.polesMap.magnetismMap[MapWorld.coordsToKey(x, y)],
       temperature: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
       moisture: this.map.moistureMap.moistureMap[MapWorld.coordsToKey(x, y)],
-      sunlight: this.map.sunMap.sunMap[MapWorld.coordsToKey(x, y)],
+      sunlight: this.map.sunMap.shadowMap[MapWorld.coordsToKey(x, y)],
       biome: this.map.biomeMap[MapWorld.coordsToKey(x, y)],
     };
   }
@@ -304,9 +304,10 @@ export class Game {
       // console.log("rendering");
       this.userInterface.camera.update(deltaTime);
       this.map.lightManager.clearLightMap();
+      this.map.sunMap.update(deltaTime);
       this.map.lightManager.calculateLightLevel();
       this.map.lightManager.calculateLighting(deltaTime);
-      this.map.sunMap.update(deltaTime);
+
       this.userInterface.refreshPanel();
       this.lastRenderTime = now;
     }

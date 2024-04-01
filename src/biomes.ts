@@ -30,18 +30,14 @@ export type BiomeId =
   | "snowhillshillsmid";
 
 export interface GenerationOptions {
-  height?: {
-    min?: number;
-    max?: number;
-  };
-  moisture?: {
-    min?: number;
-    max?: number;
-  };
-  temperature?: {
-    min?: number;
-    max?: number;
-  };
+  height?: GenerationOption;
+  moisture?: GenerationOption;
+  temperature?: GenerationOption;
+}
+
+export interface GenerationOption {
+  min?: number;
+  max?: number;
 }
 
 export interface Biome {
@@ -106,6 +102,19 @@ export class Biomes {
       }
     }
     return true;
+  }
+
+  public static shiftToBiome(value: number, option: GenerationOption): number {
+    const threshold = 0.01;
+    // if below the min, shift to the min
+    // if above the max, shift to the max
+    if (option?.min && value < option.min) {
+      return option.min + threshold;
+    }
+    if (option?.max && value > option.max) {
+      return option.max - threshold;
+    }
+    return value;
   }
 
   static readonly Biomes: { [key in BiomeId]?: Biome } = {
