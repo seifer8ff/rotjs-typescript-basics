@@ -18,7 +18,7 @@ import { Biome, Biomes } from "../biomes";
 export interface TileStats {
   height: number;
   magnetism: number;
-  temperature: number;
+  temperaturePercent: number;
   moisture: number;
   sunlight: number;
   biome: Biome;
@@ -38,7 +38,15 @@ export class TileInfo extends HTMLElement {
 
   public pauseBtn: SlIconButton;
 
-  private isVisible: boolean;
+  private _isVisible: boolean;
+
+  public get isVisible(): boolean {
+    return this._isVisible;
+  }
+
+  private set isVisible(value: boolean) {
+    this._isVisible = value;
+  }
 
   constructor() {
     super();
@@ -147,7 +155,7 @@ export class TileInfo extends HTMLElement {
   }
 
   public setContent(target: PointerTarget): void {
-    console.log("set content to", target);
+    // console.log("set content to", target);
     this.target = target;
     if (target == null) {
       this.setVisible(false);

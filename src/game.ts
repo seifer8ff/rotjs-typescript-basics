@@ -52,6 +52,9 @@ export class Game {
   private lastRenderTime: number;
   private msPerFrame: number = 1000 / 60; // desired interval is 60fps
 
+  private lastuiRefreshTime: number;
+  private msPerUiRefresh: number = 1000 / 2; // desired interval is 1000 ms / runs per second
+
   private lastGameLoopTime: number;
   private msPerLoop: number = 1000 / 2; // desired interval is 1000 ms / runs per second
 
@@ -80,64 +83,8 @@ export class Game {
     requestAnimationFrame(this.gameLoop.bind(this));
     if (this.shouldRender) {
       requestAnimationFrame(this.renderLoop.bind(this));
+      requestAnimationFrame(this.uiRefresh.bind(this));
     }
-
-    // this.userInterface.components.overlay.generateBiomeOverlay(
-    //   this.map.terrainMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Terrain"
-    // );
-
-    // this.userInterface.components.overlay.generateOverlay(
-    //   this.map.polesMap.magnetismMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Magnetism"
-    // );
-
-    // this.userInterface.components.overlay.generateOverlay(
-    //   this.map.tempMap.tempMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Temperature"
-    // );
-
-    // this.userInterface.components.overlay.generateGradientOverlay(
-    //   this.map.tempMap.tempMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Temperature",
-    //   { min: "blue", max: "red" }
-    // );
-
-    // this.userInterface.components.overlay.generateOverlay(
-    //   this.map.moistureMap.moistureMap,
-    //   this.gameSize.width,
-    //   this.gameSize.height,
-    //   "Moisture"
-    // );
-
-    this.userInterface.components.overlay.generateOverlay(
-      this.map.heightMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Height"
-    );
-
-    this.userInterface.components.overlay.generateOverlay(
-      this.map.sunMap.shadowMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Sunlight"
-    );
-
-    this.userInterface.components.overlay.generateBiomeOverlay(
-      this.map.biomeMap,
-      this.gameSize.width,
-      this.gameSize.height,
-      "Biomes"
-    );
   }
 
   isMapBlocked(x: number, y: number): boolean {
@@ -168,13 +115,13 @@ export class Game {
     return this.map.getTile(x, y);
   }
 
-  getInfoAt(x: number, y: number): TileStats {
+  getTileInfoAt(x: number, y: number): TileStats {
     return {
       height: this.map.heightMap[MapWorld.coordsToKey(x, y)],
       magnetism: this.map.polesMap.magnetismMap[MapWorld.coordsToKey(x, y)],
-      temperature: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
+      temperaturePercent: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
       moisture: this.map.moistureMap.moistureMap[MapWorld.coordsToKey(x, y)],
-      sunlight: this.map.sunMap.shadowMap[MapWorld.coordsToKey(x, y)],
+      sunlight: this.map.shadowMap.shadowMap[MapWorld.coordsToKey(x, y)],
       biome: this.map.biomeMap[MapWorld.coordsToKey(x, y)],
     };
   }
@@ -291,7 +238,7 @@ export class Game {
     requestAnimationFrame(this.gameLoop.bind(this));
   }
 
-  private renderLoop(now: number) {
+  private async renderLoop(now: number) {
     requestAnimationFrame(this.renderLoop.bind(this));
 
     if (!this.lastRenderTime) {
@@ -304,12 +251,28 @@ export class Game {
       // console.log("rendering");
       this.userInterface.camera.update(deltaTime);
       this.map.lightManager.clearLightMap();
-      this.map.sunMap.update(deltaTime);
+      this.map.shadowMap.update(deltaTime);
       this.map.lightManager.calculateLightLevel();
       this.map.lightManager.calculateLighting(deltaTime);
 
       this.userInterface.refreshPanel();
       this.lastRenderTime = now;
+    }
+  }
+
+  private async uiRefresh(now: number) {
+    requestAnimationFrame(this.uiRefresh.bind(this));
+
+    if (!this.lastuiRefreshTime) {
+      this.lastuiRefreshTime = now;
+    }
+    const elapsed = now - this.lastuiRefreshTime;
+    const deltaTime = elapsed / 1000; // time elapsed in seconds
+
+    if (elapsed > this.msPerUiRefresh) {
+      // loop through all ui components and run a refresh on them
+      this.userInterface.components.refreshComponents();
+      this.lastuiRefreshTime = now;
     }
   }
 

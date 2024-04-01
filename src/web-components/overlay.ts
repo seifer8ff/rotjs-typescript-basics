@@ -2,6 +2,7 @@ import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
 import CloseIcon from "../shoelace/assets/icons/x.svg";
 import { SlIconButton } from "@shoelace-style/shoelace";
 import { Biome } from "../biomes";
+import { MapWorld } from "../map-world";
 
 export class Overlay extends HTMLElement {
   public container: HTMLDivElement;
@@ -10,12 +11,16 @@ export class Overlay extends HTMLElement {
   public overlays: {
     label: string;
     canvas: HTMLCanvasElement;
+    container: HTMLDivElement;
+    refreshData: (map: MapWorld) => void;
   }[];
   public displayOverlays: {
     label: string;
     canvas: HTMLCanvasElement;
+    container: HTMLDivElement;
+    refreshData: (map: MapWorld) => void;
   }[];
-  public isVisible: boolean;
+  private isVisible: boolean;
 
   constructor() {
     super();
@@ -66,128 +71,169 @@ export class Overlay extends HTMLElement {
   }
 
   public generateOverlay(
-    greyscaleMap: { [key: string]: number },
     width: number,
     height: number,
-    label: string = "Greyscale Overlay"
+    label: string = "Greyscale Overlay",
+    getData: () => { [key: string]: number }
   ) {
     const overlay = this.generateOverlayContainer(label, width, height);
-    const canvas = overlay.canvas;
 
-    const ctx = canvas.getContext("2d");
-    if (ctx === null) {
-      return;
-    }
-    const imageData = ctx.createImageData(canvas.width, canvas.height);
-    const data = imageData.data;
+    const overlayWithRefresh = {
+      ...overlay,
+      refreshData: () => {
+        const canvas = overlay.canvas;
+        const greyscaleMap = getData();
 
-    for (let i = 0; i < data.length; i += 4) {
-      const x = (i / 4) % canvas.width;
-      const y = Math.floor(i / 4 / canvas.width);
-      const key = `${x},${y}`;
-      const value = greyscaleMap[key] * 255;
-      data[i] = value;
-      data[i + 1] = value;
-      data[i + 2] = value;
-      data[i + 3] = 255;
-    }
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) {
+          return;
+        }
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
+        const data = imageData.data;
 
-    ctx.putImageData(imageData, 0, 0);
+        for (let i = 0; i < data.length; i += 4) {
+          const x = (i / 4) % canvas.width;
+          const y = Math.floor(i / 4 / canvas.width);
+          const key = `${x},${y}`;
+          const value = greyscaleMap[key] * 255;
+          data[i] = value;
+          data[i + 1] = value;
+          data[i + 2] = value;
+          data[i + 3] = 255;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      },
+    };
+    this.overlays.push(overlayWithRefresh);
+    this.displayOverlays.push(overlayWithRefresh);
   }
 
   public generateGradientOverlay(
-    greyscaleMap: { [key: string]: number },
     width: number,
     height: number,
     label: string = "Greyscale Overlay",
     gradient: {
       min: "red" | "green" | "blue";
       max: "red" | "green" | "blue";
-    }
+    },
+    getData: () => { [key: string]: number }
   ) {
     const overlay = this.generateOverlayContainer(label, width, height);
-    const canvas = overlay.canvas;
 
-    const ctx = canvas.getContext("2d");
-    if (ctx === null) {
-      return;
-    }
-    const imageData = ctx.createImageData(canvas.width, canvas.height);
-    const data = imageData.data;
+    const overlayWithRefresh = {
+      ...overlay,
+      refreshData: () => {
+        const canvas = overlay.canvas;
+        const greyscaleMap = getData();
 
-    for (let i = 0; i < data.length; i += 4) {
-      const x = (i / 4) % canvas.width;
-      const y = Math.floor(i / 4 / canvas.width);
-      const key = `${x},${y}`;
-      const value = greyscaleMap[key];
-      let red = 0;
-      let green = 0;
-      let blue = 0;
-      if (gradient.min === "red") {
-        red = (1 - value) * 255;
-      }
-      if (gradient.min === "green") {
-        green = (1 - value) * 255;
-      }
-      if (gradient.min === "blue") {
-        blue = (1 - value) * 255;
-      }
-      if (gradient.max === "red") {
-        red = value * 255;
-      }
-      if (gradient.max === "green") {
-        green = value * 255;
-      }
-      if (gradient.max === "blue") {
-        blue = value * 255;
-      }
-      data[i] = red; // Red
-      data[i + 1] = green; // Green
-      data[i + 2] = blue; // Blue
-      data[i + 3] = 255; // Alpha
-    }
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) {
+          return;
+        }
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
+        const data = imageData.data;
 
-    ctx.putImageData(imageData, 0, 0);
+        for (let i = 0; i < data.length; i += 4) {
+          const x = (i / 4) % canvas.width;
+          const y = Math.floor(i / 4 / canvas.width);
+          const key = `${x},${y}`;
+          const value = greyscaleMap[key];
+          let red = 0;
+          let green = 0;
+          let blue = 0;
+          if (gradient.min === "red") {
+            red = (1 - value) * 255;
+          }
+          if (gradient.min === "green") {
+            green = (1 - value) * 255;
+          }
+          if (gradient.min === "blue") {
+            blue = (1 - value) * 255;
+          }
+          if (gradient.max === "red") {
+            red = value * 255;
+          }
+          if (gradient.max === "green") {
+            green = value * 255;
+          }
+          if (gradient.max === "blue") {
+            blue = value * 255;
+          }
+          data[i] = red; // Red
+          data[i + 1] = green; // Green
+          data[i + 2] = blue; // Blue
+          data[i + 3] = 255; // Alpha
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      },
+    };
+    this.overlays.push(overlayWithRefresh);
+    this.displayOverlays.push(overlayWithRefresh);
+    return overlayWithRefresh;
   }
 
   public generateBiomeOverlay(
-    biomeMap: { [key: string]: Biome },
     width: number,
     height: number,
-    label: string = "Color Overlay"
+    label: string = "Color Overlay",
+    getData: () => { [key: string]: Biome }
   ) {
-    const overlay = this.generateOverlayContainer(label, width, height);
-    const canvas = overlay.canvas;
-    const ctx = canvas.getContext("2d");
-    if (ctx === null) {
-      return;
-    }
-    const imageData = ctx.createImageData(canvas.width, canvas.height);
-    const data = imageData.data;
-
-    // set the color of each pixel to biome.color
-    for (let i = 0; i < data.length; i += 4) {
-      const x = (i / 4) % canvas.width;
-      const y = Math.floor(i / 4 / canvas.width);
-      const key = `${x},${y}`;
-      const biome = biomeMap[key];
-      if (biome) {
-        const color = biome.color;
-        data[i] = parseInt(color.substr(1, 2), 16);
-        data[i + 1] = parseInt(color.substr(3, 2), 16);
-        data[i + 2] = parseInt(color.substr(5, 2), 16);
-        data[i + 3] = 255;
+    // check if overlay already exists
+    for (let overlay of this.overlays) {
+      if (overlay.label === label) {
+        // remove overlay
+        this.container.removeChild(overlay.container);
+        this.overlays = this.overlays.filter((o) => o.label !== label);
       }
     }
+    const overlay = this.generateOverlayContainer(label, width, height);
+    const overlayWithRefresh = {
+      ...overlay,
+      refreshData: () => {
+        const canvas = overlay.canvas;
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) {
+          return;
+        }
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
+        const data = imageData.data;
+        const biomeMap = getData();
 
-    ctx.putImageData(imageData, 0, 0);
+        // set the color of each pixel to biome.color
+        for (let i = 0; i < data.length; i += 4) {
+          const x = (i / 4) % canvas.width;
+          const y = Math.floor(i / 4 / canvas.width);
+          const key = `${x},${y}`;
+          const biome = biomeMap[key];
+          if (biome) {
+            const color = biome.color;
+            data[i] = parseInt(color.substr(1, 2), 16);
+            data[i + 1] = parseInt(color.substr(3, 2), 16);
+            data[i + 2] = parseInt(color.substr(5, 2), 16);
+            data[i + 3] = 255;
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      },
+    };
+
+    this.overlays.push(overlayWithRefresh);
+    this.displayOverlays.push(overlayWithRefresh);
+    // overlayWithRefresh.refresh();
   }
 
   private generateOverlayContainer(
     label: string,
     width: number,
     height: number
-  ): { label: string; canvas: HTMLCanvasElement } {
+  ): {
+    label: string;
+    canvas: HTMLCanvasElement;
+    container: HTMLDivElement;
+  } {
     const overlayContainer = document.createElement("div");
     overlayContainer.style.position = "absolute";
     overlayContainer.style.top = "0";
@@ -208,11 +254,11 @@ export class Overlay extends HTMLElement {
     canvas.style.transform = `scale(${scale})`;
     canvas.style.imageRendering = "pixelated";
     canvas.style.display = "none";
-    this.overlays.push({ label, canvas });
-    this.displayOverlays.push({ label, canvas });
+    const overlay = { label, canvas, container: overlayContainer };
+
     overlayContainer.appendChild(canvas);
     this.container.appendChild(overlayContainer);
-    return { label, canvas };
+    return overlay;
   }
 
   private handleClick(e: MouseEvent) {
@@ -258,5 +304,12 @@ export class Overlay extends HTMLElement {
 
   public toggleVisible() {
     this.setVisible(!this.isVisible);
+  }
+
+  public refresh(map: MapWorld): void {
+    const currentOverlay = this.overlays[0];
+    if (currentOverlay) {
+      currentOverlay.refreshData(map);
+    }
   }
 }

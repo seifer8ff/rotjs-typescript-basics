@@ -461,7 +461,7 @@ export class MapShadows {
     return dropoff;
   }
 
-  public getShadowFor(
+  private getShadowFor(
     x: number,
     y: number,
     dir: "sunup" | "sundown" | "topdown"

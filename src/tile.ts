@@ -64,7 +64,7 @@ export class Tile {
       });
       descriptionBlocks.push({
         icon: TempIcon,
-        text: `${Math.round(target.info.temperature * 100)}°F`,
+        text: `${Math.round(target.info.temperaturePercent * 100)}°F`,
       });
       descriptionBlocks.push({
         icon: HeightIcon,
@@ -72,15 +72,15 @@ export class Tile {
       });
       descriptionBlocks.push({
         icon: MoistureIcon,
-        text: `${Math.round(target.info.moisture * 100) / 100} moisture`,
+        text: `${Math.round(target.info.moisture * 100)}% moisture`,
       });
       descriptionBlocks.push({
         icon: MagnetIcon,
-        text: `${Math.round(target.info.magnetism * 100) / 100} magnetism`,
+        text: `${Math.round(target.info.magnetism * 100)} magnetism`,
       });
       descriptionBlocks.push({
         icon: SunIcon,
-        text: `${Math.round(target.info.sunlight * 100) / 100 || "??"} light`,
+        text: `${Math.round(target.info.sunlight * 100) || "??"}% light`,
       });
     }
 
