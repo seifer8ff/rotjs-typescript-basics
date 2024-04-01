@@ -54,7 +54,7 @@ export class MapWorld {
   public heightLayerMap: { [key: string]: HeightLayer };
   public tempMap: MapTemperature;
   public moistureMap: MapMoisture;
-  public sunMap: MapShadows;
+  public shadowMap: MapShadows;
   public polesMap: MapPoles;
   public seaLevel: number;
 
@@ -80,7 +80,7 @@ export class MapWorld {
     this.heightLayerMap = {};
     this.moistureMap = new MapMoisture(this.game, this);
     this.tempMap = new MapTemperature(this.game, this);
-    this.sunMap = new MapShadows(this.game, this);
+    this.shadowMap = new MapShadows(this.game, this);
     this.polesMap = new MapPoles(this.game, this);
     this.terrainMap = {};
     this.seaLevel = Biomes.Biomes.ocean.generationOptions.height.max;
@@ -276,7 +276,7 @@ export class MapWorld {
     this.regenerateAdjacencyMap("height");
     this.regenerateAdjacencyMap("heightLayer");
     console.log("moistureMap", this.moistureMap.moistureMap);
-    this.sunMap.generateShadowMaps();
+    this.shadowMap.generateShadowMaps();
 
     // finally, generate the tile map
     if (this.game.shouldAutotile) {

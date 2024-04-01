@@ -250,14 +250,15 @@ export class LightManager {
     const shadowLevel = shadowMap[key];
     const occlusionLevel = occlusionMap[key];
     const isShadowed =
-      Math.abs(shadowLevel - this.game.map.sunMap.ambientLightStrength) > 0.01;
+      Math.abs(shadowLevel - this.game.map.shadowMap.ambientLightStrength) >
+      0.01;
     const isOccluded =
-      Math.abs(occlusionLevel - this.game.map.sunMap.ambientLightStrength) >
+      Math.abs(occlusionLevel - this.game.map.shadowMap.ambientLightStrength) >
       0.01;
 
-    const shadowStrength = this.game.map.sunMap.shadowStrength;
+    const shadowStrength = this.game.map.shadowMap.shadowStrength;
     const ambOccShadowStrength =
-      this.game.map.sunMap.ambientOcclusionShadowStrength;
+      this.game.map.shadowMap.ambientOcclusionShadowStrength;
 
     let light = ambientLight;
 

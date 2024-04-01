@@ -132,7 +132,7 @@ export class Camera {
       this.pointerTarget = {
         position: pos,
         target: target,
-        info: this.game.getInfoAt(pos.x, pos.y),
+        info: this.game.getTileInfoAt(pos.x, pos.y),
       };
       this.ui.components.sideMenu.setEntityTarget(null);
       if (viewportTarget) {

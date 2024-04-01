@@ -6,7 +6,7 @@ import { TileInfo } from "./web-components/tile-info";
 import { SkyMask } from "./web-components/sky-mask";
 import { Overlay } from "./web-components/overlay";
 import { UtilityActions } from "./web-components/utility-actions";
-import { Actor } from "./entities/actor";
+import { Actor, isActor } from "./entities/actor";
 import { UserInterface } from "./user-interface";
 import { getCachedTile } from "./assets";
 import OverlayIcon from "./shoelace/assets/icons/layers-half.svg";
@@ -24,6 +24,19 @@ export class ManagerWebComponents {
     this.initControls();
   }
 
+  public refreshComponents() {
+    // for components that display data that changes dynamically, like light or temps
+    if (this.overlay) {
+      this.overlay.refresh(this.game.map);
+    }
+    if (this.tileInfo?.isVisible) {
+      this.game.userInterface.camera.setPointerTarget(
+        this.game.userInterface.camera.pointerTarget.position,
+        this.game.userInterface.camera.pointerTarget.target
+      );
+    }
+  }
+
   private initWebComponents() {
     customElements.define("time-control", TimeControl);
     customElements.define("side-menu-content", SideMenuContent);
@@ -37,7 +50,7 @@ export class ManagerWebComponents {
   private initControls() {
     this.timeControl = document.querySelector("time-control");
     if (this.timeControl) {
-      this.timeControl.toggleTooltip();
+      // this.timeControl.toggleTooltip();
       this.timeControl.updateTime(
         this.game.timeManager.getCurrentTimeForDisplay()
       );
@@ -71,6 +84,7 @@ export class ManagerWebComponents {
         this.overlay.toggleVisible();
         this.setUIVisible(true, true);
       });
+      this.registerOverlays();
     }
     if (this.timeControl) {
       this.utilityActions = this.timeControl.utilityActions;
@@ -117,7 +131,7 @@ export class ManagerWebComponents {
         handler: () => {
           console.log("overlays selected");
           this.setUIVisible(false, true);
-          this.game.timeManager.setIsPaused(true);
+          // this.game.timeManager.setIsPaused(true);
           this.overlay.setVisible(true);
         },
       },
@@ -140,5 +154,64 @@ export class ManagerWebComponents {
     this.setSideMenuVisible(visible, hideIndicators);
     this.setTimeControlVisible(visible);
     this.tileInfo.setVisible(visible);
+  }
+
+  public registerOverlays() {
+    this.overlay.generateBiomeOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Terrain",
+      () => this.game.map.terrainMap
+    );
+
+    this.overlay.generateOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Magnetism",
+      () => this.game.map.polesMap.magnetismMap
+    );
+
+    this.overlay.generateOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Temperature",
+      () => this.game.map.tempMap.tempMap
+    );
+
+    this.overlay.generateGradientOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Temperature",
+      { min: "blue", max: "red" },
+      () => this.game.map.tempMap.tempMap
+    );
+
+    this.overlay.generateOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Moisture",
+      () => this.game.map.moistureMap.moistureMap
+    );
+
+    this.overlay.generateOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Height",
+      () => this.game.map.heightMap
+    );
+
+    this.overlay.generateOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Sunlight",
+      () => this.game.map.shadowMap.shadowMap
+    );
+
+    this.overlay.generateBiomeOverlay(
+      this.game.gameSize.width,
+      this.game.gameSize.height,
+      "Biomes",
+      () => this.game.map.biomeMap
+    );
   }
 }
