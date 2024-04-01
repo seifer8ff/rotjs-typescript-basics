@@ -53,6 +53,15 @@ export const HeightDropoff = {
   HighHill: 1,
 };
 
+// export const HeightDropoff = {
+//   Hole: 0.01,
+//   Valley: 0.15,
+//   SeaLevel: 0.3,
+//   LowHill: 0.8,
+//   MidHill: 1.2,
+//   HighHill: 1.5,
+// };
+
 export class MapShadows {
   public lightManager: LightManager;
   public shadowMap: { [key: string]: number };
@@ -64,6 +73,7 @@ export class MapShadows {
   public shadowLength: number;
   public shadowStrength: number;
   public ambientOcclusionShadowStrength: number;
+  public ambientLightStrength: number;
   public sundownOffsetMap: [number, number][][];
   public sunupOffsetMap: [number, number][][];
   public dropoffMaps: {
@@ -92,8 +102,9 @@ export class MapShadows {
 
     this.shadowStrength = 1;
     this.ambientOcclusionShadowStrength = 1;
-    this.minShadowLength = 1;
+    this.minShadowLength = 0;
     this.maxShadowLength = 5;
+    this.ambientLightStrength = 0.8;
     this.shadowLength = this.maxShadowLength;
     this.oldShadowLength = this.shadowLength;
     this.oldPhase = this.game.timeManager.lightPhase;
@@ -109,9 +120,6 @@ export class MapShadows {
       this.dropoffMaps["sundown"][i] = {};
       this.dropoffMaps["topdown"][i] = {};
     }
-
-    // decrease shadowlength at mid times
-    // increase shadowlength at start and end times
   }
 
   public generateShadowMaps() {
@@ -275,7 +283,11 @@ export class MapShadows {
         )
       );
       shadowStrength = lerp(remainingLightTransitionPercent, 0, 0.3);
-      ambientShadowStrength = lerp(remainingLightTransitionPercent, 1, 0.3);
+      ambientShadowStrength = lerp(
+        remainingLightTransitionPercent,
+        this.ambientLightStrength,
+        0.45
+      );
     } else if (phase === LightPhase.setting) {
       remainingLightTransitionPercent =
         remainingCyclePercent / lightTransitionPercent;
@@ -287,40 +299,27 @@ export class MapShadows {
         )
       );
       shadowStrength = lerp(remainingLightTransitionPercent, 0, 0.24);
-      ambientShadowStrength = lerp(remainingLightTransitionPercent, 1, 0.3);
+      ambientShadowStrength = lerp(
+        remainingLightTransitionPercent,
+        this.ambientLightStrength,
+        0.45
+      );
     }
     this.ambientOcclusionShadowStrength =
       Math.round(ambientShadowStrength * 1000) / 1000;
     this.shadowStrength = Math.round(shadowStrength * 1000) / 1000;
   }
 
-  // public interpolateShadowState(deltaTime: number) {
-  //   // smoothly transition between shadowMap and targetShadowMap over time
-  //   // this is different from interpolateStrength because it's not based on time of day--
-  //   //    it has two values to transition between over whatever amount of time looks good
-  //   let val: number;
-
-  //   for (let key in this.shadowMap) {
-  //     val = lerp(deltaTime * 2, this.shadowMap[key], this.targetShadowMap[key]);
-  //     this.shadowMap[key] = val;
-  //   }
-  // }
-
   public interpolateShadowState(deltaTime: number) {
     // smoothly transition between shadowMap and targetShadowMap over time
     // this is different from interpolateStrength because it's not based on time of day--
     //    it has two values to transition between over whatever amount of time looks good
     let val: number;
-    // only iterate through positions in the viewport
+    // only iterate through tiles in the viewport
     this.game.userInterface.camera.getViewportTiles().forEach((key) => {
       val = lerp(deltaTime * 2, this.shadowMap[key], this.targetShadowMap[key]);
       this.shadowMap[key] = val;
     });
-
-    // for (let key in this.shadowMap) {
-    //   val = lerp(deltaTime * 2, this.shadowMap[key], this.targetShadowMap[key]);
-    //   this.shadowMap[key] = val;
-    // }
   }
 
   // private sortMap(
@@ -396,6 +395,7 @@ export class MapShadows {
     let dropoff = HeightDropoff[previousHeight] - HeightDropoff[currentHeight];
     if (dropoff > 0) {
       dropoff = 1 - dropoff;
+      dropoff = lerp(this.ambientLightStrength, 0, dropoff);
       return Math.round(dropoff * 1000) / 1000;
     }
     return 0;
@@ -475,7 +475,7 @@ export class MapShadows {
       return 0;
     }
     // if there is no dropoff, this tile gets full sun
-    const sunlight = map[key] || 1;
+    const sunlight = map[key] || this.ambientLightStrength;
 
     return sunlight;
   }
