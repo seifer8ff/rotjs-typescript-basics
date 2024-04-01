@@ -181,7 +181,7 @@ export class ManagerWebComponents {
     this.overlay.generateGradientOverlay(
       this.game.gameSize.width,
       this.game.gameSize.height,
-      "Temperature",
+      "Temperature (blue <---> red)",
       { min: "blue", max: "red" },
       () => this.game.map.tempMap.tempMap
     );

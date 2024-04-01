@@ -29,18 +29,19 @@ export class LightManager {
   constructor(private game: Game, private map: MapWorld) {
     this.lightDefaults = {
       fullLight: [255, 255, 255],
+      highLight: [240, 240, 240],
+      mediumLight: [230, 230, 230],
       sunlight: [255, 255, 255],
       moonlight: [90, 90, 150],
       ambientDaylight: [100, 100, 100],
-      ambientSunset: [250, 215, 200],
+      ambientSunset: [250, 205, 160],
       ambientNightLight: [60, 60, 60],
       torchBright: [235, 165, 30],
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
-      shadow: [239, 230, 241],
-      ambientOcc: [225, 225, 233], // how much to reduce from full brightness when in shadow
-      shadowSunset: [255, 230, 180], // orange
-      shadowSunrise: [215, 215, 225], // blue
+      ambientOcc: [50, 50, 60], // how much to reduce from full brightness when in shadow
+      shadowSunset: [200, 60, 40],
+      shadowSunrise: [30, 30, 42], // blue
     };
     this.lightMap = {};
     this.lightEmitterById = {};
@@ -240,24 +241,21 @@ export class LightManager {
     const key = MapWorld.coordsToKey(x, y);
     const ambientLight = this.ambientLight;
     const isDaytime = this.game.timeManager.isDayTime;
-    // let shadow = this.game.map.lightManager.lightDefaults.shadow;
-
     const phase = this.game.timeManager.lightPhase;
-    let shadow = isDaytime
-      ? this.lightDefaults.shadow
-      : this.lightDefaults.shadow;
+    const isSettingPhase = phase === LightPhase.setting;
+    let shadow = isSettingPhase
+      ? this.game.map.lightManager.lightDefaults.shadowSunset
+      : this.game.map.lightManager.lightDefaults.shadowSunrise;
     let ambientOccShadow = this.lightDefaults.ambientOcc;
     const shadowLevel = shadowMap[key];
     const occlusionLevel = occlusionMap[key];
     const isShadowed =
       Math.abs(shadowLevel - this.game.map.shadowMap.ambientLightStrength) >
       0.01;
-    const isOccluded =
-      Math.abs(occlusionLevel - this.game.map.shadowMap.ambientLightStrength) >
-      0.01;
+    const isOccluded = occlusionLevel !== 1;
 
     const shadowStrength = this.game.map.shadowMap.shadowStrength;
-    const ambOccShadowStrength =
+    let ambOccShadowStrength =
       this.game.map.shadowMap.ambientOcclusionShadowStrength;
 
     let light = ambientLight;
@@ -267,27 +265,18 @@ export class LightManager {
       light = Color.add(light, lightMap[key]);
     } else {
       if (isOccluded) {
-        ambientOccShadow = Color.interpolate(
-          this.lightDefaults.fullLight,
-          this.lightDefaults.ambientOcc,
-          ambOccShadowStrength
+        light = Color.interpolate(
+          light,
+          ambientOccShadow,
+          (1 - occlusionLevel) * ambOccShadowStrength
         );
-        light = Color.multiply(light, ambientOccShadow);
       }
       if (isShadowed && isDaytime) {
-        shadow = Color.interpolate(
-          phase == LightPhase.rising
-            ? this.game.map.lightManager.lightDefaults.shadowSunrise
-            : this.game.map.lightManager.lightDefaults.shadowSunset,
+        light = Color.interpolate(
+          light,
           shadow,
-          shadowStrength
+          (1 - shadowLevel) * shadowStrength
         );
-        shadow = Color.interpolate(
-          shadow,
-          this.lightDefaults.shadow,
-          shadowLevel
-        );
-        light = Color.multiply(light, shadow);
       }
     }
     light = Color.multiply(ambientLight, light);
