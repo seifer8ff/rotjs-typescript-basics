@@ -282,12 +282,8 @@ export class MapShadows {
           this.minShadowLength
         )
       );
-      shadowStrength = lerp(remainingLightTransitionPercent, 0, 0.3);
-      ambientShadowStrength = lerp(
-        remainingLightTransitionPercent,
-        this.ambientLightStrength,
-        0.45
-      );
+      shadowStrength = lerp(remainingLightTransitionPercent, 0, 0.8);
+      ambientShadowStrength = lerp(remainingLightTransitionPercent, 1, 0.3);
     } else if (phase === LightPhase.setting) {
       remainingLightTransitionPercent =
         remainingCyclePercent / lightTransitionPercent;
@@ -298,12 +294,8 @@ export class MapShadows {
           this.minShadowLength
         )
       );
-      shadowStrength = lerp(remainingLightTransitionPercent, 0, 0.24);
-      ambientShadowStrength = lerp(
-        remainingLightTransitionPercent,
-        this.ambientLightStrength,
-        0.45
-      );
+      shadowStrength = lerp(remainingLightTransitionPercent, 0, 0.8);
+      ambientShadowStrength = lerp(remainingLightTransitionPercent, 1, 0.3);
     }
     this.ambientOcclusionShadowStrength =
       Math.round(ambientShadowStrength * 1000) / 1000;
@@ -395,10 +387,25 @@ export class MapShadows {
     let dropoff = HeightDropoff[previousHeight] - HeightDropoff[currentHeight];
     if (dropoff > 0) {
       dropoff = 1 - dropoff;
+      // since this is used to represent light later, we want to measure the drop between ambient light and 0 light
       dropoff = lerp(this.ambientLightStrength, 0, dropoff);
       return Math.round(dropoff * 1000) / 1000;
     }
     return 0;
+  }
+
+  private getOcclusionHeightDropoff(
+    currentHeight: HeightLayer,
+    previousHeight: HeightLayer
+  ): number {
+    // occlusion dropoff doesn't care about the ambient light strength limit.
+    // will be used to lerp between two colors later
+    let dropoff = HeightDropoff[previousHeight] - HeightDropoff[currentHeight];
+    if (dropoff > 0) {
+      dropoff = 1 - dropoff;
+      return Math.round(dropoff * 1000) / 1000;
+    }
+    return 1;
   }
 
   public calcDropoff(
@@ -443,7 +450,7 @@ export class MapShadows {
     let dropoff = 0;
     for (let i = 0; i < adjacent.length; i++) {
       const adjacentHeightLayer = adjacent[i];
-      const currentDropoff = this.getHeightDropoff(
+      const currentDropoff = this.getOcclusionHeightDropoff(
         heightLevel,
         adjacentHeightLayer
       );
@@ -482,5 +489,12 @@ export class MapShadows {
 
   setShadow(x: number, y: number, sunlightAmount: number): void {
     this.shadowMap[MapWorld.coordsToKey(x, y)] = sunlightAmount;
+  }
+
+  getTotalLight(x: number, y: number): number {
+    const lightFromShadows = this.shadowMap[MapWorld.coordsToKey(x, y)];
+    const lightFromOcc = this.occlusionMap[MapWorld.coordsToKey(x, y)];
+    const ambientLight = this.game.timeManager.remainingPhasePercent;
+    return lightFromShadows * ambientLight * lightFromOcc;
   }
 }

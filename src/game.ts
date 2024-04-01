@@ -121,7 +121,7 @@ export class Game {
       magnetism: this.map.polesMap.magnetismMap[MapWorld.coordsToKey(x, y)],
       temperaturePercent: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
       moisture: this.map.moistureMap.moistureMap[MapWorld.coordsToKey(x, y)],
-      sunlight: this.map.shadowMap.shadowMap[MapWorld.coordsToKey(x, y)],
+      sunlight: this.map.shadowMap.getTotalLight(x, y),
       biome: this.map.biomeMap[MapWorld.coordsToKey(x, y)],
     };
   }
