@@ -43,7 +43,8 @@ export class Renderer {
   ): void {
     this.clearScene();
     const lightMap = this.game.map.lightManager.lightMap;
-    const sunMap = this.game.map.sunMap.sunMap;
+    const sunMap = this.game.map.sunMap.shadowMap;
+    const occlusionMap = this.game.map.sunMap.occlusionMap;
     const centeredWidth = viewportCenterTile.x + Math.ceil(width / 2);
     const centeredHeight = viewportCenterTile.y + Math.ceil(height / 2);
     const left = viewportCenterTile.x - Math.ceil(width / 2);
@@ -74,7 +75,8 @@ export class Renderer {
                   x,
                   y,
                   lightMap,
-                  sunMap
+                  sunMap,
+                  occlusionMap
                 )
               );
               this.terrainLayer.addChild(sprite);
@@ -86,7 +88,8 @@ export class Renderer {
                   x,
                   y,
                   lightMap,
-                  sunMap
+                  sunMap,
+                  occlusionMap
                 )
               );
               this.plantLayer.addChild(sprite);
@@ -99,6 +102,7 @@ export class Renderer {
                   y,
                   lightMap,
                   sunMap,
+                  occlusionMap,
                   true
                 )
               );

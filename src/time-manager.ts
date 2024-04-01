@@ -1,7 +1,7 @@
 import { Game } from "./game";
 import { Actor } from "./entities/actor";
 import Action from "rot-js/lib/scheduler/action";
-import { LightPhase } from "./map-sunlight";
+import { LightPhase } from "./map-shadows";
 
 export enum Season {
   Spring = "spring",
@@ -42,11 +42,11 @@ export class TimeManager {
     this.isPaused = false;
 
     this.maxTimeScale = 10;
-    this.dayLength = 40;
-    this.nightLength = 30;
+    this.dayLength = 70;
+    this.nightLength = 50;
     this.daysPerYear = 10;
     this.season = Season.Spring;
-    this.lightTransitionPercent = 0.4;
+    this.lightTransitionPercent = 0.38;
 
     this.timeScale = 1;
     this.currentYear = 1;
@@ -97,6 +97,7 @@ export class TimeManager {
     this.remainingCyclePercent = this.isDayTime
       ? 1 - this.currentTime / this.dayLength
       : 1 - (this.currentTime - this.dayLength) / this.nightLength;
+    // console.log("remainingCyclePercent: ", this.remainingCyclePercent);
 
     this.calculateLightPhase();
   }
@@ -115,6 +116,8 @@ export class TimeManager {
     } else if (this.lightPhase === LightPhase.setting) {
       this.remainingPhasePercent =
         this.remainingCyclePercent / this.lightTransitionPercent;
+    } else {
+      this.remainingPhasePercent = 1;
     }
   }
 

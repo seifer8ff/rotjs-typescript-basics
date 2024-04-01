@@ -8,7 +8,7 @@ import { Viewport } from "./camera";
 import { multiColorLerp } from "./misc-utility";
 import { Autotile } from "./autotile";
 import { BiomeId } from "./biomes";
-import { LightPhase } from "./map-sunlight";
+import { LightPhase } from "./map-shadows";
 
 export const ImpassibleLightBorder: BiomeId[] = [
   "hillslow",
@@ -28,14 +28,17 @@ export class LightManager {
 
   constructor(private game: Game, private map: MapWorld) {
     this.lightDefaults = {
+      fullLight: [255, 255, 255],
       sunlight: [255, 255, 255],
-      moonlight: [70, 70, 135],
+      moonlight: [90, 90, 150],
       ambientDaylight: [100, 100, 100],
       ambientSunset: [250, 215, 200],
       ambientNightLight: [60, 60, 60],
       torchBright: [235, 165, 30],
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
+      shadow: [239, 230, 241],
+      ambientOcc: [225, 225, 233], // how much to reduce from full brightness when in shadow
       shadowSunset: [255, 230, 180], // orange
       shadowSunrise: [215, 215, 225], // blue
     };
@@ -230,64 +233,70 @@ export class LightManager {
     x: number,
     y: number,
     lightMap: { [pos: string]: ColorType } = null, // x,y -> color based on light sources
-    sunlightMap: { [pos: string]: number } = null, // x,y -> number based on sun position
+    shadowMap: { [pos: string]: number } = null, // x,y -> number based on sun position
+    occlusionMap: { [pos: string]: number } = null, // x,y -> number based on occlusion
     highlight: boolean = false
   ): ColorType {
     const key = MapWorld.coordsToKey(x, y);
-    const ambientLight = this.game.map.lightManager.ambientLight;
-    const sunlight = this.game.map.lightManager.lightDefaults.sunlight;
-    const moonlight = this.game.map.lightManager.lightDefaults.moonlight;
+    const ambientLight = this.ambientLight;
     const isDaytime = this.game.timeManager.isDayTime;
     // let shadow = this.game.map.lightManager.lightDefaults.shadow;
 
     const phase = this.game.timeManager.lightPhase;
-    let shadow =
-      phase === LightPhase.rising
-        ? this.game.map.lightManager.lightDefaults.shadowSunrise
-        : this.game.map.lightManager.lightDefaults.shadowSunset;
-    const heightLevel = this.game.map.heightMap[key];
-    const sunLevel = sunlightMap[key] || 1;
+    let shadow = isDaytime
+      ? this.lightDefaults.shadow
+      : this.lightDefaults.shadow;
+    let ambientOccShadow = this.lightDefaults.ambientOcc;
+    // let shadow =
+    //   phase === LightPhase.rising
+    //     ? this.game.map.lightManager.lightDefaults.shadowSunrise
+    //     : this.game.map.lightManager.lightDefaults.shadowSunset;
+    // const sunLevel = sunlightMap[key] || 1;
+    const shadowLevel = shadowMap[key];
+    const occlusionLevel = occlusionMap[key];
+    const isShadowed = Math.abs(shadowLevel - 1) > 0.01;
+    const isOccluded = Math.abs(occlusionLevel - 1) > 0.01;
+
     const shadowStrength = this.game.map.sunMap.shadowStrength;
+    const ambOccShadowStrength =
+      this.game.map.sunMap.ambientOcclusionShadowStrength;
 
     let light = ambientLight;
-
-    // const heightLayer = MapWorld.heightToLayer(heightLevel);
-    // const heightColor = MapWorld.heightToColor(heightLevel);
-    // if (heightColor) {
-    //   light = Color.add(light, heightColor);
-    // }
 
     if (key in lightMap && lightMap[key] != null) {
       // override shadows light if there is a light source
       light = Color.add(light, lightMap[key]);
     } else {
-      if (isDaytime && sunLevel < 1 && phase !== LightPhase.peak) {
-        // shadow = Color.multiply(ambientLight, shadow);
-        // console.log("shadow", shadow, sunLevel);
-        // light = Color.interpolate(light, shadow, 1 - sunLevel);
+      if (isOccluded) {
+        ambientOccShadow = Color.interpolate(
+          this.lightDefaults.fullLight,
+          this.lightDefaults.ambientOcc,
+          ambOccShadowStrength
+        );
+        light = Color.multiply(light, ambientOccShadow);
+      }
+      if (isShadowed && isDaytime) {
         shadow = Color.interpolate(
-          shadow,
-          // this.game.map.lightManager.lightDefaults.shadow,
           phase == LightPhase.rising
             ? this.game.map.lightManager.lightDefaults.shadowSunrise
             : this.game.map.lightManager.lightDefaults.shadowSunset,
+          shadow,
           shadowStrength
+        );
+        shadow = Color.interpolate(
+          shadow,
+          this.lightDefaults.shadow,
+          shadowLevel
         );
         light = Color.multiply(light, shadow);
       }
     }
     light = Color.multiply(ambientLight, light);
 
-    // if (sunLevel < 1) {
-    //   // shadow = Color.multiply(ambientLight, shadow);
-    //   console.log("light", light, sunLevel);
-    //   light = Color.interpolate(light, shadow, sunLevel);
-    // }
-
     if (highlight) {
       light = Color.interpolate(
         light,
-        this.game.map.lightManager.lightDefaults.sunlight,
+        this.game.map.lightManager.lightDefaults.fullLight,
         0.4
       );
     }
