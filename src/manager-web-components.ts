@@ -6,6 +6,8 @@ import { TileInfo } from "./web-components/tile-info";
 import { SkyMask } from "./web-components/sky-mask";
 import { Overlay } from "./web-components/overlay";
 import { UtilityActions } from "./web-components/utility-actions";
+import { IndicatorSun } from "./web-components/indicator-sun";
+import { IndicatorTileSelection } from "./web-components/indicator-tile-selection";
 import { Actor, isActor } from "./entities/actor";
 import { UserInterface } from "./user-interface";
 import { getCachedTile } from "./assets";
@@ -17,6 +19,7 @@ export class ManagerWebComponents {
   public tileInfo: TileInfo;
   public skyMask: SkyMask;
   public overlay: Overlay;
+  public tileSelectionIndicator: IndicatorTileSelection;
   public utilityActions: UtilityActions;
 
   constructor(private game: Game, private ui: UserInterface) {
@@ -45,6 +48,8 @@ export class ManagerWebComponents {
     customElements.define("sky-mask", SkyMask);
     customElements.define("screen-overlay", Overlay);
     customElements.define("utility-actions", UtilityActions);
+    customElements.define("indicator-sun", IndicatorSun);
+    customElements.define("indicator-tile-selection", IndicatorTileSelection);
   }
 
   private initControls() {
@@ -81,10 +86,20 @@ export class ManagerWebComponents {
     this.overlay = document.querySelector("screen-overlay");
     if (this.overlay) {
       this.overlay.closeBtn.addEventListener("click", () => {
-        this.overlay.toggleVisible();
+        this.overlay.setVisible(false);
         this.setUIVisible(true, true);
       });
       this.registerOverlays();
+    }
+    this.tileSelectionIndicator = document.querySelector(
+      "indicator-tile-selection"
+    );
+    if (this.tileSelectionIndicator) {
+      this.tileSelectionIndicator.init(this.game);
+      this.tileSelectionIndicator.closeBtn.addEventListener("click", () => {
+        this.tileSelectionIndicator.setVisible(false);
+        this.setUIVisible(true, true);
+      });
     }
     if (this.timeControl) {
       this.utilityActions = this.timeControl.utilityActions;
@@ -133,6 +148,15 @@ export class ManagerWebComponents {
           this.setUIVisible(false, true);
           // this.game.timeManager.setIsPaused(true);
           this.overlay.setVisible(true);
+        },
+      },
+      {
+        label: "Grid Indicator",
+        icon: OverlayIcon,
+        handler: () => {
+          console.log("Grid Indicator selected");
+          this.setUIVisible(false, true);
+          this.tileSelectionIndicator.setVisible(true);
         },
       },
     ]);
