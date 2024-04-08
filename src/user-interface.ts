@@ -19,7 +19,7 @@ export class UserInterface {
   public messageLog: MessageLog;
   public gameCanvasContainer: HTMLElement;
 
-  private gameContainer: HTMLElement;
+  public gameContainer: HTMLElement;
   private gameDisplayOptions: Partial<PIXI.IApplicationOptions>;
   private keyMap: { [key: number]: number };
 

@@ -69,6 +69,7 @@ module.exports = {
                     <time-control></time-control>
                     <side-menu></side-menu>
                     <tile-info></tile-info>
+                    <indicator-tile-selection></indicator-tile-selection>
                 </div>
                 <div id="gameContainer">
                     <div id="canvasContainer"></div>
