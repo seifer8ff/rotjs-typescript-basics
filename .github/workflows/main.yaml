@@ -1,7 +1,8 @@
 name: Build Project and Publish to itch.io
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - itch
 env:
   ITCH_USERNAME: seifer8ff
   ITCH_GAME_ID: sim-world
