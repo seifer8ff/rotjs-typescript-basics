@@ -6,7 +6,7 @@ import { Layer } from "./renderer";
 import { Autotile } from "./autotile";
 import Simplex from "rot-js/lib/noise/simplex";
 import { LightManager } from "./light-manager";
-import { getMapStats, lerp } from "./misc-utility";
+import { getMapStats, getScaledNoise, lerp } from "./misc-utility";
 import { MapTemperature } from "./map-temperature";
 import { MapMoisture } from "./map-moisture";
 import { Season } from "./time-manager";
@@ -14,6 +14,9 @@ import { Biome, BiomeId, Biomes, ImpassibleBorder } from "./biomes";
 import { Color as ColorType } from "rot-js/lib/color";
 import { MapShadows } from "./map-shadows";
 import { MapPoles } from "./map-poles";
+import { MapClouds } from "./map-clouds";
+import Noise from "rot-js/lib/noise/noise";
+import { clamp } from "rot-js/lib/util";
 
 export type Map = ValueMap | BiomeMap | TileMap;
 
@@ -56,6 +59,7 @@ export class MapWorld {
   public moistureMap: MapMoisture;
   public shadowMap: MapShadows;
   public polesMap: MapPoles;
+  public cloudMap: MapClouds;
   public seaLevel: number;
 
   public heightAdjacencyD1Map: { [key: string]: number[] }; // adjacency map with distance of 1 tile
@@ -82,6 +86,7 @@ export class MapWorld {
     this.tempMap = new MapTemperature(this.game, this);
     this.shadowMap = new MapShadows(this.game, this);
     this.polesMap = new MapPoles(this.game, this);
+    this.cloudMap = new MapClouds(this.game, this);
     this.terrainMap = {};
     this.seaLevel = Biomes.Biomes.ocean.generationOptions.height.max;
     this.heightAdjacencyD1Map = {};
@@ -275,11 +280,17 @@ export class MapWorld {
     this.regenerateAdjacencyMap("biome");
     this.regenerateAdjacencyMap("height");
     this.regenerateAdjacencyMap("heightLayer");
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        this.cloudMap.generateCloudLevel(x, y, width, height, this.game.noise);
+      }
+    }
+    console.log("cloudMap", this.cloudMap.cloudMap);
     console.log("moistureMap", this.moistureMap.moistureMap);
     this.shadowMap.generateShadowMaps();
 
     // finally, generate the tile map
-    if (this.game.shouldAutotile) {
+    if (this.game.options.shouldAutotile) {
       this.generateAutotileMap(this.biomeMap);
     } else {
       this.generateBasetileMap(this.biomeMap);
@@ -320,7 +331,7 @@ export class MapWorld {
     y: number,
     mapWidth: number,
     mapHeight: number,
-    noise: Simplex
+    noise: Noise
   ): number {
     // randomize the edge padding to prevent a squared-off look
     const randomizedEdgePadding = this.edgePadding + RNG.getUniformInt(0, 2);
@@ -341,10 +352,10 @@ export class MapWorld {
     // add different octaves of frequency
     // some small hills, some large, etc
     // 1 / octave * this.getScaledNoise(noise, octave * noiseX, octave * noiseY)
-    let height = 0.7 * this.getScaledNoise(noise, 3 * noiseX, 3 * noiseY);
-    height += 0.5 * this.getScaledNoise(noise, 4 * noiseX, 4 * noiseY);
-    height += 0.3 * this.getScaledNoise(noise, 8 * noiseX, 8 * noiseY);
-    height += 0.3 * this.getScaledNoise(noise, 15 * noiseX, 15 * noiseY);
+    let height = 0.7 * getScaledNoise(noise, 3 * noiseX, 3 * noiseY);
+    height += 0.5 * getScaledNoise(noise, 4 * noiseX, 4 * noiseY);
+    height += 0.3 * getScaledNoise(noise, 8 * noiseX, 8 * noiseY);
+    height += 0.3 * getScaledNoise(noise, 15 * noiseX, 15 * noiseY);
     height = height / (0.4 + 0.5 + 0.3 + 0.2); // scale to between 0 and 1
 
     height = Math.pow(height, this.valleyScaleFactor); // reshape valleys/mountains
@@ -356,10 +367,6 @@ export class MapWorld {
     height = lerp(this.islandMask, height, 1 - d);
 
     return height;
-  }
-
-  getScaledNoise(noise: Simplex, x: number, y: number): number {
-    return (noise.get(x, y) + 1) / 2;
   }
 
   assignTerrain(x: number, y: number): Biome {
@@ -636,8 +643,8 @@ export class MapWorld {
   }
 
   // private regenerateAdjacencyMap(map: "terrain" | "biome") {
-  //   for (let x = 0; x < this.game.gameSize.width; x++) {
-  //     for (let y = 0; y < this.game.gameSize.height; y++) {
+  //   for (let x = 0; x < this.game.options.gameSize.width; x++) {
+  //     for (let y = 0; y < this.game.options.gameSize.height; y++) {
   //       const key = MapWorld.coordsToKey(x, y);
   //       if (map === "terrain") {
   //         this.terrainAdjacencyD1Map[key] = this.assignAdjacentBiomes(
@@ -673,8 +680,8 @@ export class MapWorld {
   private regenerateAdjacencyMap(
     map: "terrain" | "biome" | "height" | "heightLayer"
   ) {
-    for (let x = 0; x < this.game.gameSize.width; x++) {
-      for (let y = 0; y < this.game.gameSize.height; y++) {
+    for (let x = 0; x < this.game.options.gameSize.width; x++) {
+      for (let y = 0; y < this.game.options.gameSize.height; y++) {
         const key = MapWorld.coordsToKey(x, y);
         if (map === "terrain") {
           this.terrainAdjacencyD1Map[key] = this.assignAdjacentBiomes(
@@ -1034,6 +1041,35 @@ export class MapWorld {
     return biome && !impassible;
   }
 
+  getTotalLight(x: number, y: number): number {
+    const key = MapWorld.coordsToKey(x, y);
+    const lightFromShadows = this.shadowMap.shadowMap[key];
+    const lightFromOcc = this.shadowMap.occlusionMap[key];
+    const cloudLevel = this.cloudMap.cloudMap[key];
+    let lightFromClouds = 1;
+    if (cloudLevel > this.cloudMap.cloudMinLevel) {
+      // reduce the light by the amount of cloud cover
+      lightFromClouds =
+        1 - (this.cloudMap.cloudMap[key] - this.cloudMap.cloudMinLevel);
+    } else if (cloudLevel < this.cloudMap.sunbeamMaxLevel) {
+      // increase light by how much sunbeam there is
+      lightFromClouds = 1 + this.cloudMap.cloudMap[key];
+    }
+    console.log("lightFromClouds", lightFromClouds, cloudLevel);
+
+    const ambientLight = this.game.timeManager.remainingPhasePercent;
+    let finalLight =
+      lightFromShadows * ambientLight * lightFromOcc * lightFromClouds;
+    // can go over 1 due to lightening effect from sunbeams/clouds
+    if (finalLight < 0) {
+      finalLight = 0;
+    }
+    if (finalLight > 1) {
+      finalLight = 1;
+    }
+    return finalLight;
+  }
+
   draw(): void {
     for (let key of this.dirtyTiles) {
       if (key) {
@@ -1052,5 +1088,19 @@ export class MapWorld {
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];
+  }
+
+  onTileEnterViewport(positions: Point[]): void {
+    this.shadowMap.onEnter(positions);
+    this.cloudMap.onEnter(positions);
+  }
+
+  isPointInMap(point: Point): boolean {
+    return (
+      point.x >= 0 &&
+      point.x < this.game.options.gameSize.width &&
+      point.y >= 0 &&
+      point.y < this.game.options.gameSize.height
+    );
   }
 }

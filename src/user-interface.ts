@@ -52,7 +52,7 @@ export class UserInterface {
     this.gameDisplay = new PIXI.Application(this.gameDisplayOptions);
     this.gameDisplay.stage.sortableChildren = true;
     this.textDisplay = new Display({
-      width: this.game.gameSize.width * 2,
+      width: this.game.options.gameSize.width * 2,
       height: 10,
       fontSize: this.fontSize,
     });
@@ -70,13 +70,13 @@ export class UserInterface {
     this.statusLine = new StatusLine(
       this,
       this.statusLinePosition,
-      this.game.gameSize.width * 3,
+      this.game.options.gameSize.width * 3,
       { maxBoxes: this.maximumBoxes }
     );
     this.messageLog = new MessageLog(
       this,
       this.actionLogPosition,
-      this.game.gameSize.width * 3,
+      this.game.options.gameSize.width * 3,
       6
     );
 
@@ -129,12 +129,12 @@ export class UserInterface {
   }
 
   refreshPanel(): void {
-    this.textDisplay.clear();
+    // this.textDisplay.clear();
     this.game.map.draw();
-    this.statusLine.draw();
-    this.messageLog.draw();
+    // this.statusLine.draw();
+    // this.messageLog.draw();
     this.components.updateTimeControl();
-    const viewportInTiles = this.camera.getViewportInTiles(true);
+    const viewportInTiles = this.camera.viewport;
     this.drawPlants();
     this.drawEntities();
     this.game.renderer.renderLayers(
@@ -169,6 +169,6 @@ export class UserInterface {
 
   resetStatusLine(): void {
     this.statusLine.reset();
-    this.statusLine.maxBoxes = this.game.treeCount;
+    this.statusLine.maxBoxes = this.game.options.treeCount;
   }
 }

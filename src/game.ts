@@ -20,23 +20,25 @@ import { GeneratorNames } from "./generator-names";
 import { BiomeId, Biomes } from "./biomes";
 import { TileStats } from "./web-components/tile-info";
 import Simplex from "rot-js/lib/noise/simplex";
+import Noise from "rot-js/lib/noise/noise";
 
 export class Game {
   // starting options
-  public entityCount = 20;
-  public treeCount = 50;
-  public shouldAutotile = true;
-  public shouldRender = true;
-  public showCloudmap = true;
-  public dayStart = true;
-  public gameSize = {
-    width: 200,
-    height: 200,
+  public options = {
+    shouldAutotile: true,
+    shouldRender: true,
+    showClouds: true,
+    animateShadows: true,
+    entityCount: 20,
+    treeCount: 50,
+    gameSize: {
+      width: 200,
+      height: 200,
+    },
+    dayStart: true,
+    gameSeed: 1234,
   };
-  public useSeed = true;
-  public gameSeed = 1234;
-  public noise;
-
+  public noise: Noise;
   public map: MapWorld;
   public player: Player;
   public entities: Actor[];
@@ -59,10 +61,11 @@ export class Game {
   private msPerLoop: number = 1000 / 2; // desired interval is 1000 ms / runs per second
 
   constructor() {
-    if (this.useSeed) {
-      RNG.setSeed(this.gameSeed);
+    if (this.options.gameSeed == undefined) {
+      this.options.gameSeed = RNG.getUniform() * 1000000;
     }
-    this.noise = new Simplex(this.gameSeed);
+    RNG.setSeed(this.options.gameSeed);
+    this.noise = new Simplex(this.options.gameSeed);
     this.entities = [];
     this.plants = [];
 
@@ -81,7 +84,7 @@ export class Game {
 
   public start() {
     requestAnimationFrame(this.gameLoop.bind(this));
-    if (this.shouldRender) {
+    if (this.options.shouldRender) {
       requestAnimationFrame(this.renderLoop.bind(this));
       requestAnimationFrame(this.uiRefresh.bind(this));
     }
@@ -121,7 +124,7 @@ export class Game {
       magnetism: this.map.polesMap.magnetismMap[MapWorld.coordsToKey(x, y)],
       temperaturePercent: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
       moisture: this.map.moistureMap.moistureMap[MapWorld.coordsToKey(x, y)],
-      sunlight: this.map.shadowMap.getTotalLight(x, y),
+      sunlight: this.map.getTotalLight(x, y),
       biome: this.map.biomeMap[MapWorld.coordsToKey(x, y)],
     };
   }
@@ -186,12 +189,12 @@ export class Game {
     await this.userInterface.init();
     this.gameState.reset();
 
-    this.map.generateMap(this.gameSize.width, this.gameSize.height);
+    this.map.generateMap(
+      this.options.gameSize.width,
+      this.options.gameSize.height
+    );
     this.generatePlants();
-
     this.generateBeings();
-
-    this.userInterface.refreshPanel();
 
     return true;
   }
@@ -221,6 +224,10 @@ export class Game {
             break;
           }
         }
+        this.map.lightManager.clearLightMap();
+        this.map.lightManager.interpolateAmbientLight();
+        this.map.shadowMap.turnUpdate();
+        this.map.cloudMap.turnUpdate();
         // update dynamic lights after all actors have moved
         // will get picked up in next render
         this.map.lightManager.clearChangedDynamicLights();
@@ -250,9 +257,8 @@ export class Game {
     if (elapsed > this.msPerFrame) {
       // console.log("rendering");
       this.userInterface.camera.update(deltaTime);
-      this.map.lightManager.clearLightMap();
       this.map.shadowMap.update(deltaTime);
-      this.map.lightManager.calculateLightLevel();
+      this.map.cloudMap.renderUpdate(deltaTime);
       this.map.lightManager.calculateLighting(deltaTime);
 
       this.userInterface.refreshPanel();
@@ -280,7 +286,7 @@ export class Game {
     this.plants = [];
     let positions = this.map.getRandomTilePositions(
       Biomes.Biomes.moistdirt.id,
-      this.treeCount
+      this.options.treeCount
     );
     for (let position of positions) {
       this.plants.push(new Shrub(this, position));
@@ -300,7 +306,7 @@ export class Game {
     this.entities = [];
     let positions = this.map.getRandomTilePositions(
       Biomes.Biomes.moistdirt.id,
-      this.entityCount
+      this.options.entityCount
     );
     console.log("got positions", positions);
     // this.player = new Player(this, positions.splice(0, 1)[0]);

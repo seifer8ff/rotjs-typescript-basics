@@ -3,6 +3,7 @@ import Simplex from "rot-js/lib/noise/simplex";
 import { lerp, normalizeNoise } from "./misc-utility";
 import { MapWorld } from "./map-world";
 import { Point } from "./point";
+import Noise from "rot-js/lib/noise/noise";
 
 export class MapPoles {
   public magnetismMap: { [key: string]: number };
@@ -16,16 +17,16 @@ export class MapPoles {
   constructor(private game: Game, private map: MapWorld) {
     this.magnetismMap = {};
     this.scale = 1.2;
-    this.tileHeight = this.game.gameSize.height / 3;
-    this.tileWidth = this.game.gameSize.width / 1.5;
-    const poleYOffset = this.game.gameSize.width / 10;
+    this.tileHeight = this.game.options.gameSize.height / 3;
+    this.tileWidth = this.game.options.gameSize.width / 1.5;
+    const poleYOffset = this.game.options.gameSize.width / 10;
     this.northPole = new Point(
-      Math.floor(this.game.gameSize.width / 2),
+      Math.floor(this.game.options.gameSize.width / 2),
       poleYOffset
     );
     this.southPole = new Point(
-      Math.floor(this.game.gameSize.width / 2),
-      this.game.gameSize.height - poleYOffset
+      Math.floor(this.game.options.gameSize.width / 2),
+      this.game.options.gameSize.height - poleYOffset
     );
   }
 
@@ -34,7 +35,7 @@ export class MapPoles {
     y: number,
     width: number,
     height: number,
-    noise: Simplex
+    noise: Noise
   ): number {
     const key = MapWorld.coordsToKey(x, y);
 

@@ -20,7 +20,7 @@ export class HarvestAction implements Action {
 
   run(): Promise<any> {
     // TODO: interact with target tile
-    console.log("harvest action");
+    // console.log("harvest action");
     return Promise.resolve();
   }
 }

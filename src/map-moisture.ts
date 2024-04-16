@@ -3,6 +3,7 @@ import Simplex from "rot-js/lib/noise/simplex";
 import { lerp } from "./misc-utility";
 import { MapWorld } from "./map-world";
 import { Biomes } from "./biomes";
+import Noise from "rot-js/lib/noise/noise";
 
 export enum MoistureZones {
   SuperSaturated = "Super Saturated",
@@ -49,7 +50,7 @@ export class MapMoisture {
     y: number,
     width: number,
     height: number,
-    noise: Simplex
+    noise: Noise
   ): number {
     const key = MapWorld.coordsToKey(x, y);
     const terrainHeight = this.map.heightMap[key];

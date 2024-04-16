@@ -5,6 +5,7 @@ import { LightManager } from "./light-manager";
 import { lerp, normalizeNoise } from "./misc-utility";
 import { MapWorld } from "./map-world";
 import { Biomes } from "./biomes";
+import Noise from "rot-js/lib/noise/noise";
 
 export enum Climates {
   Scorching = "Scorching",
@@ -59,7 +60,7 @@ export class MapTemperature {
     y: number,
     width: number,
     height: number,
-    noise: Simplex
+    noise: Noise
   ): number {
     const key = MapWorld.coordsToKey(x, y);
     const terrainHeight = this.map.heightMap[key];

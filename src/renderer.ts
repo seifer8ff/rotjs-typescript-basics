@@ -35,6 +35,7 @@ export class Renderer {
     };
   }
 
+  // render specified layers from the sprite cache to the screen
   renderLayers(
     layers: Layer[],
     width: number,
@@ -45,6 +46,7 @@ export class Renderer {
     const lightMap = this.game.map.lightManager.lightMap;
     const sunMap = this.game.map.shadowMap.shadowMap;
     const occlusionMap = this.game.map.shadowMap.occlusionMap;
+    const cloudMap = this.game.map.cloudMap.cloudMap;
     const centeredWidth = viewportCenterTile.x + Math.ceil(width / 2);
     const centeredHeight = viewportCenterTile.y + Math.ceil(height / 2);
     const left = viewportCenterTile.x - Math.ceil(width / 2);
@@ -56,8 +58,8 @@ export class Renderer {
           if (
             x < 0 ||
             y < 0 ||
-            x >= this.game.gameSize.width ||
-            y >= this.game.gameSize.height
+            x >= this.game.options.gameSize.width ||
+            y >= this.game.options.gameSize.height
           ) {
             continue;
           }
@@ -76,7 +78,8 @@ export class Renderer {
                   y,
                   lightMap,
                   sunMap,
-                  occlusionMap
+                  occlusionMap,
+                  cloudMap
                 )
               );
               this.terrainLayer.addChild(sprite);
@@ -89,7 +92,8 @@ export class Renderer {
                   y,
                   lightMap,
                   sunMap,
-                  occlusionMap
+                  occlusionMap,
+                  cloudMap
                 )
               );
               this.plantLayer.addChild(sprite);
@@ -103,6 +107,7 @@ export class Renderer {
                   lightMap,
                   sunMap,
                   occlusionMap,
+                  cloudMap,
                   true
                 )
               );
@@ -119,6 +124,7 @@ export class Renderer {
     }
   }
 
+  // add the sprite to the cache, to be rendered on the next render pass
   addToScene(
     position: Point,
     layer: Layer,
@@ -136,6 +142,7 @@ export class Renderer {
     this.spriteCache[layer][`${position.x},${position.y}`] = pixiSprite;
   }
 
+  // remove the sprite from the cache and from the scene, immediately
   removeFromScene(
     position: Point,
     sprite: PIXI.Sprite | string,

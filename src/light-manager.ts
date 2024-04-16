@@ -24,14 +24,16 @@ export class LightManager {
   private lightEmitterById: { [id: string]: [number, number] };
   public ambientLight: ColorType;
   public targetAmbientLight: ColorType;
-  private cachedViewport: Viewport;
 
   constructor(private game: Game, private map: MapWorld) {
     this.lightDefaults = {
       fullLight: [255, 255, 255],
+      purple: [255, 0, 255],
       highLight: [240, 240, 240],
       mediumLight: [230, 230, 230],
       sunlight: [255, 255, 255],
+      yellowLight: [255, 240, 230],
+      blueLight: [40, 40, 100],
       moonlight: [90, 90, 150],
       ambientDaylight: [100, 100, 100],
       ambientSunset: [250, 205, 160],
@@ -40,13 +42,16 @@ export class LightManager {
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
       ambientOcc: [50, 50, 60], // how much to reduce from full brightness when in shadow
+      // cloudShadow: [50, 50, 55], // how much to reduce from full brightness when in cloud shadow
+      cloudShadow: [20, 20, 27], // how much to reduce from full brightness when in cloud shadow
+      cloudShadowSetting: [60, 60, 60], // how much to reduce from full brightness when in cloud shadow
       shadowSunset: [200, 60, 40],
       shadowSunrise: [30, 30, 42], // blue
     };
     this.lightMap = {};
     this.lightEmitterById = {};
-    this.calculateLightLevel(false); // initial
-    this.calculateLightLevel(true); // target
+    this.interpolateAmbientLight(false); // initial
+    this.interpolateAmbientLight(true); // target
 
     this.interpolateLightState(1);
     this.lightingFov = new PreciseShadowcasting(this.lightPasses.bind(this), {
@@ -62,7 +67,7 @@ export class LightManager {
     console.log("lightMap", this.lightMap);
   }
 
-  public calculateLightLevel(calculateTarget = true) {
+  public interpolateAmbientLight(calculateTarget = true) {
     // Set the target light state instead of the current light state
     let ambientLightToUpdate = this.targetAmbientLight;
     const isDaytime = this.game.timeManager.isDayTime;
@@ -236,16 +241,18 @@ export class LightManager {
     lightMap: { [pos: string]: ColorType } = null, // x,y -> color based on light sources
     shadowMap: { [pos: string]: number } = null, // x,y -> number based on sun position
     occlusionMap: { [pos: string]: number } = null, // x,y -> number based on occlusion
+    cloudMap: { [pos: string]: number } = null, // x,y -> number based on cloud cover
     highlight: boolean = false
   ): ColorType {
     const key = MapWorld.coordsToKey(x, y);
     const ambientLight = this.ambientLight;
     const isDaytime = this.game.timeManager.isDayTime;
     const phase = this.game.timeManager.lightPhase;
+    const isNight = this.game.timeManager.isNighttime;
     const isSettingPhase = phase === LightPhase.setting;
     let shadow = isSettingPhase
-      ? this.game.map.lightManager.lightDefaults.shadowSunset
-      : this.game.map.lightManager.lightDefaults.shadowSunrise;
+      ? this.lightDefaults.shadowSunset
+      : this.lightDefaults.shadowSunrise;
     let ambientOccShadow = this.lightDefaults.ambientOcc;
     const shadowLevel = shadowMap[key];
     const occlusionLevel = occlusionMap[key];
@@ -253,10 +260,37 @@ export class LightManager {
       Math.abs(shadowLevel - this.game.map.shadowMap.ambientLightStrength) >
       0.01;
     const isOccluded = occlusionLevel !== 1;
+    const cloudLevel = cloudMap[key];
+    const isClouded = cloudLevel > this.map.cloudMap.cloudMinLevel;
+    const isCloudClear = cloudLevel < this.map.cloudMap.sunbeamMaxLevel;
 
     const shadowStrength = this.game.map.shadowMap.shadowStrength;
     let ambOccShadowStrength =
       this.game.map.shadowMap.ambientOcclusionShadowStrength;
+    const cloudStrength = this.game.map.cloudMap.cloudStrength;
+    const sunbeamStrength = this.game.map.cloudMap.sunbeamStrength;
+    let cloudShadow = Color.multiply(
+      isSettingPhase
+        ? this.lightDefaults.cloudShadowSetting
+        : this.lightDefaults.cloudShadow,
+      ambientLight
+    );
+    // const cloudShadow = Color.multiply(
+    //   !isNight && isSettingPhase
+    //     ? this.lightDefaults.cloudShadowSetting
+    //     : this.lightDefaults.cloudShadow,
+    //   ambientLight
+    // );
+    // console.log(this.game.timeManager.remainingCyclePercent);
+    if (!isNight && isSettingPhase) {
+      // console.log(this.game.timeManager.remainingCyclePercent);
+
+      cloudShadow = Color.interpolate(
+        cloudShadow,
+        ambientLight,
+        1 - this.game.timeManager.remainingPhasePercent
+      );
+    }
 
     let light = ambientLight;
 
@@ -280,6 +314,43 @@ export class LightManager {
       }
     }
     light = Color.multiply(ambientLight, light);
+
+    if (isClouded && isDaytime) {
+      //darken the light very slightly based on cloudStrength
+      // 1 - cloudLevel to darken the areas where cloud level is high.
+      // cloudLevel - cloudMinLevel to only darken clouds where the cloud level is above a certain threshold.
+      light = Color.interpolate(
+        light,
+        cloudShadow,
+        1 - cloudStrength * (1 - (cloudLevel - this.map.cloudMap.cloudMinLevel))
+      );
+    }
+
+    if (isCloudClear) {
+      // // light = Color.interpolate(light, ambientOccShadow, 1 - shadowStrength);
+      // light = Color.interpolate(ambientOccShadow, light, shadowStrength * 0.9);
+      // light = Color.interpolate(
+      //   light,
+      //   this.game.map.lightManager.lightDefaults.purple,
+      //   cloudStrength * cloudLevel
+      // );
+      light = Color.interpolate(
+        light,
+        // this.lightDefaults.purple,
+        isNight ? this.lightDefaults.blueLight : this.lightDefaults.yellowLight,
+        cloudStrength *
+          ((this.map.cloudMap.sunbeamMaxLevel - cloudLevel) * sunbeamStrength)
+      );
+
+      // light = Color.interpolate(
+      //   light,
+      //   isNight
+      //     ? this.game.map.lightManager.lightDefaults.blueLight
+      //     : this.game.map.lightManager.lightDefaults.yellowLight,
+      //   cloudStrength *
+      //     ((0.25 - cloudLevel) * 1)
+      // );
+    }
 
     if (highlight) {
       light = Color.interpolate(
