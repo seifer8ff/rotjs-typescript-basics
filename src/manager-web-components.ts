@@ -182,60 +182,67 @@ export class ManagerWebComponents {
 
   public registerOverlays() {
     this.overlay.generateBiomeOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Terrain",
       () => this.game.map.terrainMap
     );
 
     this.overlay.generateOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Magnetism",
       () => this.game.map.polesMap.magnetismMap
     );
 
     this.overlay.generateOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Temperature",
       () => this.game.map.tempMap.tempMap
     );
 
     this.overlay.generateGradientOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Temperature (blue <---> red)",
       { min: "blue", max: "red" },
       () => this.game.map.tempMap.tempMap
     );
 
     this.overlay.generateOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Moisture",
       () => this.game.map.moistureMap.moistureMap
     );
 
     this.overlay.generateOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Height",
       () => this.game.map.heightMap
     );
 
     this.overlay.generateOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Sunlight",
       () => this.game.map.shadowMap.shadowMap
     );
 
     this.overlay.generateBiomeOverlay(
-      this.game.gameSize.width,
-      this.game.gameSize.height,
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
       "Biomes",
       () => this.game.map.biomeMap
+    );
+
+    this.overlay.generateOverlay(
+      this.game.options.gameSize.width,
+      this.game.options.gameSize.height,
+      "Clouds",
+      () => this.game.map.cloudMap.targetCloudMap
     );
   }
 }

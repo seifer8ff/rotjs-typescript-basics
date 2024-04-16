@@ -1,5 +1,6 @@
 import { Color } from "rot-js";
 import { Color as ColorType } from "rot-js/lib/color";
+import Noise from "rot-js/lib/noise/noise";
 
 export function lerp(a: number, x: number, y: number): number {
   return x * (1 - a) + y * a;
@@ -99,4 +100,8 @@ export function getMapStats(
     delete stat.bucket;
   }
   return stats;
+}
+
+export function getScaledNoise(noise: Noise, x: number, y: number): number {
+  return (noise.get(x, y) + 1) / 2;
 }

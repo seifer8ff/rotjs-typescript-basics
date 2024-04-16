@@ -91,8 +91,8 @@ export class MapShadows {
     this.occlusionMap = {};
     this.targetOcclusionMap = {};
 
-    for (let i = 0; i < this.game.gameSize.width; i++) {
-      for (let j = 0; j < this.game.gameSize.height; j++) {
+    for (let i = 0; i < this.game.options.gameSize.width; i++) {
+      for (let j = 0; j < this.game.options.gameSize.height; j++) {
         this.shadowMap[MapWorld.coordsToKey(i, j)] = 1;
         this.targetShadowMap[MapWorld.coordsToKey(i, j)] = 1;
         this.occlusionMap[MapWorld.coordsToKey(i, j)] = 1;
@@ -147,7 +147,10 @@ export class MapShadows {
       this.occlusionMap,
       this.targetOcclusionMap
     );
-    this.interpolateShadowState(1);
+    this.interpolateShadowState(
+      this.game.userInterface.camera.viewportTiles,
+      1
+    );
   }
 
   public generateDropoffMaps() {
@@ -182,8 +185,8 @@ export class MapShadows {
       }
     }
 
-    for (let i = 0; i < this.game.gameSize.width; i++) {
-      for (let j = 0; j < this.game.gameSize.height; j++) {
+    for (let i = 0; i < this.game.options.gameSize.width; i++) {
+      for (let j = 0; j < this.game.options.gameSize.height; j++) {
         const key = MapWorld.coordsToKey(i, j);
         const adjacent = this.map.getAdjacent(i, j, heightLayerAdjacencyMap);
         if (adjacent) {
@@ -204,8 +207,8 @@ export class MapShadows {
         mapToUpdate[key] = this.occlusionMap[key];
       }
     }
-    for (let x = 0; x < this.game.gameSize.width; x++) {
-      for (let y = 0; y < this.game.gameSize.height; y++) {
+    for (let x = 0; x < this.game.options.gameSize.width; x++) {
+      for (let y = 0; y < this.game.options.gameSize.height; y++) {
         const key = MapWorld.coordsToKey(x, y);
         mapToUpdate[key] = this.getShadowFor(x, y, "topdown");
       }
@@ -222,7 +225,6 @@ export class MapShadows {
     }
   }
 
-  // set the shadowMap to the correct offset map depending on phase/time of day
   public updateShadowMap(calculateTarget = true, dir: "sunup" | "sundown") {
     let mapToUpdate = {};
     if (calculateTarget) {
@@ -242,29 +244,48 @@ export class MapShadows {
     }
   }
 
+  public turnUpdate() {
+    // shadow strength only changes when the time of day changes,
+    // which only changes after a turn is taken
+    this.interpolateStrength();
+    // shadow direction and length are discrete values, only update on turn change
+    this.updateShadowDirection();
+    this.updateShadowLength();
+  }
+
   public update(deltaTime: number) {
-    this.interpolateStrength(deltaTime);
-    const dir =
-      this.game.timeManager.lightPhase === LightPhase.rising ||
-      this.game.timeManager.lightPhase === LightPhase.peak
-        ? "sunup"
-        : "sundown";
+    // move towards targetShadowMap from shadowMap every frame
+    this.interpolateShadowState(
+      this.game.userInterface.camera.viewportTiles,
+      deltaTime
+    );
+  }
+
+  private updateShadowDirection() {
     if (this.oldPhase !== this.game.timeManager.lightPhase) {
       // switch direction of shadows on phase changes
       this.oldPhase = this.game.timeManager.lightPhase;
-      this.updateShadowMap(true, dir);
+      this.updateShadowMap(true, this.getShadowDir());
     }
+  }
+
+  private updateShadowLength() {
     if (this.oldShadowLength !== this.shadowLength) {
       this.oldShadowLength = this.shadowLength;
       // change length of shadow map when shadowLength changes
-      this.updateShadowMap(true, dir);
+      this.updateShadowMap(true, this.getShadowDir());
     }
-    // move towards targetShadowMap from shadowMap every frame
-    this.interpolateShadowState(deltaTime);
   }
 
-  private interpolateStrength(deltaTime: number) {
-    // shadows change length and strength by how distance to light transition rather than deltaTime
+  private getShadowDir(): "sunup" | "sundown" {
+    return this.game.timeManager.lightPhase === LightPhase.rising ||
+      this.game.timeManager.lightPhase === LightPhase.peak
+      ? "sunup"
+      : "sundown";
+  }
+
+  private interpolateStrength() {
+    // shadows change length and strength by time to light transition rather than deltaTime
     const lightTransitionPercent = this.game.timeManager.lightTransitionPercent;
     const remainingCyclePercent = this.game.timeManager.remainingCyclePercent;
     const phase = this.game.timeManager.lightPhase;
@@ -302,24 +323,22 @@ export class MapShadows {
     this.shadowStrength = Math.round(shadowStrength * 1000) / 1000;
   }
 
-  public interpolateShadowState(deltaTime: number) {
+  public interpolateShadowState(keys: string[], deltaTime: number) {
     // smoothly transition between shadowMap and targetShadowMap over time
-    // this is different from interpolateStrength because it's not based on time of day--
-    //    it has two values to transition between over whatever amount of time looks good
     let val: number;
-    // only iterate through tiles in the viewport
-    this.game.userInterface.camera.getViewportTiles().forEach((key) => {
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
       val = lerp(deltaTime * 2, this.shadowMap[key], this.targetShadowMap[key]);
       this.shadowMap[key] = val;
-    });
+    }
   }
 
   // private sortMap(
   //   map: { [key: string]: Biome },
   //   vector: Point = new Point(1, 1)
   // ): string[] {
-  //   const rows = this.game.gameSize.height;
-  //   const columns = this.game.gameSize.width;
+  //   const rows = this.game.options.gameSize.height;
+  //   const columns = this.game.options.gameSize.width;
   //   const total = columns + rows - 1;
   //   const result = [];
 
@@ -335,8 +354,8 @@ export class MapShadows {
   // }
 
   private calcSundownMap(): [number, number][][] {
-    const rows = this.game.gameSize.height;
-    const columns = this.game.gameSize.width;
+    const rows = this.game.options.gameSize.height;
+    const columns = this.game.options.gameSize.width;
     const total = columns + rows - 1;
     const result = [];
 
@@ -358,8 +377,8 @@ export class MapShadows {
   }
 
   private calcSunupMap(): [number, number][][] {
-    const rows = this.game.gameSize.height;
-    const columns = this.game.gameSize.width;
+    const rows = this.game.options.gameSize.height;
+    const columns = this.game.options.gameSize.width;
     const total = columns + rows - 1;
     const result = [];
 
@@ -491,10 +510,14 @@ export class MapShadows {
     this.shadowMap[MapWorld.coordsToKey(x, y)] = sunlightAmount;
   }
 
-  getTotalLight(x: number, y: number): number {
-    const lightFromShadows = this.shadowMap[MapWorld.coordsToKey(x, y)];
-    const lightFromOcc = this.occlusionMap[MapWorld.coordsToKey(x, y)];
-    const ambientLight = this.game.timeManager.remainingPhasePercent;
-    return lightFromShadows * ambientLight * lightFromOcc;
+  public onEnter(positions: Point[]): void {
+    // immediately update the shadow map when a tile enters the viewport
+    const dir = this.getShadowDir();
+    positions.forEach((pos) => {
+      const key = MapWorld.coordsToKey(pos.x, pos.y);
+      const lvl = this.getShadowFor(pos.x, pos.y, dir);
+      this.targetShadowMap[key] = lvl;
+      this.shadowMap[key] = lvl;
+    });
   }
 }

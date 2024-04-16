@@ -57,7 +57,7 @@ export class TimeManager {
     this.lightPhase = LightPhase.rising;
     this.isNighttime = !this.isDayTime;
 
-    if (!this.game.dayStart) {
+    if (!this.game.options.dayStart) {
       const temp = this.scheduler.add(null, false, this.dayLength);
       for (let i = 0; i < this.dayLength; i++) {
         this.scheduler.next();
