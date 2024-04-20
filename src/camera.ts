@@ -866,11 +866,7 @@ export class Camera {
     this.game.map.onTileEnterViewport(enteredTiles);
   }
 
-  // private isActor(target: any): target is Actor {
-  //   return "plan" in target && "act" in target && "position" in target;
-  // }
-
-  public update(deltaTime: number) {
+  public renderUpdate(deltaTime: number) {
     // only update viewport if:
     // zoom/scale change
     // pivot change
@@ -935,22 +931,6 @@ export class Camera {
       } else {
         this.ui.gameDisplay.stage.pivot.set(targetPos.x, targetPos.y);
         this.viewportTarget = null;
-      }
-    }
-    if (this.pointerTarget) {
-      this.game.renderer.clearLayer(Layer.UI, true);
-      if (isActor(this.pointerTarget.target)) {
-        this.game.renderer.addToScene(
-          this.pointerTarget.target.position,
-          Layer.UI,
-          "ui_tile_select"
-        );
-      } else {
-        this.game.renderer.addToScene(
-          this.pointerTarget.position,
-          Layer.UI,
-          "ui_tile_select"
-        );
       }
     }
   }

@@ -6,6 +6,18 @@ export function lerp(a: number, x: number, y: number): number {
   return x * (1 - a) + y * a;
 }
 
+export function lerpEaseIn(t: number, start: number, end: number) {
+  return start + (end - start) * t * t;
+}
+
+export function lerpEaseOut(t: number, start: number, end: number) {
+  return start + (end - start) * (1 - (1 - t) * (1 - t));
+}
+
+export function lerpEaseInOut(t: number, start: number, end: number) {
+  return start + (end - start) * (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+}
+
 export function inverseLerp(a: number, x: number, y: number): number {
   return (a - x) / (y - x);
 }

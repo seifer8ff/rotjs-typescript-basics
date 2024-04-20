@@ -123,7 +123,12 @@ export class Person implements Actor {
 
   private canPathTo(x: number, y: number): boolean {
     const distanceFromTarget = this.position.manhattanDistance(new Point(x, y));
-    return distanceFromTarget <= this.range && !this.game.isMapBlocked(x, y);
+    return (
+      distanceFromTarget <= this.range &&
+      !this.game.isMapBlocked(x, y) &&
+      (this.game.isOccupiedBySelf(x, y, this) ||
+        !this.game.isOccupiedByEntity(x, y))
+    );
   }
 
   private pathTo(target: Point) {

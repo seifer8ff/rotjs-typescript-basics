@@ -205,6 +205,11 @@ export class MapClouds {
         this.sunbeamMaxLevel,
         1
       ); // prevent sunbeams from flickering
+    } else if (phase === LightPhase.peak) {
+      // smoothly fade between 0 and 1 repeatedly, in a wave
+      // const wave = Math.sin(remainingCyclePercent * Math.PI);
+      // cloudStrength = lerp(wave, 0.95, 1);
+      // sunbeamStrength = lerp(wave, 1, this.sunbeamMaxLevel);
     } else if (phase === LightPhase.setting) {
       remainingLightTransitionPercent =
         remainingCyclePercent / lightTransitionPercent;
@@ -237,7 +242,6 @@ export class MapClouds {
   }
 
   onEnter(positions: Point[]): void {
-    // console.log("onEnter");
     positions.forEach((pos) => {
       const key = MapWorld.coordsToKey(pos.x, pos.y);
       const val = this.calcCloudsFor(pos);

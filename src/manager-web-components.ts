@@ -162,7 +162,10 @@ export class ManagerWebComponents {
     ]);
   }
 
-  public setSideMenuVisible(visible: boolean, includeToggle: boolean): void {
+  public setSideMenuVisible(
+    visible: boolean,
+    includeToggle: boolean = false
+  ): void {
     if (this.sideMenu) {
       this.sideMenu.setVisible(visible, includeToggle);
     }

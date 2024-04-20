@@ -12,7 +12,7 @@ import { Tile, TileType } from "./tile";
 import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
 import { Animal } from "./entities/animal";
-import { Renderer } from "./renderer";
+import { Layer, Renderer } from "./renderer";
 import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
@@ -21,6 +21,7 @@ import { BiomeId, Biomes } from "./biomes";
 import { TileStats } from "./web-components/tile-info";
 import Simplex from "rot-js/lib/noise/simplex";
 import Noise from "rot-js/lib/noise/noise";
+import { ManagerAnimation } from "./manager-animation";
 
 export class Game {
   // starting options
@@ -29,14 +30,17 @@ export class Game {
     shouldRender: true,
     showClouds: true,
     animateShadows: true,
-    entityCount: 20,
+    entityCount: 50,
     treeCount: 50,
     gameSize: {
       width: 200,
       height: 200,
     },
     dayStart: true,
-    gameSeed: 1234,
+    // gameSeed: 1234,
+    // gameSeed: 610239,
+    gameSeed: null,
+    maxTurnDelay: 96,
   };
   public noise: Noise;
   public map: MapWorld;
@@ -45,6 +49,7 @@ export class Game {
   public plants: Actor[];
   public gameState: GameState;
   public renderer: Renderer;
+  public animManager: ManagerAnimation;
   public timeManager: TimeManager;
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
@@ -62,14 +67,16 @@ export class Game {
 
   constructor() {
     if (this.options.gameSeed == undefined) {
-      this.options.gameSeed = RNG.getUniform() * 1000000;
+      this.options.gameSeed = Math.floor(RNG.getUniform() * 1000000);
     }
     RNG.setSeed(this.options.gameSeed);
-    this.noise = new Simplex(this.options.gameSeed);
+    console.log("Game seed:", this.options.gameSeed);
+    this.noise = new Simplex();
     this.entities = [];
     this.plants = [];
 
     this.timeManager = new TimeManager(this);
+    this.animManager = new ManagerAnimation(this);
     this.userInterface = new UserInterface(this);
     this.gameState = new GameState();
     this.map = new MapWorld(this);
@@ -98,6 +105,10 @@ export class Game {
     return this.entities.some(
       (entity) => entity.position.x === x && entity.position.y === y
     );
+  }
+
+  isOccupiedBySelf(x: number, y: number, actor: Actor): boolean {
+    return actor.position.x === x && actor.position.y === y;
   }
 
   isBlocked(x: number, y: number): boolean {
@@ -224,14 +235,23 @@ export class Game {
             break;
           }
         }
+
         this.map.lightManager.clearLightMap();
         this.map.lightManager.interpolateAmbientLight();
+
         this.map.shadowMap.turnUpdate();
         this.map.cloudMap.turnUpdate();
         // update dynamic lights after all actors have moved
         // will get picked up in next render
         this.map.lightManager.clearChangedDynamicLights();
         this.map.lightManager.updateDynamicLighting();
+        // console.log(
+        //   "gameDelay",
+        //   this.options.maxTurnDelay / this.timeManager.timeScale
+        // );
+        await Game.delay(
+          this.options.maxTurnDelay / this.timeManager.timeScale
+        );
       }
 
       if (this.gameState.isGameOver()) {
@@ -256,12 +276,14 @@ export class Game {
 
     if (elapsed > this.msPerFrame) {
       // console.log("rendering");
-      this.userInterface.camera.update(deltaTime);
-      this.map.shadowMap.update(deltaTime);
+      this.userInterface.camera.renderUpdate(deltaTime);
+      this.map.shadowMap.renderUpdate(deltaTime);
       this.map.cloudMap.renderUpdate(deltaTime);
-      this.map.lightManager.calculateLighting(deltaTime);
+      this.map.lightManager.renderUpdate(deltaTime);
 
-      this.userInterface.refreshPanel();
+      this.animManager.animUpdate(deltaTime);
+
+      this.userInterface.renderUpdate(deltaTime);
       this.lastRenderTime = now;
     }
   }
@@ -304,34 +326,59 @@ export class Game {
 
   private generateBeings(): void {
     this.entities = [];
-    let positions = this.map.getRandomTilePositions(
-      Biomes.Biomes.moistdirt.id,
-      this.options.entityCount
-    );
+    let entityQuarter = Math.ceil(this.options.entityCount / 4);
+    let positions = [];
+    if (this.options.entityCount < 4) {
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.moistdirt.id,
+          this.options.entityCount
+        )
+      );
+    } else {
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.moistdirt.id,
+          entityQuarter * 2
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.hillshigh.id,
+          entityQuarter
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.hillslow.id,
+          entityQuarter
+        )
+      );
+    }
+
     console.log("got positions", positions);
     // this.player = new Player(this, positions.splice(0, 1)[0]);
     for (let position of positions) {
-      // this.entities.push(new Animal(this, position));
-      if (RNG.getUniform() < 0.5) {
-        this.entities.push(new Person(this, position));
-      } else {
-        this.entities.push(new Animal(this, position));
-      }
-    }
-    for (let entity of this.entities) {
-      this.timeManager.addToSchedule(entity, true);
+      this.spawnRandomEntity(position);
     }
     this.userInterface.components.updateSideBarContent(
       "Entities",
       this.entities
     );
-    // const entityMenuItems = this.entities.map((entity) => {
-    //   return this.userInterface.components.mapEntityToMenuItem(entity);
-    // });
-    // this.userInterface.components.sideMenu.setTabContent(
-    //   "Entities",
-    //   entityMenuItems
-    // );
+  }
+
+  private spawnRandomEntity(pos: Point): Actor {
+    let entity: Actor;
+    if (RNG.getUniform() < 0.5) {
+      entity = new Person(this, pos);
+      // entity = new Animal(this, pos);
+    } else {
+      entity = new Animal(this, pos);
+    }
+    this.entities.push(entity);
+    this.timeManager.addToSchedule(entity, true);
+    this.renderer.addToScene(entity.position, Layer.ENTITY, entity.tile.sprite);
+    return entity;
   }
 
   // checkBox(x: number, y: number): void {

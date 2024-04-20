@@ -42,7 +42,7 @@ export class Renderer {
     height: number,
     viewportCenterTile: Point
   ): void {
-    this.clearScene();
+    this.clearLayers(layers);
     const lightMap = this.game.map.lightManager.lightMap;
     const sunMap = this.game.map.shadowMap.shadowMap;
     const occlusionMap = this.game.map.shadowMap.occlusionMap;
@@ -142,6 +142,13 @@ export class Renderer {
     this.spriteCache[layer][`${position.x},${position.y}`] = pixiSprite;
   }
 
+  // update a sprites position in the cache, to be rendered on the next render pass
+  updateSpritePosition(oldPos: Point, newPos: Point, layer: Layer): void {
+    this.spriteCache[layer][`${newPos.x},${newPos.y}`] =
+      this.spriteCache[layer][`${oldPos.x},${oldPos.y}`];
+    this.spriteCache[layer][`${oldPos.x},${oldPos.y}`] = null;
+  }
+
   // remove the sprite from the cache and from the scene, immediately
   removeFromScene(
     position: Point,
@@ -194,6 +201,12 @@ export class Renderer {
     this.clearLayer(Layer.UI, clearCache);
   }
 
+  clearLayers(layers: Layer[], clearCache = false): void {
+    for (let layer of layers) {
+      this.clearLayer(layer, clearCache);
+    }
+  }
+
   clearLayer(layer: Layer, clearCache = false): void {
     if (clearCache) {
       this.spriteCache[layer] = {};
@@ -214,5 +227,28 @@ export class Renderer {
         this.uiLayer.removeChildren();
       }
     }
+  }
+
+  // move a sprites position on the screen, but leave its tile position unchanged
+  moveSpriteTransform(
+    tileKey: string,
+    layer: Layer,
+    x: number,
+    y: number
+  ): void {
+    const sprite = this.spriteCache[layer][tileKey];
+    if (sprite) {
+      sprite.transform.position.x = x;
+      sprite.transform.position.y = y;
+    }
+  }
+
+  getSpriteTransformPosition(tilePos: Point, layer: Layer): [number, number] {
+    const sprite =
+      this.spriteCache[layer][MapWorld.coordsToKey(tilePos.x, tilePos.y)];
+    if (sprite) {
+      return [sprite.transform.position.x, sprite.transform.position.y];
+    }
+    return null;
   }
 }
