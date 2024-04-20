@@ -1001,13 +1001,21 @@ export class MapWorld {
     this.dirtyTiles.push(MapWorld.coordsToKey(x, y));
   }
 
-  getRandomTilePositions(biomeType: BiomeId, quantity: number = 1): Point[] {
+  getRandomTilePositions(
+    biomeType: BiomeId,
+    quantity: number = 1,
+    onlyPassable = true
+  ): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
     for (let key in this.tileMap) {
-      // console.log("this.map[key]", key, this.map[key]);
+      // this goes through every single tile
+      // DONT ADD UNNECESSARY CODE TO THE OUTER LOOP
       if (this.tileMap[key].biomeId === biomeType) {
-        buffer.push(MapWorld.keyToPoint(key));
+        const pos = MapWorld.keyToPoint(key);
+        if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
+          buffer.push(pos);
+        }
       }
     }
 

@@ -10,6 +10,7 @@ import { Layer } from "./renderer";
 import { Camera } from "./camera";
 
 import { ManagerWebComponents } from "./manager-web-components";
+import { isActor } from "./entities/actor";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -32,8 +33,12 @@ export class UserInterface {
   private actionLogPosition: Point;
   private maximumBoxes = 10;
   private fontSize = 20;
+  private sprites: { [key: string]: string };
 
   constructor(private game: Game) {
+    this.sprites = {
+      selectionBox: "ui_tile_select",
+    };
     this.statusLinePosition = new Point(0, 0);
     this.actionLogPosition = new Point(0, 3);
     this.components = new ManagerWebComponents(game, this);
@@ -128,15 +133,34 @@ export class UserInterface {
     return code === KEYS.VK_SPACE || code === KEYS.VK_RETURN;
   }
 
-  refreshPanel(): void {
+  renderUpdate(deltaTime: number): void {
     // this.textDisplay.clear();
     this.game.map.draw();
     // this.statusLine.draw();
     // this.messageLog.draw();
     this.components.updateTimeControl();
     const viewportInTiles = this.camera.viewport;
+    // update
     this.drawPlants();
-    this.drawEntities();
+
+    if (this.camera.pointerTarget) {
+      this.game.renderer.clearLayer(Layer.UI, true);
+      if (isActor(this.camera.pointerTarget.target)) {
+        this.game.renderer.addToScene(
+          this.camera.pointerTarget.target.position,
+          Layer.UI,
+          this.sprites.selectionBox
+        );
+      } else {
+        this.game.renderer.addToScene(
+          this.camera.pointerTarget.position,
+          Layer.UI,
+          this.sprites.selectionBox
+        );
+      }
+    }
+
+    // render the entire scene, including UI layers, LAST
     this.game.renderer.renderLayers(
       [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
       viewportInTiles.width,
@@ -152,17 +176,6 @@ export class UserInterface {
         plant.position,
         Layer.PLANT,
         plant.tile.sprite
-      );
-    }
-  }
-
-  private drawEntities(): void {
-    this.game.renderer.clearLayer(Layer.ENTITY, true);
-    for (let entity of this.game.entities) {
-      this.game.renderer.addToScene(
-        entity.position,
-        Layer.ENTITY,
-        entity.tile.sprite
       );
     }
   }

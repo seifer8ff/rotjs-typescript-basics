@@ -33,7 +33,7 @@ export class LightManager {
       mediumLight: [230, 230, 230],
       sunlight: [255, 255, 255],
       yellowLight: [255, 240, 230],
-      blueLight: [40, 40, 100],
+      blueLight: [65, 65, 110],
       moonlight: [90, 90, 150],
       ambientDaylight: [100, 100, 100],
       ambientSunset: [250, 205, 160],
@@ -130,7 +130,7 @@ export class LightManager {
     if (!tile) {
       return false;
     }
-    if (ImpassibleLightBorder.includes(tile.biomeId)) {
+    if (!this.map.isPassable(x, y)) {
       return false;
     }
 
@@ -191,7 +191,7 @@ export class LightManager {
     );
   }
 
-  public calculateLighting(deltaTime: number) {
+  public renderUpdate(deltaTime: number) {
     // Interpolate the light state before computing the lighting
     this.interpolateLightState(deltaTime);
     this.lightEmitters.compute(this.lightingCallback.bind(this));
