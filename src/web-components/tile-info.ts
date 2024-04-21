@@ -168,7 +168,7 @@ export class TileInfo extends HTMLElement {
 
     if (isActor(target.target)) {
       this.label.textContent = `${target.target.name}`;
-      cachedSprite = getCachedTile(target.target.tile.sprite);
+      cachedSprite = getCachedTile(target.target.tile.spritePath);
       this.avatar.style.transform =
         "translateX(25%) translateY(25%) scale(1.5)";
     }
@@ -176,7 +176,7 @@ export class TileInfo extends HTMLElement {
     if (target.target instanceof Tile) {
       const biome = Biomes.Biomes[target.target.biomeId];
       this.label.textContent = `${biome.name}`;
-      cachedSprite = getCachedTile(target.target.sprite);
+      cachedSprite = getCachedTile(target.target.spritePath);
       this.avatar.style.transform = "translateX(0%) translateY(0%) scale(1)";
     }
 

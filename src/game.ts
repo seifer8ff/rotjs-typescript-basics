@@ -1,6 +1,4 @@
-import { Scheduler, KEYS, RNG } from "rot-js/lib/index";
-import Simple from "rot-js/lib/scheduler/simple";
-
+import { RNG } from "rot-js/lib/index";
 import { Player } from "./entities/player";
 import { Point } from "./point";
 import { Shrub } from "./entities/shrub";
@@ -13,7 +11,6 @@ import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
 import { Animal } from "./entities/animal";
 import { Layer, Renderer } from "./renderer";
-import Action from "rot-js/lib/scheduler/action";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
 import { GeneratorNames } from "./generator-names";
@@ -22,6 +19,7 @@ import { TileStats } from "./web-components/tile-info";
 import Simplex from "rot-js/lib/noise/simplex";
 import Noise from "rot-js/lib/noise/noise";
 import { ManagerAnimation } from "./manager-animation";
+import { clamp } from "rot-js/lib/util";
 
 export class Game {
   // starting options
@@ -30,7 +28,7 @@ export class Game {
     shouldRender: true,
     showClouds: true,
     animateShadows: true,
-    entityCount: 50,
+    entityCount: 5,
     treeCount: 50,
     gameSize: {
       width: 200,
@@ -40,7 +38,13 @@ export class Game {
     // gameSeed: 1234,
     // gameSeed: 610239,
     gameSeed: null,
-    maxTurnDelay: 96,
+    turnAnimDelay: 500, // two turns per second (1 second / 500ms anim phase = 2)
+    mainLoopRate: 1000 / 60, // run main loop at 60 fps (all other loops are lower than this)
+    refreshRate: 1000 / 60, // 60 fps
+    gameLoopRate: 1000 / 10, // how many times to run the game loop (still limited by turnAnimDelay)
+    uiLoopRate: 1000 / 10,
+    maxTickRate: 1000 / 60, // 60 game updates per second max
+    minTickRate: 1000 / 4, // 2 game updates per second min
   };
   public noise: Noise;
   public map: MapWorld;
@@ -53,17 +57,11 @@ export class Game {
   public timeManager: TimeManager;
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
-
-  private treePoint: Point;
-
+  private lastMainLoopTime: number;
   private lastRenderTime: number;
-  private msPerFrame: number = 1000 / 60; // desired interval is 60fps
-
   private lastuiRefreshTime: number;
-  private msPerUiRefresh: number = 1000 / 2; // desired interval is 1000 ms / runs per second
-
   private lastGameLoopTime: number;
-  private msPerLoop: number = 1000 / 2; // desired interval is 1000 ms / runs per second
+  private gameLoopDelay: number = 0; // how long to delay the game loop for (like when animations are playing)
 
   constructor() {
     if (this.options.gameSeed == undefined) {
@@ -90,11 +88,7 @@ export class Game {
   }
 
   public start() {
-    requestAnimationFrame(this.gameLoop.bind(this));
-    if (this.options.shouldRender) {
-      requestAnimationFrame(this.renderLoop.bind(this));
-      requestAnimationFrame(this.uiRefresh.bind(this));
-    }
+    requestAnimationFrame(this.mainLoop.bind(this));
   }
 
   isMapBlocked(x: number, y: number): boolean {
@@ -112,7 +106,11 @@ export class Game {
   }
 
   isBlocked(x: number, y: number): boolean {
-    return this.isMapBlocked(x, y);
+    return (
+      this.isMapBlocked(x, y) ||
+      this.isOccupiedByPlant(x, y) ||
+      this.isOccupiedByEntity(x, y)
+    );
   }
 
   isOccupiedByPlant(x: number, y: number): boolean {
@@ -210,82 +208,119 @@ export class Game {
     return true;
   }
 
-  private async gameLoop(now: number) {
+  private async mainLoop(now: number) {
+    if (!this.lastMainLoopTime) {
+      this.lastMainLoopTime = now;
+    }
     if (!this.lastGameLoopTime) {
       this.lastGameLoopTime = now;
     }
-    const elapsed = now - this.lastGameLoopTime;
-
-    if (elapsed > this.msPerLoop / this.timeManager.timeScale) {
-      const turn = this.timeManager.currentTurn;
-      let actor: Actor;
-      if (!this.timeManager.isPaused) {
-        // loop through ALL actors each turn
-        while (turn === this.timeManager.currentTurn) {
-          actor = this.timeManager.nextOnSchedule();
-          if (actor) {
-            // console.log("about to actor.plan", actor);
-            actor.plan();
-            if (actor.action) {
-              this.timeManager.setDuration(actor.action.durationInTurns);
-              await actor.act();
-            }
-          } else {
-            console.log("ERROR: no actor found in game loop");
-            break;
-          }
-        }
-
-        this.map.lightManager.clearLightMap();
-        this.map.lightManager.interpolateAmbientLight();
-
-        this.map.shadowMap.turnUpdate();
-        this.map.cloudMap.turnUpdate();
-        // update dynamic lights after all actors have moved
-        // will get picked up in next render
-        this.map.lightManager.clearChangedDynamicLights();
-        this.map.lightManager.updateDynamicLighting();
-        // console.log(
-        //   "gameDelay",
-        //   this.options.maxTurnDelay / this.timeManager.timeScale
-        // );
-        await Game.delay(
-          this.options.maxTurnDelay / this.timeManager.timeScale
-        );
-      }
-
-      if (this.gameState.isGameOver()) {
-        await InputUtility.waitForInput(
-          this.userInterface.HandleInputConfirm.bind(this)
-        );
-        await this.initializeGame();
-      }
-      this.lastGameLoopTime = now;
-    }
-    requestAnimationFrame(this.gameLoop.bind(this));
-  }
-
-  private async renderLoop(now: number) {
-    requestAnimationFrame(this.renderLoop.bind(this));
-
     if (!this.lastRenderTime) {
       this.lastRenderTime = now;
     }
+    if (!this.lastuiRefreshTime) {
+      this.lastuiRefreshTime = now;
+    }
+    let elapsed = now - this.lastMainLoopTime;
+
+    // only check loops during mainLoop updates to prevent excessive calls
+    if (elapsed > this.options.mainLoopRate) {
+      if (this.options.shouldRender) {
+        elapsed = now - this.lastRenderTime;
+        if (elapsed > this.options.refreshRate) {
+          if (this.gameLoopDelay > 0 && !this.timeManager.isPaused) {
+            this.gameLoopDelay -= elapsed * this.timeManager.timeScale;
+          }
+          if (this.gameLoopDelay < 0) {
+            this.gameLoopDelay = 0;
+          }
+          await this.renderLoop(now);
+          this.lastRenderTime = now;
+        }
+      }
+
+      elapsed = now - this.lastuiRefreshTime;
+      if (elapsed > this.options.uiLoopRate) {
+        await this.uiRefresh(now);
+        this.lastuiRefreshTime = now;
+      }
+
+      if (!this.timeManager.isPaused) {
+        elapsed = now - this.lastGameLoopTime;
+        // number of game loop ticks increase at higher speeds to prevent waiting on game loop
+        // otherwise, animations finish before the next actor action is ready
+        const scaledLoopRate = clamp(
+          this.options.gameLoopRate / this.timeManager.timeScale,
+          this.options.maxTickRate,
+          this.options.minTickRate
+        );
+        if (elapsed > scaledLoopRate) {
+          if (this.gameLoopDelay <= 0) {
+            this.gameLoopDelay = 0;
+            await this.gameLoop();
+            this.gameLoopDelay = this.options.turnAnimDelay;
+            this.timeManager.startTurnAnimation();
+          }
+          this.lastGameLoopTime = now;
+        }
+      }
+    }
+
+    this.lastMainLoopTime = now;
+    requestAnimationFrame(this.mainLoop.bind(this));
+  }
+
+  private async gameLoop() {
+    const turn = this.timeManager.currentTurn;
+    let actor: Actor;
+    // loop through ALL actors each turn
+    while (turn === this.timeManager.currentTurn) {
+      actor = this.timeManager.nextOnSchedule();
+      if (actor) {
+        actor.plan();
+        if (actor.action) {
+          this.timeManager.setDuration(actor.action.durationInTurns);
+          await actor.act();
+        }
+      } else {
+        console.log("ERROR: no actor found in game loop");
+        break;
+      }
+    }
+
+    this.map.lightManager.clearLightMap();
+    this.map.lightManager.interpolateAmbientLight();
+
+    this.map.shadowMap.turnUpdate();
+    this.map.cloudMap.turnUpdate();
+    // update dynamic lights after all actors have moved
+    // will get picked up in next render
+    this.map.lightManager.clearChangedDynamicLights();
+    this.map.lightManager.updateDynamicLighting();
+
+    if (this.gameState.isGameOver()) {
+      await InputUtility.waitForInput(
+        this.userInterface.HandleInputConfirm.bind(this)
+      );
+      await this.initializeGame();
+    }
+  }
+
+  private async renderLoop(now: number) {
     const elapsed = now - this.lastRenderTime;
     const deltaTime = elapsed / 1000; // time elapsed in seconds
 
-    if (elapsed > this.msPerFrame) {
-      // console.log("rendering");
-      this.userInterface.camera.renderUpdate(deltaTime);
-      this.map.shadowMap.renderUpdate(deltaTime);
-      this.map.cloudMap.renderUpdate(deltaTime);
-      this.map.lightManager.renderUpdate(deltaTime);
+    this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay);
 
-      this.animManager.animUpdate(deltaTime);
+    // console.log("rendering");
+    this.userInterface.camera.renderUpdate(deltaTime);
+    this.map.shadowMap.renderUpdate(deltaTime);
+    this.map.cloudMap.renderUpdate(deltaTime);
+    this.map.lightManager.renderUpdate(deltaTime);
 
-      this.userInterface.renderUpdate(deltaTime);
-      this.lastRenderTime = now;
-    }
+    this.animManager.animUpdate(deltaTime);
+
+    this.userInterface.renderUpdate(deltaTime);
   }
 
   private async uiRefresh(now: number) {
@@ -297,7 +332,7 @@ export class Game {
     const elapsed = now - this.lastuiRefreshTime;
     const deltaTime = elapsed / 1000; // time elapsed in seconds
 
-    if (elapsed > this.msPerUiRefresh) {
+    if (elapsed > this.options.uiLoopRate) {
       // loop through all ui components and run a refresh on them
       this.userInterface.components.refreshComponents();
       this.lastuiRefreshTime = now;
@@ -313,7 +348,6 @@ export class Game {
     for (let position of positions) {
       this.plants.push(new Shrub(this, position));
     }
-    this.treePoint = positions[0];
   }
 
   private generatePlayer(): void {
@@ -377,7 +411,11 @@ export class Game {
     }
     this.entities.push(entity);
     this.timeManager.addToSchedule(entity, true);
-    this.renderer.addToScene(entity.position, Layer.ENTITY, entity.tile.sprite);
+    this.renderer.addToScene(
+      entity.position,
+      Layer.ENTITY,
+      entity.tile.spritePath
+    );
     return entity;
   }
 

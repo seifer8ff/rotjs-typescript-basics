@@ -147,10 +147,7 @@ export class MapShadows {
       this.occlusionMap,
       this.targetOcclusionMap
     );
-    this.interpolateShadowState(
-      this.game.userInterface.camera.viewportTiles,
-      1
-    );
+    this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
   }
 
   public generateDropoffMaps() {
@@ -255,10 +252,7 @@ export class MapShadows {
 
   public renderUpdate(deltaTime: number) {
     // move towards targetShadowMap from shadowMap every frame
-    this.interpolateShadowState(
-      this.game.userInterface.camera.viewportTiles,
-      deltaTime
-    );
+    this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
   }
 
   private updateShadowDirection() {
@@ -323,12 +317,14 @@ export class MapShadows {
     this.shadowStrength = Math.round(shadowStrength * 1000) / 1000;
   }
 
-  public interpolateShadowState(keys: string[], deltaTime: number) {
+  public interpolateShadowState(keys: string[]) {
     // smoothly transition between shadowMap and targetShadowMap over time
     let val: number;
+    const progress = this.game.timeManager.turnAnimTimePercent;
+    // console.log(progress);
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
-      val = lerp(deltaTime * 2, this.shadowMap[key], this.targetShadowMap[key]);
+      val = lerp(progress, this.shadowMap[key], this.targetShadowMap[key]);
       this.shadowMap[key] = val;
     }
   }

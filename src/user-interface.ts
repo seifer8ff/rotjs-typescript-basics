@@ -175,7 +175,7 @@ export class UserInterface {
       this.game.renderer.addToScene(
         plant.position,
         Layer.PLANT,
-        plant.tile.sprite
+        plant.tile.spritePath
       );
     }
   }

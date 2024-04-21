@@ -1090,7 +1090,7 @@ export class MapWorld {
         this.game.renderer.addToScene(
           MapWorld.keyToPoint(key),
           Layer.TERRAIN,
-          tile.sprite
+          tile.spritePath
         );
       }
     }

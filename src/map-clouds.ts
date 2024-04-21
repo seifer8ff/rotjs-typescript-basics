@@ -184,7 +184,7 @@ export class MapClouds {
   }
 
   public renderUpdate(deltaTime: number) {
-    this.interpolateCloudState(deltaTime);
+    this.interpolateCloudState();
   }
 
   private interpolateStrength() {
@@ -224,11 +224,15 @@ export class MapClouds {
     this.sunbeamStrength = Math.round(sunbeamStrength * 1000) / 1000;
   }
 
-  public interpolateCloudState(deltaTime: number) {
+  public interpolateCloudState() {
     let val: number;
     // only iterate through tiles in the viewport
     this.game.userInterface.camera.viewportTiles.forEach((key) => {
-      val = lerp(deltaTime * 10, this.cloudMap[key], this.targetCloudMap[key]);
+      val = lerp(
+        this.game.timeManager.turnAnimTimePercent,
+        this.cloudMap[key],
+        this.targetCloudMap[key]
+      );
       this.cloudMap[key] = val;
     });
   }

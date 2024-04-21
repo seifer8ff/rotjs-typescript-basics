@@ -53,7 +53,7 @@ export class LightManager {
     this.interpolateAmbientLight(false); // initial
     this.interpolateAmbientLight(true); // target
 
-    this.interpolateLightState(1);
+    this.interpolateLightState();
     this.lightingFov = new PreciseShadowcasting(this.lightPasses.bind(this), {
       topology: 8,
     });
@@ -181,19 +181,20 @@ export class LightManager {
     }
   }
 
-  public interpolateLightState(deltaTime: number) {
+  public interpolateLightState() {
+    const progress = this.game.timeManager.turnAnimTimePercent;
     // Interpolate between the current light state and the target light state based on
-    // how much time has passed since the last frame
+    // the progress from start to this.game.options.maxTurnDelay
     this.ambientLight = Color.lerp(
       this.ambientLight,
       this.targetAmbientLight,
-      deltaTime
+      progress
     );
   }
 
   public renderUpdate(deltaTime: number) {
     // Interpolate the light state before computing the lighting
-    this.interpolateLightState(deltaTime);
+    this.interpolateLightState();
     this.lightEmitters.compute(this.lightingCallback.bind(this));
   }
 

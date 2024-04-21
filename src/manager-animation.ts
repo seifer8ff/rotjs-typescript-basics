@@ -9,10 +9,8 @@ export interface Animation {
   id: number;
   actor: Actor;
   tileKey: string;
-  action: string;
+  action: "move";
   turnDuration: number;
-  start: number;
-  end: number;
 }
 
 export interface AnimationOptions {
@@ -58,8 +56,6 @@ export class ManagerAnimation {
       newPos: newPos,
       action: "move",
       turnDuration: 1,
-      start: Date.now(),
-      end: Date.now() + this.game.options.maxTurnDelay,
     };
     this.animations.push(animation);
   }
@@ -68,12 +64,10 @@ export class ManagerAnimation {
     const newPos = animation.newPos;
     const oldPos = animation.oldPos;
     if (oldPos && newPos) {
-      // lerp between old and new pos based on time
-      const timeElapsed = Date.now() - animation.start;
-      const timeTotal = animation.end - animation.start;
-      let percent = (timeElapsed / timeTotal) * this.game.timeManager.timeScale;
+      // let percent = (timeElapsed / timeTotal) * this.game.timeManager.timeScale;
+      let percent = this.game.timeManager.turnAnimTimePercent;
 
-      if (percent > 1) {
+      if (percent >= 1) {
         percent = 1;
         this.animations = this.animations.filter((a) => a.id !== animation.id);
       }
@@ -93,7 +87,7 @@ export class ManagerAnimation {
         y = lerpEaseInOut(percent, oldPos[1], newPos[1]);
       }
 
-      this.game.renderer.moveSpriteTransform(
+      this.game.renderer.moveCachedSpriteTransform(
         animation.tileKey,
         Layer.ENTITY,
         x,

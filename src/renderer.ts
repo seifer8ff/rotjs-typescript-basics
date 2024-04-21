@@ -3,9 +3,7 @@ import { Game } from "./game";
 import { Point } from "./point";
 import { Tile } from "./tile";
 import { Color } from "rot-js";
-import { Color as ColorType } from "rot-js/lib/color";
-import { HeightLayer, MapWorld } from "./map-world";
-import { adjustRgbSaturation, rgbToGrayscale } from "./misc-utility";
+import { MapWorld } from "./map-world";
 export enum Layer {
   TERRAIN,
   PLANT,
@@ -143,10 +141,11 @@ export class Renderer {
   }
 
   // update a sprites position in the cache, to be rendered on the next render pass
-  updateSpritePosition(oldPos: Point, newPos: Point, layer: Layer): void {
-    this.spriteCache[layer][`${newPos.x},${newPos.y}`] =
-      this.spriteCache[layer][`${oldPos.x},${oldPos.y}`];
-    this.spriteCache[layer][`${oldPos.x},${oldPos.y}`] = null;
+  updateSpriteCachePosition(oldPos: Point, newPos: Point, layer: Layer): void {
+    const newKey = MapWorld.coordsToKey(newPos.x, newPos.y);
+    const oldKey = MapWorld.coordsToKey(oldPos.x, oldPos.y);
+    this.spriteCache[layer][newKey] = this.spriteCache[layer][oldKey];
+    this.spriteCache[layer][oldKey] = null;
   }
 
   // remove the sprite from the cache and from the scene, immediately
@@ -230,7 +229,7 @@ export class Renderer {
   }
 
   // move a sprites position on the screen, but leave its tile position unchanged
-  moveSpriteTransform(
+  moveCachedSpriteTransform(
     tileKey: string,
     layer: Layer,
     x: number,
@@ -247,7 +246,7 @@ export class Renderer {
     const sprite =
       this.spriteCache[layer][MapWorld.coordsToKey(tilePos.x, tilePos.y)];
     if (sprite) {
-      return [sprite.transform.position.x, sprite.transform.position.y];
+      return [sprite.x, sprite.y];
     }
     return null;
   }

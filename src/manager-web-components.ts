@@ -128,7 +128,7 @@ export class ManagerWebComponents {
   public mapEntityToMenuItem(entity: Actor): MenuItem {
     return {
       id: `${entity.id}`,
-      icon: getCachedTile(entity.tile.sprite),
+      icon: getCachedTile(entity.tile.spritePath),
       clickHandler: () => {
         console.log(`clicked on ${entity.id}`);
         this.ui.camera.setPointerTarget(entity.position, entity, true);

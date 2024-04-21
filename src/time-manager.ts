@@ -13,8 +13,8 @@ export enum Season {
 export class TimeManager {
   private scheduler: Action;
   public timeScale: number;
-  public turnDelayInMs: number; // how long to wait between turns
   public isPaused: boolean;
+  public turnAnimTimePercent: number;
 
   // time values are in turns
   public maxTimeScale: number;
@@ -38,6 +38,7 @@ export class TimeManager {
   public remainingPhasePercent: number; // how much time left before light phase changes. expressed as decimal
 
   constructor(private game: Game) {
+    this.turnAnimTimePercent = 0;
     this.scheduler = new Action();
     this.isPaused = false;
 
@@ -76,9 +77,18 @@ export class TimeManager {
     return this.scheduler.add(actor, repeat, initialTimeDelay);
   }
 
+  public renderUpdate(deltaTime: number, remainingAnimDelay: number) {
+    this.calculateTurnPercent(remainingAnimDelay);
+  }
+
   public nextOnSchedule(): Actor {
     this.calculateCurrentTime();
     return this.scheduler.next();
+  }
+
+  public calculateTurnPercent(remainingAnimDelay: number): void {
+    const timeTotal = this.game.options.turnAnimDelay;
+    this.turnAnimTimePercent = (timeTotal - remainingAnimDelay) / timeTotal;
   }
 
   public calculateCurrentTime(): void {
@@ -151,5 +161,10 @@ export class TimeManager {
     } else {
       this.isPaused = false;
     }
+  }
+
+  public startTurnAnimation(): void {
+    // reset turn time
+    this.turnAnimTimePercent = 0;
   }
 }

@@ -8,6 +8,7 @@ import SunIcon from "./shoelace/assets/icons/brightness-high.svg";
 import MagnetIcon from "./shoelace/assets/icons/magnet.svg";
 import HeightIcon from "./shoelace/assets/icons/arrow-up-short.svg";
 import { PointerTarget } from "./camera";
+import { Sprite } from "pixi.js";
 
 // high level types
 export const enum TileType {
@@ -46,7 +47,7 @@ export class Tile {
 
   constructor(
     public readonly type: TileType,
-    public readonly sprite: string,
+    public readonly spritePath: string,
     public readonly color: string,
     public readonly biomeId?: BiomeId
   ) {}

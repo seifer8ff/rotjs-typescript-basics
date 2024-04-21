@@ -132,7 +132,6 @@ export class Camera {
         position: target.position,
         target: target,
       };
-      console.log("about to select entity in menu");
       this.ui.components.sideMenu.setEntityTarget(target);
       if (viewportTarget) {
         this.viewportTarget = target;

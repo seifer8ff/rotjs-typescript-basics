@@ -73,7 +73,14 @@ export class Animal implements Actor {
   }
 
   private isGoalReachable(goal: Action): boolean {
-    return !this.game.isMapBlocked(goal.targetPos.x, goal.targetPos.y);
+    const isSelfBlocked = this.game.isOccupiedBySelf(
+      goal.targetPos.x,
+      goal.targetPos.y,
+      this
+    );
+    return (
+      isSelfBlocked || !this.game.isBlocked(goal.targetPos.x, goal.targetPos.y)
+    );
   }
 
   public plan(): void {
@@ -127,11 +134,10 @@ export class Animal implements Actor {
 
   private canPathTo(x: number, y: number): boolean {
     const distanceFromTarget = this.position.manhattanDistance(new Point(x, y));
+    const inRange = distanceFromTarget <= this.range;
     return (
-      distanceFromTarget <= this.range &&
-      !this.game.isMapBlocked(x, y) &&
-      (this.game.isOccupiedBySelf(x, y, this) ||
-        !this.game.isOccupiedByEntity(x, y))
+      inRange &&
+      (!this.game.isBlocked(x, y) || this.game.isOccupiedBySelf(x, y, this))
     );
   }
 
