@@ -131,6 +131,7 @@ export function generateTileset(tilesetMeta: Biome) {
           TileType.Terrain,
           tilesetUrl,
           tilesetMeta.color,
+          false,
           tilesetMeta.id
         )
       );
@@ -143,6 +144,7 @@ export function generateTileset(tilesetMeta: Biome) {
       TileType.Terrain,
       tilesetMeta.baseTile,
       tilesetMeta.color,
+      false,
       tilesetMeta.id
     )
   );
@@ -150,11 +152,21 @@ export function generateTileset(tilesetMeta: Biome) {
 
 export function getCachedTile(sprite: string): CachedSprite {
   const pixiSprite = PIXI.Cache.get(sprite);
-  return {
-    url: pixiSprite.baseTexture.resource.src,
-    xOffset: pixiSprite._frame.x,
-    yOffset: pixiSprite._frame.y,
-  };
+  if (pixiSprite?.data?.frames) {
+    const staticPath = animatedTilePathToStatic(sprite);
+    const singleFrame = pixiSprite.data.frames[staticPath];
+    return {
+      url: staticPath,
+      xOffset: singleFrame.frame.x,
+      yOffset: singleFrame.frame.y,
+    };
+  } else {
+    return {
+      url: pixiSprite.baseTexture.resource.src,
+      xOffset: pixiSprite._frame.x,
+      yOffset: pixiSprite._frame.y,
+    };
+  }
 }
 
 function addTileToTileset(
@@ -176,6 +188,13 @@ function addTileToTileset(
     // add the generated tile to the tileset object
     Tile.Tilesets[tilesetMeta.id][season][tileIndex] = tile;
   }
+}
+
+export function animatedTilePathToStatic(spritePath: string): string {
+  const regex = /sprites\/(.+?)\//;
+  const match = spritePath.match(regex);
+  spritePath = match[1] + "_000"; // first frame in an animatedTile
+  return spritePath;
 }
 
 // function addBaseTileToTileset(tilesetMeta: Biome, tile: Tile) {

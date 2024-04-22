@@ -62,9 +62,6 @@ export class IndicatorTileSelection extends HTMLElement {
 
   public init(game: Game) {
     this.game = game;
-    if (this.isVisible) {
-      this.updateRef = requestAnimationFrame(this.update.bind(this));
-    }
   }
 
   private createCanvas() {
@@ -132,34 +129,18 @@ export class IndicatorTileSelection extends HTMLElement {
     }
   }
 
-  private async update(now: number) {
-    requestAnimationFrame(this.update.bind(this));
-    if (!this.lastRefreshTime) {
-      this.lastRefreshTime = now;
+  public renderUpdate(deltaTime: number) {
+    if (!this.canvas) {
+      this.createCanvas();
     }
-    const elapsed = now - this.lastRefreshTime;
-    const deltaTime = elapsed / 1000; // time elapsed in seconds
-
-    if (elapsed > this.msPerRefresh) {
-      // console.log("update tile selection indicator");
-      if (!this.canvas) {
-        this.createCanvas();
-      }
-      if (this.canvas) {
-        this.drawGrid();
-      }
-      this.lastRefreshTime = now;
+    if (this.canvas && this.isVisible) {
+      this.drawGrid();
     }
   }
 
   public setVisible(visible: boolean): void {
     this.isVisible = visible;
     this.style.display = visible ? "block" : "none";
-    if (visible && !this.updateRef) {
-      this.updateRef = requestAnimationFrame(this.update.bind(this));
-    } else {
-      cancelAnimationFrame(this.updateRef);
-    }
   }
 
   public handleClick(x: number, y: number) {

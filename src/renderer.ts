@@ -98,6 +98,11 @@ export class Renderer {
               break;
             }
             case Layer.ENTITY: {
+              if (sprite instanceof PIXI.AnimatedSprite) {
+                sprite.animationSpeed =
+                  this.game.options.animationSpeed *
+                  this.game.timeManager.timeScale;
+              }
               sprite.tint = Color.toHex(
                 this.game.map.lightManager.getLightColorFor(
                   x,
@@ -127,9 +132,24 @@ export class Renderer {
     position: Point,
     layer: Layer,
     spriteUrl: string,
-    tint?: string
+    tint?: string,
+    animated = false
   ): void {
-    let pixiSprite = PIXI.Sprite.from(spriteUrl);
+    let pixiSprite: PIXI.Sprite | PIXI.AnimatedSprite;
+
+    if (animated) {
+      const animations = PIXI.Assets.cache.get(spriteUrl).data.frames;
+      const animKeys = Object.keys(animations).sort();
+      pixiSprite = PIXI.AnimatedSprite.fromFrames(animKeys);
+      (pixiSprite as PIXI.AnimatedSprite).animationSpeed =
+        this.game.options.animationSpeed * this.game.timeManager.timeScale;
+      (pixiSprite as PIXI.AnimatedSprite).loop = true;
+      (pixiSprite as PIXI.AnimatedSprite).play();
+      console.log("add to scene", pixiSprite);
+    } else {
+      pixiSprite = PIXI.Sprite.from(spriteUrl);
+    }
+
     pixiSprite.anchor.set(0.5);
     pixiSprite.position.x = position.x * Tile.size;
     pixiSprite.position.y = position.y * Tile.size;

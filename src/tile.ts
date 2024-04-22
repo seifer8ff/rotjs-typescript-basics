@@ -40,7 +40,12 @@ export class Tile {
   static readonly size = 16;
   static readonly player = new Tile(TileType.Player, "human_00", "#D2D2D2");
   static readonly person = new Tile(TileType.Entity, "human_00", "#E7E6AC");
-  static readonly animal = new Tile(TileType.Entity, "mushroom_00", "#C1BF69");
+  static readonly animal = new Tile(
+    TileType.Entity,
+    "sprites/mushroom_00_walk/mushroom_00_walk.json",
+    "#C1BF69",
+    true
+  );
   static readonly shrub = new Tile(TileType.Plant, "shrub_00", "#95C577");
 
   static Tilesets: Tileset = {};
@@ -49,6 +54,7 @@ export class Tile {
     public readonly type: TileType,
     public readonly spritePath: string,
     public readonly color: string,
+    public readonly animated: boolean = false,
     public readonly biomeId?: BiomeId
   ) {}
 

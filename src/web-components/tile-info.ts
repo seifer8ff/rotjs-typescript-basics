@@ -10,7 +10,11 @@ import FocusIcon from "../shoelace/assets/icons/fullscreen.svg";
 import { PointerTarget } from "../camera";
 import { isActor } from "../entities/actor";
 import { Tile } from "../tile";
-import { CachedSprite, getCachedTile } from "../assets";
+import {
+  CachedSprite,
+  animatedTilePathToStatic,
+  getCachedTile,
+} from "../assets";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import TextIcon from "../shoelace/assets/icons/card-text.svg";
 import { Biome, Biomes } from "../biomes";
@@ -167,8 +171,16 @@ export class TileInfo extends HTMLElement {
     let cachedSprite: CachedSprite;
 
     if (isActor(target.target)) {
+      const isAnimated = target.target.tile.animated;
+      let spritePath;
       this.label.textContent = `${target.target.name}`;
-      cachedSprite = getCachedTile(target.target.tile.spritePath);
+
+      if (isAnimated) {
+        spritePath = animatedTilePathToStatic(target.target.tile.spritePath);
+      } else {
+        spritePath = target.target.tile.spritePath;
+      }
+      cachedSprite = getCachedTile(spritePath);
       this.avatar.style.transform =
         "translateX(25%) translateY(25%) scale(1.5)";
     }

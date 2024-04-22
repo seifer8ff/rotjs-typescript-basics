@@ -20,6 +20,7 @@ import Simplex from "rot-js/lib/noise/simplex";
 import Noise from "rot-js/lib/noise/noise";
 import { ManagerAnimation } from "./manager-animation";
 import { clamp } from "rot-js/lib/util";
+import { Ticker } from "pixi.js";
 
 export class Game {
   // starting options
@@ -45,6 +46,7 @@ export class Game {
     uiLoopRate: 1000 / 10,
     maxTickRate: 1000 / 60, // 60 game updates per second max
     minTickRate: 1000 / 4, // 2 game updates per second min
+    animationSpeed: 0.55, // speed at which pixijs animates AnimatedSprites
   };
   public noise: Noise;
   public map: MapWorld;
@@ -57,6 +59,9 @@ export class Game {
   public timeManager: TimeManager;
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
+
+  public ticker: Ticker;
+
   private lastMainLoopTime: number;
   private lastRenderTime: number;
   private lastuiRefreshTime: number;
@@ -64,6 +69,9 @@ export class Game {
   private gameLoopDelay: number = 0; // how long to delay the game loop for (like when animations are playing)
 
   constructor() {
+    this.ticker = Ticker.shared;
+    this.ticker.autoStart = false;
+    this.ticker.stop();
     if (this.options.gameSeed == undefined) {
       this.options.gameSeed = Math.floor(RNG.getUniform() * 1000000);
     }
@@ -88,7 +96,7 @@ export class Game {
   }
 
   public start() {
-    requestAnimationFrame(this.mainLoop.bind(this));
+    this.mainLoop(performance.now());
   }
 
   isMapBlocked(x: number, y: number): boolean {
@@ -209,6 +217,10 @@ export class Game {
   }
 
   private async mainLoop(now: number) {
+    // if (!this.timeManager.isPaused) {
+    this.ticker.update(now);
+    // }
+
     if (!this.lastMainLoopTime) {
       this.lastMainLoopTime = now;
     }
@@ -241,7 +253,7 @@ export class Game {
 
       elapsed = now - this.lastuiRefreshTime;
       if (elapsed > this.options.uiLoopRate) {
-        await this.uiRefresh(now);
+        await this.uiLoop(now);
         this.lastuiRefreshTime = now;
       }
 
@@ -321,22 +333,15 @@ export class Game {
     this.animManager.animUpdate(deltaTime);
 
     this.userInterface.renderUpdate(deltaTime);
+    this.userInterface.components.renderUpdate(deltaTime);
   }
 
-  private async uiRefresh(now: number) {
-    requestAnimationFrame(this.uiRefresh.bind(this));
-
-    if (!this.lastuiRefreshTime) {
-      this.lastuiRefreshTime = now;
-    }
+  private async uiLoop(now: number) {
     const elapsed = now - this.lastuiRefreshTime;
     const deltaTime = elapsed / 1000; // time elapsed in seconds
 
-    if (elapsed > this.options.uiLoopRate) {
-      // loop through all ui components and run a refresh on them
-      this.userInterface.components.refreshComponents();
-      this.lastuiRefreshTime = now;
-    }
+    // loop through all ui components and run a refresh on them
+    this.userInterface.components.refreshComponents();
   }
 
   private generatePlants(): void {
@@ -395,6 +400,18 @@ export class Game {
     for (let position of positions) {
       this.spawnRandomEntity(position);
     }
+
+    // render the entity layer upon spawning entities
+    // TODO: RENDER SPECIFIC POINTS UPON SPAWNING ADDITIONAL ENTITIES
+    this.renderer.renderLayers(
+      [Layer.ENTITY],
+      this.options.gameSize.width,
+      this.options.gameSize.height,
+      new Point(
+        Math.floor(this.options.gameSize.width / 2),
+        Math.floor(this.options.gameSize.height / 2)
+      )
+    );
     this.userInterface.components.updateSideBarContent(
       "Entities",
       this.entities
@@ -414,7 +431,9 @@ export class Game {
     this.renderer.addToScene(
       entity.position,
       Layer.ENTITY,
-      entity.tile.spritePath
+      entity.tile.spritePath,
+      null,
+      entity.tile.animated
     );
     return entity;
   }

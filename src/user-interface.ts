@@ -161,6 +161,13 @@ export class UserInterface {
     }
 
     // render the entire scene, including UI layers, LAST
+    // this.game.renderer.renderLayers(
+    //   [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
+    //   viewportInTiles.width,
+    //   viewportInTiles.height,
+    //   viewportInTiles.center
+    // );
+
     this.game.renderer.renderLayers(
       [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
       viewportInTiles.width,
@@ -175,7 +182,9 @@ export class UserInterface {
       this.game.renderer.addToScene(
         plant.position,
         Layer.PLANT,
-        plant.tile.spritePath
+        plant.tile.spritePath,
+        null,
+        plant.tile.animated
       );
     }
   }

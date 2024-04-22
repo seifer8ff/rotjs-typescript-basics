@@ -10,7 +10,7 @@ import { IndicatorSun } from "./web-components/indicator-sun";
 import { IndicatorTileSelection } from "./web-components/indicator-tile-selection";
 import { Actor, isActor } from "./entities/actor";
 import { UserInterface } from "./user-interface";
-import { getCachedTile } from "./assets";
+import { animatedTilePathToStatic, getCachedTile } from "./assets";
 import OverlayIcon from "./shoelace/assets/icons/layers-half.svg";
 
 export class ManagerWebComponents {
@@ -116,6 +116,12 @@ export class ManagerWebComponents {
     }
   }
 
+  public renderUpdate(deltaTime: number) {
+    if (this.tileSelectionIndicator) {
+      this.tileSelectionIndicator.renderUpdate(deltaTime);
+    }
+  }
+
   public updateSideBarContent(tabName: TopLevelMenu, content: any[]): void {
     if (tabName === "Entities") {
       const entityMenuItems = content.map((entity) => {
@@ -126,9 +132,18 @@ export class ManagerWebComponents {
   }
 
   public mapEntityToMenuItem(entity: Actor): MenuItem {
+    const isAnimated = entity.tile.animated;
+    // use regex to select "mushroom_00_walk_14x18",
+    // out of "sprites/mushroom_00_walk_14x18/mushroom_00_walk_14x18.json",
+    let spritePath;
+    if (isAnimated) {
+      spritePath = animatedTilePathToStatic(entity.tile.spritePath);
+    } else {
+      spritePath = entity.tile.spritePath;
+    }
     return {
       id: `${entity.id}`,
-      icon: getCachedTile(entity.tile.spritePath),
+      icon: getCachedTile(spritePath),
       clickHandler: () => {
         console.log(`clicked on ${entity.id}`);
         this.ui.camera.setPointerTarget(entity.position, entity, true);
