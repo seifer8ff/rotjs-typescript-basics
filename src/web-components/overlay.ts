@@ -20,7 +20,13 @@ export class Overlay extends HTMLElement {
     container: HTMLDivElement;
     refreshData: (map: MapWorld) => void;
   }[];
-  private isVisible: boolean;
+  private _isVisible: boolean;
+  public get isVisible(): boolean {
+    return this._isVisible;
+  }
+  public set isVisible(value: boolean) {
+    this._isVisible = value;
+  }
 
   constructor() {
     super();
@@ -308,7 +314,7 @@ export class Overlay extends HTMLElement {
 
   public refresh(map: MapWorld): void {
     const currentOverlay = this.overlays[0];
-    if (currentOverlay) {
+    if (this.isVisible && currentOverlay) {
       currentOverlay.refreshData(map);
     }
   }
