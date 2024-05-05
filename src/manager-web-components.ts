@@ -29,7 +29,7 @@ export class ManagerWebComponents {
 
   public refreshComponents() {
     // for components that display data that changes dynamically, like light or temps
-    if (this.overlay) {
+    if (this.overlay && this.overlay.isVisible) {
       this.overlay.refresh(this.game.map);
     }
     if (this.tileInfo?.isVisible) {
