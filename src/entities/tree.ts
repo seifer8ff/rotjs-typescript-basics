@@ -349,7 +349,7 @@ export class Tree implements Actor {
           trunk: ["trunk_03"],
           branch: ["trunk_03"],
           trunkBase: ["trunk_base_birch"],
-          leaf: ["leaf_pink_00", "leaf_pink_01"],
+          leaf: ["leaf_pink_00", "leaf_pink_01", "leaf_pink_02"],
         },
         growthOptions: {
           temperature: {

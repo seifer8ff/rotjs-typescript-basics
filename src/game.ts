@@ -822,16 +822,16 @@ export class Game {
       let tree: Tree;
       switch (true) {
         case rand < 0.25:
-          tree = new Tree(this, position, "pine")
+          tree = new Tree(this, position, "pine");
           break;
         case rand < 0.5:
           tree = new Tree(this, position, "birch");
           break;
-          case rand < 0.75:
-            tree = new Tree(this, position, "maple");
+        case rand < 0.75:
+          tree = new Tree(this, position, "maple");
           break;
         default:
-          tree = new Tree(this, position, "cottoncandy"));
+          tree = new Tree(this, position, "cottoncandy");
           break;
       }
       this.plants.push(tree);
