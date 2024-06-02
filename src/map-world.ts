@@ -1106,7 +1106,7 @@ export class MapWorld {
       // increase light by how much sunbeam there is
       lightFromClouds = 1 + this.cloudMap.cloudMap[key];
     }
-    console.throttle(250).log("lightFromClouds", lightFromClouds, cloudLevel);
+    // console.throttle(250).log("lightFromClouds", lightFromClouds, cloudLevel);
 
     const ambientLight = this.game.timeManager.remainingPhasePercent;
     let finalLight =

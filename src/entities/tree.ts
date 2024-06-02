@@ -30,6 +30,7 @@ import {
   autoDetectRenderer,
 } from "pixi.js";
 import { Color as ColorType } from "rot-js/lib/color";
+import { PointerTarget } from "../camera";
 
 export interface Branch {
   x1: number;
@@ -681,17 +682,27 @@ export class Tree implements Actor {
   }
 
   public getDescription(): DescriptionBlock[] {
-    const descriptionBlocks = [];
+    const descriptionBlocks: DescriptionBlock[] = [];
     descriptionBlocks.push({
       icon: PinIcon,
-      text: `${this.position.x}, ${this.position.y}`,
+      getDescription: (pointerTarget: PointerTarget) =>
+        `${pointerTarget.position.x}, ${pointerTarget.position.y}`,
     });
-    descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
+    descriptionBlocks.push({
+      icon: TypeIcon,
+      getDescription: () => this.subType,
+    });
     if (this.goal) {
-      descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
+      descriptionBlocks.push({
+        icon: GoalIcon,
+        getDescription: () => this.goal.name,
+      });
     }
     if (this.action) {
-      descriptionBlocks.push({ icon: ActionIcon, text: this.action.name });
+      descriptionBlocks.push({
+        icon: ActionIcon,
+        getDescription: () => this.action.name,
+      });
     }
     return descriptionBlocks;
   }

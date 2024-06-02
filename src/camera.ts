@@ -133,6 +133,17 @@ export class Camera {
     this.viewportTarget = actor;
   }
 
+  public refreshPointerTargetInfo() {
+    if (this.pointerTarget) {
+      if (!isActor(this.pointerTarget.target)) {
+        this.pointerTarget.info = this.game.getTileInfoAt(
+          this.pointerTarget.position.x,
+          this.pointerTarget.position.y
+        );
+      }
+    }
+  }
+
   public setPointerTarget(
     pos: Point,
     target: Tile | Actor,
@@ -159,6 +170,11 @@ export class Camera {
       }
     }
     this.ui.components.tileInfo.setContent(this.pointerTarget);
+  }
+
+  public clearPointerTarget() {
+    this.pointerTarget = null;
+    this.ui.components.sideMenu.setEntityTarget(null);
   }
 
   public selectTileAt(

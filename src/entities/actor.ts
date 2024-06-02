@@ -2,6 +2,7 @@ import { Point } from "../point";
 import { Tile, TileSubType, TileType } from "../tile";
 import { Action } from "../actions/action";
 import { AnimatedSprite, DisplayObject, Graphics, Sprite } from "pixi.js";
+import { PointerTarget } from "../camera";
 
 export interface Actor {
   id: number;
@@ -22,7 +23,7 @@ export interface Actor {
 
 export interface DescriptionBlock {
   icon: string;
-  text: string;
+  getDescription: (pointerTarget?: PointerTarget) => string;
 }
 
 export function isActor(object: any): object is Actor {

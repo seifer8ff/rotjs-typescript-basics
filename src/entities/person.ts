@@ -14,6 +14,7 @@ import { WanderAction } from "../actions/wanderAction";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import { Layer } from "../renderer";
 import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
+import { PointerTarget } from "../camera";
 
 export class Person implements Actor {
   id: number;
@@ -184,17 +185,26 @@ export class Person implements Actor {
   }
 
   public getDescription(): DescriptionBlock[] {
-    const descriptionBlocks = [];
+    const descriptionBlocks: DescriptionBlock[] = [];
     descriptionBlocks.push({
       icon: PinIcon,
-      text: `${this.position.x}, ${this.position.y}`,
+      getDescription: () => `${this.position.x}, ${this.position.y}`,
     });
-    descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
+    descriptionBlocks.push({
+      icon: TypeIcon,
+      getDescription: (pointerTarget: PointerTarget) => this.subType,
+    });
     if (this.goal) {
-      descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
+      descriptionBlocks.push({
+        icon: GoalIcon,
+        getDescription: (pointerTarget: PointerTarget) => this.goal.name,
+      });
     }
     if (this.action) {
-      descriptionBlocks.push({ icon: ActionIcon, text: this.action.name });
+      descriptionBlocks.push({
+        icon: ActionIcon,
+        getDescription: (pointerTarget: PointerTarget) => this.action.name,
+      });
     }
     return descriptionBlocks;
   }

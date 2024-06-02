@@ -9,6 +9,7 @@ import MagnetIcon from "./shoelace/assets/icons/magnet.svg";
 import HeightIcon from "./shoelace/assets/icons/arrow-up-short.svg";
 import { PointerTarget } from "./camera";
 import { AnimatedSprite, Assets, Graphics, Sprite } from "pixi.js";
+import { update } from "lodash";
 
 // high level types
 export const enum TileType {
@@ -74,35 +75,48 @@ export class Tile {
   }
 
   public static getDescription(target: PointerTarget): DescriptionBlock[] {
-    const descriptionBlocks = [];
+    const descriptionBlocks: DescriptionBlock[] = [];
+    if (!target) return descriptionBlocks;
+
     descriptionBlocks.push({
       icon: PinIcon,
-      text: `${target.position.x}, ${target.position.y}`,
+      getDescription: (pointerTarget: PointerTarget) =>
+        `${pointerTarget.position.x}, ${target.position.y}`,
     });
     if (target.info) {
       descriptionBlocks.push({
         icon: TextIcon,
-        text: `${target.info.biome.description || "Unknown Biome"}`,
+        getDescription: (pointerTarget: PointerTarget) =>
+          `${pointerTarget.info.biome.description || "Unknown Biome"}`,
       });
       descriptionBlocks.push({
         icon: TempIcon,
-        text: `${Math.round(target.info.temperaturePercent * 100)}°F`,
+        getDescription: (pointerTarget: PointerTarget) =>
+          `${Math.round(pointerTarget.info.temperaturePercent * 100)}°F`,
       });
       descriptionBlocks.push({
         icon: HeightIcon,
-        text: `${Math.round(target.info.height * 100)} height`,
+        getDescription: (pointerTarget: PointerTarget) =>
+          `${Math.round(pointerTarget.info.height * 100)} height`,
       });
       descriptionBlocks.push({
         icon: MoistureIcon,
-        text: `${Math.round(target.info.moisture * 100)}% moisture`,
+        getDescription: (pointerTarget: PointerTarget) =>
+          `${Math.round(pointerTarget.info.moisture * 100)}% moisture`,
       });
       descriptionBlocks.push({
         icon: MagnetIcon,
-        text: `${Math.round(target.info.magnetism * 100)} magnetism`,
+        getDescription: (pointerTarget: PointerTarget) =>
+          `${Math.round(pointerTarget.info.magnetism * 100)} magnetism`,
       });
       descriptionBlocks.push({
         icon: SunIcon,
-        text: `${Math.round(target.info.sunlight * 100) || "??"}% light`,
+        getDescription: (pointerTarget: PointerTarget) => {
+          // console.log("update sunlight", pointerTarget);
+          return `${
+            Math.round(pointerTarget.info.sunlight * 100) || "??"
+          }% light`;
+        },
       });
     }
 

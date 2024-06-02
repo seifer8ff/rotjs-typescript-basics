@@ -11,6 +11,7 @@ import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import { Layer } from "../renderer";
 import { AnimatedSprite, Assets, Graphics, Sprite } from "pixi.js";
+import { PointerTarget } from "../camera";
 
 export class Shrub implements Actor {
   id: number;
@@ -57,17 +58,26 @@ export class Shrub implements Actor {
   }
 
   public getDescription(): DescriptionBlock[] {
-    const descriptionBlocks = [];
+    const descriptionBlocks: DescriptionBlock[] = [];
     descriptionBlocks.push({
       icon: PinIcon,
-      text: `${this.position.x}, ${this.position.y}`,
+      getDescription: () => `${this.position.x}, ${this.position.y}`,
     });
-    descriptionBlocks.push({ icon: TypeIcon, text: this.subType });
+    descriptionBlocks.push({
+      icon: TypeIcon,
+      getDescription: () => this.subType,
+    });
     if (this.goal) {
-      descriptionBlocks.push({ icon: GoalIcon, text: this.goal.name });
+      descriptionBlocks.push({
+        icon: GoalIcon,
+        getDescription: () => this.goal.name,
+      });
     }
     if (this.action) {
-      descriptionBlocks.push({ icon: ActionIcon, text: this.action.name });
+      descriptionBlocks.push({
+        icon: ActionIcon,
+        getDescription: () => this.action.name,
+      });
     }
     return descriptionBlocks;
   }

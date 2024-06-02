@@ -32,10 +32,12 @@ export class ManagerWebComponents {
     if (this.overlay && this.overlay.isVisible) {
       this.overlay.refresh(this.game.map);
     }
-    if (this.tileInfo?.isVisible) {
-      this.game.userInterface.camera.setPointerTarget(
-        this.game.userInterface.camera.pointerTarget.position,
-        this.game.userInterface.camera.pointerTarget.target
+    if (this.ui.camera.pointerTarget) {
+      // refresh the target info data obj
+      this.game.userInterface.camera.refreshPointerTargetInfo();
+      // refresh the tile info UI with the new data
+      this.tileInfo.refreshContent(
+        this.game.userInterface.camera.pointerTarget
       );
     }
   }
@@ -82,6 +84,7 @@ export class ManagerWebComponents {
       });
     }
     this.tileInfo = document.querySelector("tile-info");
+    this.tileInfo.game = this.game;
     this.skyMask = document.querySelector("sky-mask");
     this.overlay = document.querySelector("screen-overlay");
     if (this.overlay) {
