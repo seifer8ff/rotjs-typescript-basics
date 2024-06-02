@@ -9,6 +9,7 @@ import { Action } from "../actions/action";
 import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
 import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
 import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
+import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 
 export class Player implements Actor {
   id: number;
@@ -17,6 +18,7 @@ export class Player implements Actor {
   subType: TileSubType;
   action: Action;
   goal: Action;
+  sprite: Sprite | AnimatedSprite | Graphics;
   private keyMap: { [key: number]: number };
 
   constructor(private game: Game, public position: Point) {
@@ -24,6 +26,18 @@ export class Player implements Actor {
     this.tile = Tile.player;
     this.type = this.tile.type;
     this.subType = TileSubType.Human;
+
+    if (this.tile.animated) {
+      const animations = Assets.cache.get(this.tile.spritePath).data.frames;
+      const animKeys = Object.keys(animations).sort();
+      this.sprite = AnimatedSprite.fromFrames(animKeys);
+      (this.sprite as AnimatedSprite).animationSpeed =
+        this.game.options.animationSpeed * this.game.timeManager.timeScale;
+      (this.sprite as AnimatedSprite).loop = true;
+      (this.sprite as AnimatedSprite).play();
+    } else {
+      this.sprite = Sprite.from(this.tile.spritePath);
+    }
 
     this.keyMap = {};
     this.keyMap[KEYS.VK_W] = 0; // up
@@ -34,6 +48,10 @@ export class Player implements Actor {
     this.keyMap[KEYS.VK_NUMPAD1] = 5;
     this.keyMap[KEYS.VK_A] = 6; // left
     this.keyMap[KEYS.VK_NUMPAD7] = 7;
+  }
+
+  draw() {
+    console.log("render player");
   }
 
   public plan(): void {

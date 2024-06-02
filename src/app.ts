@@ -3,6 +3,17 @@ import { Game } from "./game";
 import "./shoelace/themes/dark.css";
 import "./style.css";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";
+import "scheduler-polyfill";
+import "./scripts/console-extras.min.js";
+
+declare global {
+  export interface Console {
+    times: (n: number) => Console;
+    throttle: (n: number) => Console;
+    collate: (...args) => Console;
+    summary: () => string;
+  }
+}
 
 // Set shoelace base path
 // this path works on both prod and dev

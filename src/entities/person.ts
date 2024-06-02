@@ -12,6 +12,8 @@ import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 import { HarvestAction } from "../actions/harvestAction";
 import { WanderAction } from "../actions/wanderAction";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
+import { Layer } from "../renderer";
+import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 
 export class Person implements Actor {
   id: number;
@@ -21,6 +23,7 @@ export class Person implements Actor {
   subType: TileSubType;
   goal: Action;
   action: Action;
+  sprite: Sprite | AnimatedSprite | Graphics;
   private path: Point[];
   private range: number;
 
@@ -32,6 +35,22 @@ export class Person implements Actor {
     this.type = this.tile.type;
     this.path = [];
     this.range = 8;
+
+    if (this.tile.animated) {
+      const animations = Assets.cache.get(this.tile.spritePath).data.frames;
+      const animKeys = Object.keys(animations).sort();
+      this.sprite = AnimatedSprite.fromFrames(animKeys);
+      (this.sprite as AnimatedSprite).animationSpeed =
+        this.game.options.animationSpeed * this.game.timeManager.timeScale;
+      (this.sprite as AnimatedSprite).loop = true;
+      (this.sprite as AnimatedSprite).play();
+    } else {
+      this.sprite = Sprite.from(this.tile.spritePath);
+    }
+  }
+
+  draw(): void {
+    this.game.renderer.addToScene(this.position, Layer.ENTITY, this.sprite);
   }
 
   private planGoal(): Action {

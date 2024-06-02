@@ -106,10 +106,7 @@ export class UserInterface {
 
   public async init() {
     await InitAssets();
-    this.gameDisplay.stage.addChild(this.game.renderer.terrainLayer);
-    this.gameDisplay.stage.addChild(this.game.renderer.plantLayer);
-    this.gameDisplay.stage.addChild(this.game.renderer.entityLayer);
-    this.gameDisplay.stage.addChild(this.game.renderer.uiLayer);
+    this.game.renderer.addLayersToStage(this.gameDisplay.stage);
   }
 
   private writeHelpMessage(): void {
@@ -133,7 +130,12 @@ export class UserInterface {
     return code === KEYS.VK_SPACE || code === KEYS.VK_RETURN;
   }
 
-  renderUpdate(deltaTime: number): void {
+  handleRightArrow(event: KeyboardEvent): boolean {
+    let code = event.keyCode;
+    return code === KEYS.VK_RIGHT;
+  }
+
+  renderUpdate(): void {
     // this.textDisplay.clear();
     this.game.map.draw();
     // this.statusLine.draw();
@@ -149,13 +151,13 @@ export class UserInterface {
         this.game.renderer.addToScene(
           this.camera.pointerTarget.target.position,
           Layer.UI,
-          this.sprites.selectionBox
+          PIXI.Sprite.from(this.sprites.selectionBox)
         );
       } else {
         this.game.renderer.addToScene(
           this.camera.pointerTarget.position,
           Layer.UI,
-          this.sprites.selectionBox
+          PIXI.Sprite.from(this.sprites.selectionBox)
         );
       }
     }
@@ -168,29 +170,55 @@ export class UserInterface {
     //   viewportInTiles.center
     // );
 
+    // this.game.renderer.renderLayers(
+    //   [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
+    //   viewportInTiles.width,
+    //   viewportInTiles.height,
+    //   viewportInTiles.center
+    // );
+
     this.game.renderer.renderLayers(
-      [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
+      [Layer.TERRAIN, Layer.GROUNDFX, Layer.ENTITY, Layer.PLANT, Layer.UI],
       viewportInTiles.width,
       viewportInTiles.height,
       viewportInTiles.center
     );
+
+    // this.game.renderer.renderLayers(
+    //   [Layer.TERRAIN, Layer.ENTITY, Layer.UI],
+    //   viewportInTiles.width,
+    //   viewportInTiles.height,
+    //   viewportInTiles.center
+    // );
   }
 
   private drawPlants(): void {
     this.game.renderer.clearLayer(Layer.PLANT, true);
     for (let plant of this.game.plants) {
-      this.game.renderer.addToScene(
-        plant.position,
-        Layer.PLANT,
-        plant.tile.spritePath,
-        null,
-        plant.tile.animated
-      );
+      // this.game.renderer.addToScene(
+      //   plant.position,
+      //   Layer.PLANT,
+      //   plant.tile.spritePath,
+      //   null,
+      //   plant.tile.animated
+      // );
+      // instead of having the userinterface add the plant to the scene,
+      // let each plant add itself, including branches and leaves
+      // do same for entities
+      // this simplifies multitile entities
+      plant.draw();
+    }
+  }
+
+  public drawEntities(): void {
+    // this.game.renderer.clearLayer(Layer.ENTITY, true);
+    for (let entity of this.game.entities) {
+      entity.draw();
     }
   }
 
   resetStatusLine(): void {
     this.statusLine.reset();
-    this.statusLine.maxBoxes = this.game.options.treeCount;
+    this.statusLine.maxBoxes = this.game.options.shrubCount;
   }
 }

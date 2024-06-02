@@ -8,7 +8,7 @@ import SunIcon from "./shoelace/assets/icons/brightness-high.svg";
 import MagnetIcon from "./shoelace/assets/icons/magnet.svg";
 import HeightIcon from "./shoelace/assets/icons/arrow-up-short.svg";
 import { PointerTarget } from "./camera";
-import { Sprite } from "pixi.js";
+import { AnimatedSprite, Assets, Graphics, Sprite } from "pixi.js";
 
 // high level types
 export const enum TileType {
@@ -37,7 +37,8 @@ export interface Tileset {
 }
 
 export class Tile {
-  static readonly size = 16;
+  static readonly size = 32;
+  static readonly plantSize = 8;
   static readonly player = new Tile(TileType.Player, "human_00", "#D2D2D2");
   static readonly person = new Tile(TileType.Entity, "human_00", "#E7E6AC");
   static readonly animal = new Tile(
@@ -46,9 +47,11 @@ export class Tile {
     "#C1BF69",
     true
   );
-  static readonly shrub = new Tile(TileType.Plant, "shrub_00", "#95C577");
+  static readonly shrub = new Tile(TileType.Plant, "plant-8x8", "#95C577");
+  static readonly tree = new Tile(TileType.Plant, "tree-trunk", "#95C577");
 
   static Tilesets: Tileset = {};
+  // sprite: Sprite | AnimatedSprite | Graphics;
 
   constructor(
     public readonly type: TileType,
@@ -56,7 +59,19 @@ export class Tile {
     public readonly color: string,
     public readonly animated: boolean = false,
     public readonly biomeId?: BiomeId
-  ) {}
+  ) {
+    // if (animated) {
+    //   const animations = Assets.cache.get(this.spritePath).data.frames;
+    //   const animKeys = Object.keys(animations).sort();
+    //   this.sprite = AnimatedSprite.fromFrames(animKeys);
+    //   // (this.sprite as AnimatedSprite).animationSpeed =
+    //   //   this.game.options.animationSpeed * this.game.timeManager.timeScale;
+    //   (this.sprite as AnimatedSprite).loop = true;
+    //   (this.sprite as AnimatedSprite).play();
+    // } else {
+    //   this.sprite = Sprite.from(this.spritePath);
+    // }
+  }
 
   public static getDescription(target: PointerTarget): DescriptionBlock[] {
     const descriptionBlocks = [];

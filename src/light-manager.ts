@@ -192,9 +192,12 @@ export class LightManager {
     );
   }
 
-  public renderUpdate(deltaTime: number) {
+  public renderUpdate(interpPercent: number) {
     // Interpolate the light state before computing the lighting
     this.interpolateLightState();
+  }
+
+  public recalculateDynamicLighting() {
     this.lightEmitters.compute(this.lightingCallback.bind(this));
   }
 
@@ -223,15 +226,28 @@ export class LightManager {
   public updateDynamicLighting() {
     if (this.game.timeManager.isNighttime) {
       for (let entity of this.game.entities) {
-        this.lightEmitterById[entity.id] = [
-          entity.position.x,
-          entity.position.y,
-        ];
-        this.lightEmitters.setLight(
-          entity.position.x,
-          entity.position.y,
-          this.lightDefaults.torchBright
-        );
+        let updateLight = false;
+        if (!this.lightEmitterById[entity.id]) {
+          updateLight = true;
+        }
+        if (this.lightEmitterById[entity.id]) {
+          const [x, y] = this.lightEmitterById[entity.id];
+          if (entity.position.x != x || entity.position.y != y) {
+            updateLight = true;
+          }
+        }
+
+        if (updateLight) {
+          this.lightEmitterById[entity.id] = [
+            entity.position.x,
+            entity.position.y,
+          ];
+          this.lightEmitters.setLight(
+            entity.position.x,
+            entity.position.y,
+            this.lightDefaults.torchBright
+          );
+        }
       }
     }
   }

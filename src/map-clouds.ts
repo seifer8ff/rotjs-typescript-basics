@@ -183,7 +183,7 @@ export class MapClouds {
     this.interpolateStrength();
   }
 
-  public renderUpdate(deltaTime: number) {
+  public renderUpdate(interPercent: number) {
     this.interpolateCloudState();
   }
 

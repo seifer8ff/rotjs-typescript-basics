@@ -17,6 +17,7 @@ import { MapPoles } from "./map-poles";
 import { MapClouds } from "./map-clouds";
 import Noise from "rot-js/lib/noise/noise";
 import { clamp } from "rot-js/lib/util";
+import { Sprite } from "pixi.js";
 
 export type Map = ValueMap | BiomeMap | TileMap;
 
@@ -1001,20 +1002,60 @@ export class MapWorld {
     this.dirtyTiles.push(MapWorld.coordsToKey(x, y));
   }
 
+  // getRandomTilePositions(
+  //   biomeType: BiomeId,
+  //   quantity: number = 1,
+  //   onlyPassable = true
+  // ): Point[] {
+  //   let buffer: Point[] = [];
+  //   let result: Point[] = [];
+  //   for (let key in this.tileMap) {
+  //     // this goes through every single tile
+  //     // DONT ADD UNNECESSARY CODE TO THE OUTER LOOP
+  //     if (this.tileMap[key].biomeId === biomeType) {
+  //       const pos = MapWorld.keyToPoint(key);
+  //       if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
+  //         buffer.push(pos);
+  //       }
+  //     }
+  //   }
+
+  //   let index: number;
+  //   while (buffer.length > 0 && result.length < quantity) {
+  //     index = Math.floor(RNG.getUniform() * buffer.length);
+  //     result.push(buffer.splice(index, 1)[0]);
+  //   }
+  //   return result;
+  // }
+
   getRandomTilePositions(
     biomeType: BiomeId,
     quantity: number = 1,
-    onlyPassable = true
+    onlyPassable = true,
+    isPlant: boolean = false
   ): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
+    // go through every tile in map
+    // if isPlant- add that tile * ratio of tile size diff to buffer
     for (let key in this.tileMap) {
       // this goes through every single tile
       // DONT ADD UNNECESSARY CODE TO THE OUTER LOOP
       if (this.tileMap[key].biomeId === biomeType) {
-        const pos = MapWorld.keyToPoint(key);
+        let pos = MapWorld.keyToPoint(key);
         if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
-          buffer.push(pos);
+          if (isPlant) {
+            const ratio = Tile.size / Tile.plantSize;
+            pos = new Point(pos.x * ratio, pos.y * ratio);
+            buffer.push(
+              pos,
+              new Point(pos.x + 1, pos.y),
+              new Point(pos.x, pos.y + 1),
+              new Point(pos.x + 1, pos.y + 1)
+            );
+          } else {
+            buffer.push(pos);
+          }
         }
       }
     }
@@ -1022,7 +1063,9 @@ export class MapWorld {
     let index: number;
     while (buffer.length > 0 && result.length < quantity) {
       index = Math.floor(RNG.getUniform() * buffer.length);
-      result.push(buffer.splice(index, 1)[0]);
+      const pos = buffer[index];
+      result.push(new Point(pos.x, pos.y));
+      // result.push(buffer.splice(index, 1)[0]);
     }
     return result;
   }
@@ -1063,7 +1106,7 @@ export class MapWorld {
       // increase light by how much sunbeam there is
       lightFromClouds = 1 + this.cloudMap.cloudMap[key];
     }
-    console.log("lightFromClouds", lightFromClouds, cloudLevel);
+    console.throttle(250).log("lightFromClouds", lightFromClouds, cloudLevel);
 
     const ambientLight = this.game.timeManager.remainingPhasePercent;
     let finalLight =
@@ -1090,7 +1133,7 @@ export class MapWorld {
         this.game.renderer.addToScene(
           MapWorld.keyToPoint(key),
           Layer.TERRAIN,
-          tile.spritePath
+          Sprite.from(tile.spritePath)
         );
       }
     }

@@ -33,12 +33,18 @@ export class ManagerAnimation {
 
   public start() {}
 
-  public animUpdate(deltaTime: number) {
+  public animUpdate() {
     for (let i = 0; i < this.animations.length; i++) {
-      const animation = this.animations[i];
-      if (animation.action === "move") {
-        this.animateMove(animation as MoveAnimation, deltaTime);
-      }
+      this.game.scheduler.postTask(
+        this.runAnimation.bind(this, this.animations[i]),
+        { priority: "user-visible" }
+      );
+    }
+  }
+
+  private runAnimation(animation: Animation) {
+    if (animation.action === "move") {
+      this.animateMove(animation as MoveAnimation);
     }
   }
 
@@ -60,15 +66,15 @@ export class ManagerAnimation {
     this.animations.push(animation);
   }
 
-  private animateMove(animation: MoveAnimation, deltaTime: number) {
+  private animateMove(animation: MoveAnimation) {
     const newPos = animation.newPos;
     const oldPos = animation.oldPos;
     if (oldPos && newPos) {
       // let percent = (timeElapsed / timeTotal) * this.game.timeManager.timeScale;
       let percent = this.game.timeManager.turnAnimTimePercent;
 
-      if (percent >= 1) {
-        percent = 1;
+      if (percent >= 0.9) {
+        // percent = 1;
         this.animations = this.animations.filter((a) => a.id !== animation.id);
       }
 

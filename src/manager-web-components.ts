@@ -116,9 +116,9 @@ export class ManagerWebComponents {
     }
   }
 
-  public renderUpdate(deltaTime: number) {
+  public renderUpdate() {
     if (this.tileSelectionIndicator) {
-      this.tileSelectionIndicator.renderUpdate(deltaTime);
+      this.tileSelectionIndicator.renderUpdate();
     }
   }
 

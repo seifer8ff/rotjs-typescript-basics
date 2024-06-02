@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js";
 import { Tile, TileType, BaseTileKey } from "./tile";
 import { Season } from "./time-manager";
 import { Biome, BiomeId, Biomes } from "./biomes";
+import { LeafTextureSet, Tree } from "./entities/tree";
 
 export interface CachedSprite {
   url: string;

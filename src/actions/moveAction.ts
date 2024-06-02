@@ -19,6 +19,7 @@ export class MoveAction implements Action {
   }
 
   run(): Promise<any> {
+    console.log("---------------------------------- run move action");
     // Animated based on the sprites screen position
     const oldPos = this.game.renderer.getSpriteTransformPosition(
       this.actor.position,
@@ -27,7 +28,8 @@ export class MoveAction implements Action {
     // get the direction of movement
     const movementVector = this.targetPos.movementVector(this.actor.position);
     // only move if there is a change in position
-    const shouldAnimate = movementVector[0] != 0 || movementVector[1] != 0;
+    // const shouldAnimate = movementVector[0] != 0 || movementVector[1] != 0;
+    const shouldAnimate = true;
     if (oldPos) {
       // calculate the tile position of the movement vector
       // and get the screen position of that tile

@@ -31,11 +31,13 @@ export class Camera {
   public viewportTilesUnpadded: string[];
   public viewportTarget: Point | Actor;
   public pointerTarget: PointerTarget;
-  private currentZoom = 1;
-  private defaultZoom = 1.4;
-  private minZoom = 0.5;
-  private maxZoom = 7;
-  private moveSpeed = 0.3;
+  private currentZoom: number;
+  private defaultZoom: number;
+  private minZoom: number;
+  private maxZoom: number;
+  private moveSpeed: number;
+  private showSidebarDelayMs: number; // this shouldn't be in this class
+  private maxMomentumTimeMs: number; // maximum amount of time momemtum can last
   private keyMap: { [key: number]: number };
   private momentum: {
     x: number;
@@ -44,13 +46,22 @@ export class Camera {
     decay: number;
     durationMs: number;
   };
-  private showSidebarHandler;
   private lastZoom: number;
   private lastPivot: Point;
 
-  private isPanning = false;
+  private momentumTimer: number; // how many ms until momentum finishes
+  private showSidebarTimer: number; // how many ms until sidebar is unhidden
 
   constructor(private game: Game, private ui: UserInterface) {
+    this.defaultZoom = 1.4;
+    this.currentZoom = this.defaultZoom;
+    this.minZoom = 0.5;
+    this.maxZoom = 7;
+    this.moveSpeed = 0.3;
+    this.showSidebarDelayMs = 500;
+    this.maxMomentumTimeMs = 1000;
+    this.momentumTimer = 0;
+    this.showSidebarTimer = 0;
     this.keyMap = {};
     this.keyMap[KEYS.VK_W] = 0; // up
     this.keyMap[KEYS.VK_D] = 2; // right
@@ -177,8 +188,19 @@ export class Camera {
     return this.pointerTarget;
   }
 
-  public TileToScreenCoords(x: number, y: number): Point {
-    return new Point(x * Tile.size, y * Tile.size);
+  public TileToScreenCoords(
+    x: number,
+    y: number,
+    layer: Layer = Layer.TERRAIN
+  ): Point {
+    let scaleRatio = 1;
+    // if (layer === Layer.ENTITY) {
+    //   scale = Tile.size / 2;
+    // }
+    if (layer === Layer.PLANT) {
+      scaleRatio = Tile.size / Tile.plantSize;
+    }
+    return new Point(x * Tile.size * scaleRatio, y * Tile.size * scaleRatio);
   }
 
   public setViewportZoom(stage: PIXI.Container, newZoom: number) {
@@ -260,37 +282,44 @@ export class Camera {
     return tiles;
   }
 
-  public getViewport(pad: boolean = false): Viewport {
+  public getViewport(): {
+    unpadded: Viewport;
+    padded: Viewport;
+  } {
     const normalizedZoom = this.getNormalizedZoom();
-    let width =
+    let unpaddedWidth =
       this.ui.gameCanvasContainer.clientWidth /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
-    let height =
+    let unpaddedHeight =
       this.ui.gameCanvasContainer.clientHeight /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
-    if (pad) {
-      // load more than needed to prevent flickering at edges
-      width += Math.max(10, 0.1 * width);
-      height += Math.max(10, 0.1 * height);
-    }
+    let paddedWidth = unpaddedWidth;
+    let paddedHeight = unpaddedHeight;
+    paddedWidth += Math.max(10, 0.1 * paddedWidth);
+    paddedHeight += Math.max(10, 0.1 * paddedHeight);
 
     if (normalizedZoom < 0.12) {
       // reduce viewport size at low zoom levels
       // hidden by weather overlays
-      width = width * 0.95;
-      height = height * 0.95;
+      unpaddedWidth = unpaddedWidth * 0.95;
+      unpaddedHeight = unpaddedHeight * 0.95;
     }
 
     if (normalizedZoom < 0.1) {
       // reduce viewport size at low zoom levels
       // hidden by weather overlays
-      width = width * 0.9;
-      height = height * 0.9;
+      unpaddedWidth = unpaddedWidth * 0.9;
+      unpaddedHeight = unpaddedHeight * 0.9;
     }
     const center = this.getViewportCenterTile();
-    width = Math.ceil(width);
-    height = Math.ceil(height);
-    return { width, height, center };
+    unpaddedWidth = Math.ceil(unpaddedWidth);
+    unpaddedHeight = Math.ceil(unpaddedHeight);
+    paddedWidth = Math.ceil(paddedWidth);
+    paddedHeight = Math.ceil(paddedHeight);
+    return {
+      unpadded: { width: unpaddedWidth, height: unpaddedHeight, center },
+      padded: { width: paddedWidth, height: paddedHeight, center },
+    };
   }
 
   // private getViewportCenterTile(): Point {
@@ -354,11 +383,20 @@ export class Camera {
   }
 
   private handlePointerDrag = (g: TinyGesture) => {
+    this.showSidebarTimer = this.showSidebarDelayMs;
+    this.setSideMenuVisible(false);
     this.ui.gameDisplay.stage.pivot.x -=
       g.velocityX / this.ui.gameDisplay.stage.scale.x;
     this.ui.gameDisplay.stage.pivot.y -=
       g.velocityY / this.ui.gameDisplay.stage.scale.x;
+    this.resetMomentum();
   };
+
+  private resetMomentum() {
+    this.momentumTimer = 0;
+    this.momentum.x = 0;
+    this.momentum.y = 0;
+  }
 
   private handleClick = (g: TinyGesture, e: MouseEvent | TouchEvent) => {
     let x, y;
@@ -532,132 +570,42 @@ export class Camera {
     //   g.touchEndX,
     //   g.touchEndY
     // );
-    this.isPanning = true;
     this.viewportTarget = null;
-    // console.log("handlerRef", this.momentum.handlerRef);
-    // if (!this.momentum.handlerRef) {
-    this.toggleSideMenuVisibility(false);
-    // }
-    if (this.showSidebarHandler) {
-      clearTimeout(this.showSidebarHandler);
-    }
+    this.showSidebarTimer = this.showSidebarDelayMs;
+    this.setSideMenuVisible(false);
   };
 
-  private toggleSideMenuVisibility(visible: boolean) {
+  private setSideMenuVisible(visible: boolean) {
     // only hide/show if not collapsed
     if (!this.ui.components.sideMenu.isCollapsed) {
       this.ui.components.sideMenu.setVisible(visible);
     }
   }
 
+  private handleMomentum() {
+    const percent = this.momentumTimer / this.maxMomentumTimeMs;
+
+    this.momentum.x = lerp(this.momentum.x, 0, percent);
+    this.momentum.y = lerp(this.momentum.y, 0, percent);
+
+    this.ui.gameDisplay.stage.pivot.x -= this.momentum.x;
+    this.ui.gameDisplay.stage.pivot.y -= this.momentum.y;
+
+    if (this.momentumTimer <= 0) {
+      // stop momentum
+      this.resetMomentum();
+      // start time for showing sidebar again
+      this.showSidebarTimer = this.showSidebarDelayMs;
+    }
+  }
+
   private handlePanEnd = (g: TinyGesture) => {
-    this.isPanning = false;
-    // const velocityLimit = 20;
-    const momentumDuration = 1000; // in milliseconds
-    const msPerLoop = 1000 / 60; // in milliseconds
-
-    if (this.momentum.handlerRef) {
-      cancelAnimationFrame(this.momentum.handlerRef);
-      this.momentum.handlerRef = null;
+    // check if user actually panned/moved the pointer
+    if (g.touchMoveX || g.touchMoveY) {
+      this.momentum.x = g.velocityX;
+      this.momentum.y = g.velocityY;
+      this.momentumTimer = this.maxMomentumTimeMs;
     }
-
-    let elapsed = 0;
-    let lastRenderTime = 0;
-    let newPivotX = this.ui.gameDisplay.stage.pivot.x;
-    let newPivotY = this.ui.gameDisplay.stage.pivot.y;
-
-    // console.log("momentum at start", g.velocityX, g.velocityY);
-    if (
-      Math.abs(this.momentum.x) < 0.1 &&
-      Math.abs(this.momentum.y) < 0.1 && // we're not currently moving
-      Math.abs(g.velocityX) <= 1 &&
-      Math.abs(g.velocityY) <= 1 // new velocity is low, meaning small touch/swipe
-    ) {
-      return;
-    }
-
-    this.momentum.x = g.velocityX;
-    this.momentum.y = g.velocityY;
-
-    const momentumHandler = (now: number) => {
-      if (!lastRenderTime) {
-        lastRenderTime = now;
-      }
-      // console.log("momentum handler, velocity", g.velocityX, g.velocityY);
-
-      elapsed = now - lastRenderTime;
-      if (elapsed > msPerLoop && elapsed < momentumDuration) {
-        const deltaTime = elapsed / 1000; // time elapsed in seconds
-        // const clampedStageScale = Util.clamp(
-        //   this.ui.gameDisplay.stage.scale.x,
-        //   0.2,
-        //   1
-        // );
-        let scaledDecay = this.momentum.decay;
-
-        scaledDecay *= Math.pow(scaledDecay, deltaTime);
-        // scaledDecay *= Math.pow(clampedStageScale, deltaTime);
-
-        this.momentum.x *= scaledDecay;
-        this.momentum.y *= scaledDecay;
-        // if (Math.abs(this.momentum.x) < 0.2) {
-        //   this.momentum.x = 0;
-        // }
-        // if (Math.abs(this.momentum.y) < 0.2) {
-        //   this.momentum.y = 0;
-        // }
-        // this.momentum.x = this.momentum.x * scaledDecay - deltaTime;
-        // this.momentum.y = this.momentum.y * scaledDecay - deltaTime;
-        // this.momentum.x = this.roundStagevalue(this.momentum.x);
-        // this.momentum.y = this.roundStagevalue(this.momentum.y);
-        // newPivotX = this.roundStagevalue(newPivotX - this.momentum.x, 10000);
-        // newPivotY = this.roundStagevalue(newPivotY - this.momentum.y, 10000);
-        // this.ui.gameDisplay.stage.pivot.set(newPivotX, newPivotY);
-        this.ui.gameDisplay.stage.pivot.x -= this.momentum.x;
-        this.ui.gameDisplay.stage.pivot.y -= this.momentum.y;
-        // this.ui.gameDisplay.stage.pivot.x =
-        //   Math.ceil(this.ui.gameDisplay.stage.pivot.x / Tile.size) * Tile.size;
-        // this.ui.gameDisplay.stage.pivot.y =
-        //   Math.ceil(this.ui.gameDisplay.stage.pivot.y / Tile.size) * Tile.size;
-      }
-
-      // // check if pivot is centered on tile
-      // if (this.ui.gameDisplay.stage.pivot.x % Tile.size !== 0) {
-      //   this.snapCameraToTile();
-      // }
-
-      if (
-        elapsed < this.momentum.durationMs &&
-        (Math.abs(this.momentum.x) > 0.1 || Math.abs(this.momentum.y) > 0.1)
-      ) {
-        // console.log("momentum", this.momentum.x, this.momentum.y);
-        // keep this running for durationMs to allow multiple drags
-        // before the side menu is shown again
-        this.momentum.handlerRef = requestAnimationFrame(
-          momentumHandler.bind(this)
-        );
-      } else {
-        // momentum done
-        // console.log("momentum done");
-        if (this.showSidebarHandler) {
-          clearTimeout(this.showSidebarHandler);
-        }
-        this.showSidebarHandler = setTimeout(() => {
-          this.toggleSideMenuVisibility(true);
-        }, 750);
-        this.momentum.handlerRef = null;
-        this.momentum.x = 0;
-        this.momentum.y = 0;
-        g.velocityX = 0;
-        g.velocityY = 0;
-
-        cancelAnimationFrame(this.momentum.handlerRef);
-      }
-    };
-
-    this.momentum.handlerRef = requestAnimationFrame(
-      momentumHandler.bind(this)
-    );
   };
 
   private snapCameraToTile() {
@@ -673,66 +621,6 @@ export class Camera {
       Math.ceil(y / Tile.size) * Tile.size
     );
   }
-
-  // private handlePanEnd = (g: TinyGesture) => {
-  //   // this.toggleSideMenuVisibility(true);
-  //   // if (!this.ui.sideMenu.isCollapsed && !this.ui.sideMenu.isVisible) {
-  //   //   this.ui.sideMenu.setVisible(true);
-  //   // }
-
-  //   this.isPanning = false;
-  //   const velocityLimit = 20;
-  //   const momentumDuration = 1000; // in milliseconds
-  //   const msPerLoop = 1000 / 60; // in milliseconds
-  //   const scale = this.ui.gameDisplay.stage.scale.x;
-
-  //   let momentumX = Util.clamp(
-  //     g.velocityX / 3 / (scale * scale),
-  //     -velocityLimit,
-  //     velocityLimit
-  //   );
-  //   let momentumY = Util.clamp(
-  //     g.velocityY / 3 / (scale * scale),
-  //     -velocityLimit,
-  //     velocityLimit
-  //   );
-
-  //   let elapsed = 0;
-  //   let lastRenderTime = 0;
-
-  //   if (this.momentumHandler) {
-  //     this.momentumHandler = null;
-  //   }
-
-  //   this.momentumHandler = (now: number) => {
-  //     if (!lastRenderTime) {
-  //       lastRenderTime = now;
-  //     }
-  //     // console.log("momentum handler");
-
-  //     elapsed = now - lastRenderTime;
-  //     if (elapsed > msPerLoop && elapsed < momentumDuration) {
-  //       momentumX *= 0.95;
-  //       momentumY *= 0.95;
-  //       const deltaTime = elapsed / 1000; // time elapsed in seconds
-  //       this.ui.gameDisplay.stage.pivot.x -= momentumX * (1 - deltaTime);
-  //       this.ui.gameDisplay.stage.pivot.y -= momentumY * (1 - deltaTime);
-  //     }
-  //     // console.log("after first if");
-  //     console.log("elapsed", elapsed);
-
-  //     if (elapsed < momentumDuration) {
-  //       requestAnimationFrame(this.momentumHandler.bind(this));
-  //     } else {
-  //       // momentum done
-  //       console.log("momentum done");
-  //       this.toggleSideMenuVisibility(true);
-  //       this.momentumHandler = null;
-  //     }
-  //   };
-
-  //   requestAnimationFrame(this.momentumHandler.bind(this));
-  // };
 
   private handlePinchZoom = (g: TinyGesture) => {
     const maxScaleSpeed = 0.2; // < 1 to take effect
@@ -789,7 +677,6 @@ export class Camera {
     let scale = this.ui.gameDisplay.stage.scale.x * zoomInAmount;
 
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
-    // scale = this.roundStagevalue(scale);
 
     this.ui.gameDisplay.stage.scale.set(scale);
     if (this.game.options.showClouds) {
@@ -851,24 +738,41 @@ export class Camera {
 
   private updateViewport() {
     const oldTiles = new Set(this.viewportTiles);
-
-    this.viewport = this.getViewport(true);
-    this.viewportUnpadded = this.getViewport(false);
+    const viewport = this.getViewport();
+    this.viewport = viewport.padded;
+    this.viewportUnpadded = viewport.unpadded;
     this.viewportTiles = this.getViewportTiles(true);
     this.viewportTilesUnpadded = this.getViewportTiles(false);
 
-    const enteredTiles = this.viewportTiles
-      .filter((tile) => !oldTiles.has(tile))
-      .map((tileKey) => MapWorld.keyToPoint(tileKey))
-      .filter((point) => this.game.map.isPointInMap(point));
+    const enteredTiles: Point[] = [];
+    for (const tileKey of this.viewportTiles) {
+      if (!oldTiles.has(tileKey)) {
+        const point = MapWorld.keyToPoint(tileKey);
+        if (this.game.map.isPointInMap(point)) {
+          enteredTiles.push(point);
+        }
+      }
+    }
 
     this.game.map.onTileEnterViewport(enteredTiles);
   }
 
-  public renderUpdate(deltaTime: number) {
+  public update(deltaTime: number) {
+    if (this.showSidebarTimer > 0) {
+      this.showSidebarTimer -= deltaTime * 1000;
+    } else if (this.showSidebarTimer < 0) {
+      this.showSidebarTimer = 0;
+      this.setSideMenuVisible(true);
+    }
+  }
+
+  public renderUpdate(interpPercent: number) {
     // only update viewport if:
     // zoom/scale change
     // pivot change
+    if (!this.viewport) {
+      this.updateViewport();
+    }
     if (
       this.lastZoom !== this.currentZoom ||
       this.lastPivot.x !== this.ui.gameDisplay.stage.pivot.x ||
@@ -879,6 +783,21 @@ export class Camera {
       this.lastPivot.y = this.ui.gameDisplay.stage.pivot.y;
       this.updateViewport();
     }
+    // if (this.momentumTimer > 0) {
+    //   this.momentumTimer -= deltaTime * 1000;
+    //   this.handleMomentum();
+    // }
+    this.moveTowardsTarget(interpPercent);
+
+    // if (this.showSidebarTimer > 0) {
+    //   this.showSidebarTimer -= deltaTime * 1000;
+    // } else if (this.showSidebarTimer < 0) {
+    //   this.showSidebarTimer = 0;
+    //   this.setSideMenuVisible(true);
+    // }
+  }
+
+  private moveTowardsTarget(deltaTime: number) {
     // move towards target
     // clear target on any touch events
     let targetPos: Point;

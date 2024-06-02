@@ -129,7 +129,7 @@ export class IndicatorTileSelection extends HTMLElement {
     }
   }
 
-  public renderUpdate(deltaTime: number) {
+  public renderUpdate() {
     if (!this.canvas) {
       this.createCanvas();
     }
@@ -156,7 +156,7 @@ export class IndicatorTileSelection extends HTMLElement {
     // offset from center of viewport/container
     const scale = this.game.userInterface.gameDisplay.stage.scale.x;
     const pivot = this.game.userInterface.gameDisplay.stage.pivot;
-    const viewport = this.game.userInterface.camera.getViewport(false);
+    const viewport = this.game.userInterface.camera.getViewport().padded;
     // calculate initial pivot based on map size and tile size
     const screenCenterX =
       this.game.userInterface.gameCanvasContainer.clientWidth / 2;

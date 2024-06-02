@@ -33,6 +33,7 @@
     "@assetpack/plugin-texture-packer": "^0.8.0",
     "@assetpack/plugin-webfont": "^0.8.0",
     "@types/lodash": "^4.14.202",
+    "@types/mainloop.js": "^1.0.7",
     "concurrently": "^7.6.0",
     "copy-webpack-plugin": "^12.0.2",
     "css-loader": "^6.10.0",
@@ -49,8 +50,12 @@
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.14.0",
+    "console-extras": "github:unconed/console-extras.js",
+    "lindenmayer": "^1.5.4",
     "lodash": "^4.17.21",
+    "mainloop.js": "^1.0.4",
     "pixi.js": "^7.4.0",
+    "scheduler-polyfill": "^1.2.1",
     "tinygesture": "^3.0.0"
   }
 }

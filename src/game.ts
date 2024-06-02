@@ -2,6 +2,7 @@ import { RNG } from "rot-js/lib/index";
 import { Player } from "./entities/player";
 import { Point } from "./point";
 import { Shrub } from "./entities/shrub";
+import { Tree } from "./entities/tree";
 import { Actor } from "./entities/actor";
 import { Person } from "./entities/person";
 import { GameState } from "./game-state";
@@ -21,6 +22,7 @@ import Noise from "rot-js/lib/noise/noise";
 import { ManagerAnimation } from "./manager-animation";
 import { clamp } from "rot-js/lib/util";
 import { Ticker } from "pixi.js";
+import * as MainLoop from "mainloop.js";
 
 export class Game {
   // starting options
@@ -29,8 +31,9 @@ export class Game {
     shouldRender: true,
     showClouds: true,
     animateShadows: true,
-    entityCount: 5,
-    treeCount: 50,
+    entityCount: 2,
+    treeCount: 100,
+    shrubCount: 10,
     gameSize: {
       width: 200,
       height: 200,
@@ -38,7 +41,8 @@ export class Game {
     dayStart: true,
     // gameSeed: 1234,
     // gameSeed: 610239,
-    gameSeed: null,
+    gameSeed: 594628,
+    // gameSeed: null,
     turnAnimDelay: 500, // two turns per second (1 second / 500ms anim phase = 2)
     mainLoopRate: 1000 / 60, // run main loop at 60 fps (all other loops are lower than this)
     refreshRate: 1000 / 60, // 60 fps
@@ -60,15 +64,26 @@ export class Game {
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
 
+  public scheduler: {
+    postTask: (
+      task: any,
+      options: { priority: "user-blocking" | "background" | "user-visible" }
+    ) => void;
+  };
+
   public ticker: Ticker;
 
   private lastMainLoopTime: number;
   private lastRenderTime: number;
   private lastuiRefreshTime: number;
   private lastGameLoopTime: number;
-  private gameLoopDelay: number = 0; // how long to delay the game loop for (like when animations are playing)
+  private postTurnWaitTime: number = 0; // how long to delay the game loop for (like when animations are playing)
 
   constructor() {
+    if ((window as any).scheduler) {
+      this.scheduler = (window as any).scheduler;
+    }
+    console.log("this.scheduler", this.scheduler, window);
     this.ticker = Ticker.shared;
     this.ticker.autoStart = false;
     this.ticker.stop();
@@ -91,12 +106,25 @@ export class Game {
   }
 
   public async Init(): Promise<boolean> {
+    await this.userInterface.init();
+    await this.initializePlants();
     await this.initializeGame();
+    await this.addActors();
+
     return true;
   }
 
   public start() {
-    this.mainLoop(performance.now());
+    // this.mainLoop(performance.now());
+    window.addEventListener("blur", () => {
+      // MainLoop.stop();
+      this.timeManager.setIsPaused(true);
+    });
+    MainLoop.setBegin(this.startLoop)
+      .setUpdate(this.mainLoop.bind(this))
+      .setDraw(this.renderLoop.bind(this))
+      .setEnd(this.endLoop.bind(this))
+      .start();
   }
 
   isMapBlocked(x: number, y: number): boolean {
@@ -202,144 +230,558 @@ export class Game {
     return result;
   }
 
+  private async initializePlants(): Promise<boolean> {
+    Tree.processTreeSpecies();
+    return true;
+  }
+
+  private async addActors(): Promise<boolean> {
+    this.generatePlants();
+    this.generateBeings();
+    return true;
+  }
+
   private async initializeGame(): Promise<boolean> {
-    await this.userInterface.init();
+    // await this.userInterface.init();
     this.gameState.reset();
 
     this.map.generateMap(
       this.options.gameSize.width,
       this.options.gameSize.height
     );
-    this.generatePlants();
-    this.generateBeings();
 
     return true;
   }
 
-  private async mainLoop(now: number) {
+  private async startLoop() {
+    // console.log("start loop");
+  }
+
+  private async endLoop() {
+    // console.log("end loop");
+  }
+
+  // private async drawLoop() {
+  //   console.log("draw loop");
+  // }
+
+  private mainLoop(deltaTime: number) {
     // if (!this.timeManager.isPaused) {
-    this.ticker.update(now);
+    this.ticker.update(performance.now());
     // }
 
-    if (!this.lastMainLoopTime) {
-      this.lastMainLoopTime = now;
+    // handle counting down wait time after a turn (like for animation)
+    if (this.postTurnWaitTime > 0 && !this.timeManager.isPaused) {
+      this.postTurnWaitTime -= deltaTime * this.timeManager.timeScale;
     }
-    if (!this.lastGameLoopTime) {
-      this.lastGameLoopTime = now;
-    }
-    if (!this.lastRenderTime) {
-      this.lastRenderTime = now;
-    }
-    if (!this.lastuiRefreshTime) {
-      this.lastuiRefreshTime = now;
-    }
-    let elapsed = now - this.lastMainLoopTime;
-
-    // only check loops during mainLoop updates to prevent excessive calls
-    if (elapsed > this.options.mainLoopRate) {
-      if (this.options.shouldRender) {
-        elapsed = now - this.lastRenderTime;
-        if (elapsed > this.options.refreshRate) {
-          if (this.gameLoopDelay > 0 && !this.timeManager.isPaused) {
-            this.gameLoopDelay -= elapsed * this.timeManager.timeScale;
-          }
-          if (this.gameLoopDelay < 0) {
-            this.gameLoopDelay = 0;
-          }
-          await this.renderLoop(now);
-          this.lastRenderTime = now;
-        }
-      }
-
-      elapsed = now - this.lastuiRefreshTime;
-      if (elapsed > this.options.uiLoopRate) {
-        await this.uiLoop(now);
-        this.lastuiRefreshTime = now;
-      }
-
-      if (!this.timeManager.isPaused) {
-        elapsed = now - this.lastGameLoopTime;
-        // number of game loop ticks increase at higher speeds to prevent waiting on game loop
-        // otherwise, animations finish before the next actor action is ready
-        const scaledLoopRate = clamp(
-          this.options.gameLoopRate / this.timeManager.timeScale,
-          this.options.maxTickRate,
-          this.options.minTickRate
-        );
-        if (elapsed > scaledLoopRate) {
-          if (this.gameLoopDelay <= 0) {
-            this.gameLoopDelay = 0;
-            await this.gameLoop();
-            this.gameLoopDelay = this.options.turnAnimDelay;
-            this.timeManager.startTurnAnimation();
-          }
-          this.lastGameLoopTime = now;
-        }
-      }
+    if (this.postTurnWaitTime < 0) {
+      this.postTurnWaitTime = 0;
     }
 
-    this.lastMainLoopTime = now;
-    requestAnimationFrame(this.mainLoop.bind(this));
+    if (!this.timeManager.isPaused && this.postTurnWaitTime <= 0) {
+      this.gameLoop();
+      this.postTurnWaitTime = this.options.turnAnimDelay;
+      this.timeManager.resetTurnAnimTime();
+    }
+
+    this.uiLoop(deltaTime);
   }
 
-  private async gameLoop() {
+  // private async mainLoop(now: number) {
+  //   // if (!this.timeManager.isPaused) {
+  //   this.ticker.update(now);
+  //   // }
+
+  //   if (!this.lastMainLoopTime) {
+  //     this.lastMainLoopTime = now;
+  //   }
+  //   if (!this.lastGameLoopTime) {
+  //     this.lastGameLoopTime = now;
+  //   }
+  //   if (!this.lastRenderTime) {
+  //     this.lastRenderTime = now;
+  //   }
+  //   if (!this.lastuiRefreshTime) {
+  //     this.lastuiRefreshTime = now;
+  //   }
+  //   let elapsed = now - this.lastMainLoopTime;
+
+  //   // only check loops during mainLoop updates to prevent excessive calls
+  //   if (elapsed > this.options.mainLoopRate) {
+  //     if (this.options.shouldRender) {
+  //       elapsed = now - this.lastRenderTime;
+  //       if (elapsed > this.options.refreshRate) {
+  //         if (this.gameLoopDelay > 0 && !this.timeManager.isPaused) {
+  //           this.gameLoopDelay -= elapsed * this.timeManager.timeScale;
+  //         }
+  //         if (this.gameLoopDelay < 0) {
+  //           this.gameLoopDelay = 0;
+  //         }
+
+  //         await this.renderLoop(now);
+  //         this.lastRenderTime = now;
+  //       }
+  //     }
+
+  //     elapsed = now - this.lastuiRefreshTime;
+  //     if (elapsed > this.options.uiLoopRate) {
+  //       this.scheduler.postTask(this.uiLoop.bind(this), {
+  //         priority: "user-visible",
+  //       });
+  //       this.lastuiRefreshTime = now;
+  //     }
+
+  //     if (!this.timeManager.isPaused) {
+  //       elapsed = now - this.lastGameLoopTime;
+  //       // number of game loop ticks increase at higher speeds to prevent waiting on game loop
+  //       // otherwise, animations finish before the next actor action is ready
+  //       const scaledLoopRate = clamp(
+  //         this.options.gameLoopRate / this.timeManager.timeScale,
+  //         this.options.maxTickRate,
+  //         this.options.minTickRate
+  //       );
+  //       if (elapsed > scaledLoopRate) {
+  //         if (this.gameLoopDelay <= 0) {
+  //           this.gameLoopDelay = 0;
+  //           // this.scheduler.postTask(this.gameLoop.bind(this), {
+  //           //   priority: "user-blocking",
+  //           // });
+  //           await this.gameLoop();
+  //           this.gameLoopDelay = this.options.turnAnimDelay;
+  //           this.timeManager.startTurnAnimation();
+  //         }
+  //         this.lastGameLoopTime = now;
+  //       }
+  //     }
+  //   }
+
+  //   this.lastMainLoopTime = now;
+  //   requestAnimationFrame(this.mainLoop.bind(this));
+  // }
+
+  // private async mainLoop(now: number) {
+  //   // if (!this.timeManager.isPaused) {
+  //   this.ticker.update(now);
+  //   // }
+
+  //   if (!this.lastMainLoopTime) {
+  //     this.lastMainLoopTime = now;
+  //   }
+  //   if (!this.lastGameLoopTime) {
+  //     this.lastGameLoopTime = now;
+  //   }
+  //   if (!this.lastRenderTime) {
+  //     this.lastRenderTime = now;
+  //   }
+  //   if (!this.lastuiRefreshTime) {
+  //     this.lastuiRefreshTime = now;
+  //   }
+  //   let elapsed = now - this.lastMainLoopTime;
+
+  //   // only check loops during mainLoop updates to prevent excessive calls
+  //   if (elapsed > this.options.mainLoopRate) {
+  //     if (this.options.shouldRender) {
+  //       elapsed = now - this.lastRenderTime;
+  //       if (elapsed > this.options.refreshRate) {
+  //         if (this.gameLoopDelay > 0 && !this.timeManager.isPaused) {
+  //           this.gameLoopDelay -= elapsed * this.timeManager.timeScale;
+  //         }
+  //         if (this.gameLoopDelay < 0) {
+  //           this.gameLoopDelay = 0;
+  //         }
+  //         await this.renderLoop(now);
+  //         this.lastRenderTime = now;
+  //       }
+  //     }
+
+  //     elapsed = now - this.lastuiRefreshTime;
+  //     if (elapsed > this.options.uiLoopRate) {
+  //       await this.uiLoop(now);
+  //       this.lastuiRefreshTime = now;
+  //     }
+
+  //     if (!this.timeManager.isPaused) {
+  //       elapsed = now - this.lastGameLoopTime;
+  //       // number of game loop ticks increase at higher speeds to prevent waiting on game loop
+  //       // otherwise, animations finish before the next actor action is ready
+  //       const scaledLoopRate = clamp(
+  //         this.options.gameLoopRate / this.timeManager.timeScale,
+  //         this.options.maxTickRate,
+  //         this.options.minTickRate
+  //       );
+  //       if (elapsed > scaledLoopRate) {
+  //         if (this.gameLoopDelay <= 0) {
+  //           this.gameLoopDelay = 0;
+  //           await this.gameLoop();
+  //           this.gameLoopDelay = this.options.turnAnimDelay;
+  //           this.timeManager.startTurnAnimation();
+  //         }
+  //         this.lastGameLoopTime = now;
+  //       }
+  //     }
+  //   }
+
+  //   this.lastMainLoopTime = now;
+  //   requestAnimationFrame(this.mainLoop.bind(this));
+  // }
+
+  // private async renderLoop(deltaTime: number) {
+  //   // console.log("now", now);
+  //   // this.scheduler.postTask(
+  //   //   () => this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay),
+  //   //   {
+  //   //     priority: "user-blocking",
+  //   //   }
+  //   // );
+
+  //   this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay);
+
+  //   // console.log("rendering");
+  //   // this.scheduler.postTask(
+  //   //   () => this.userInterface.camera.renderUpdate(deltaTime),
+  //   //   {
+  //   //     priority: "user-blocking",
+  //   //   }
+  //   // );
+  //   this.userInterface.camera.renderUpdate(deltaTime);
+
+  //   this.scheduler.postTask(() => this.map.shadowMap.renderUpdate(deltaTime), {
+  //     priority: "user-blocking",
+  //   });
+  //   this.scheduler.postTask(() => this.map.cloudMap.renderUpdate(deltaTime), {
+  //     priority: "user-blocking",
+  //   });
+  //   this.scheduler.postTask(
+  //     () => this.map.lightManager.renderUpdate(deltaTime),
+  //     {
+  //       priority: "user-blocking",
+  //     }
+  //   );
+  //   // this.map.shadowMap.renderUpdate(deltaTime);
+  //   // this.map.cloudMap.renderUpdate(deltaTime);
+  //   // this.map.lightManager.renderUpdate(deltaTime);
+
+  //   this.animManager.animUpdate(deltaTime);
+
+  //   // this.scheduler.postTask(() => this.userInterface.renderUpdate(deltaTime), {
+  //   //   priority: "user-blocking",
+  //   // });
+
+  //   this.userInterface.renderUpdate(deltaTime);
+
+  //   this.scheduler.postTask(
+  //     () => this.userInterface.components.renderUpdate(deltaTime),
+  //     {
+  //       priority: "user-visible",
+  //     }
+  //   );
+
+  //   // this.userInterface.components.renderUpdate(deltaTime);
+  // }
+
+  private gameLoop() {
+    console.log(
+      "----- game loop, turn: " + this.timeManager.currentTurn + " -------"
+    );
     const turn = this.timeManager.currentTurn;
-    let actor: Actor;
+    let actors: Actor[] = [];
     // loop through ALL actors each turn
     while (turn === this.timeManager.currentTurn) {
-      actor = this.timeManager.nextOnSchedule();
-      if (actor) {
-        actor.plan();
-        if (actor.action) {
-          this.timeManager.setDuration(actor.action.durationInTurns);
-          await actor.act();
+      actors.push(this.timeManager.nextOnSchedule());
+    }
+
+    // let actions = actors.map((actor) => {
+    //   if (actor) {
+    //     return actor?.plan();
+    //   }
+    // });
+
+    return Promise.all(
+      actors.map((actor) => {
+        if (actor && actor?.plan) {
+          return actor?.plan();
         }
-      } else {
-        console.log("ERROR: no actor found in game loop");
-        break;
-      }
-    }
+      })
+    ).then(async () => {
+      actors.forEach((actor) => {
+        if (actor?.action) {
+          this.timeManager.setDuration(actor.action.durationInTurns);
+        }
+      });
 
-    this.map.lightManager.clearLightMap();
-    this.map.lightManager.interpolateAmbientLight();
-
-    this.map.shadowMap.turnUpdate();
-    this.map.cloudMap.turnUpdate();
-    // update dynamic lights after all actors have moved
-    // will get picked up in next render
-    this.map.lightManager.clearChangedDynamicLights();
-    this.map.lightManager.updateDynamicLighting();
-
-    if (this.gameState.isGameOver()) {
-      await InputUtility.waitForInput(
-        this.userInterface.HandleInputConfirm.bind(this)
+      await Promise.all(
+        actors.map((actor) => {
+          if (actor?.action) {
+            return actor?.act();
+          }
+        })
       );
-      await this.initializeGame();
-    }
+      console.log("promises done");
+      this.userInterface.drawEntities();
+      this.map.lightManager.clearLightMap();
+      this.map.lightManager.interpolateAmbientLight();
+      this.map.shadowMap.turnUpdate();
+      this.map.cloudMap.turnUpdate();
+      // update dynamic lights after all actors have moved
+      // will get picked up in next render
+      this.map.lightManager.clearChangedDynamicLights();
+      this.map.lightManager.updateDynamicLighting();
+      this.map.lightManager.recalculateDynamicLighting();
+    });
+
+    // actors.forEach((actor) => {
+    //   if (actor?.plan) {
+    //     if (actor.type === TileType.Entity) {
+    //       console.log("about to act on " + actor.name);
+    //       console.log(
+    //         "turn vs current turn",
+    //         turn,
+    //         this.timeManager.currentTurn
+    //       );
+    //     }
+
+    //     // check if dummy actor
+    //     actor.plan();
+    //     if (actor.action) {
+    //       if (actor.type === TileType.Entity) {
+    //         console.log("set duration " + actor.action.durationInTurns);
+    //       }
+    //       this.timeManager.setDuration(actor.action.durationInTurns);
+
+    //       actor.act();
+    //     }
+    //   } else {
+    //     // if dummy actor, just force next turn
+    //     this.timeManager.setDuration(1);
+    //   }
+    // });
+
+    // // console.log("----- draw entities ------- ");
+    // this.userInterface.drawEntities();
+
+    // this.map.lightManager.clearLightMap();
+    // this.map.lightManager.interpolateAmbientLight();
+
+    // this.map.shadowMap.turnUpdate();
+    // this.map.cloudMap.turnUpdate();
+    // // update dynamic lights after all actors have moved
+    // // will get picked up in next render
+    // this.map.lightManager.clearChangedDynamicLights();
+    // this.map.lightManager.updateDynamicLighting();
+    // this.map.lightManager.recalculateDynamicLighting();
   }
 
-  private async renderLoop(now: number) {
-    const elapsed = now - this.lastRenderTime;
-    const deltaTime = elapsed / 1000; // time elapsed in seconds
+  // private gameLoop() {
+  //   console.log(
+  //     "----- game loop, turn: " + this.timeManager.currentTurn + " -------"
+  //   );
+  //   const turn = this.timeManager.currentTurn;
+  //   let actor: Actor;
+  //   // loop through ALL actors each turn
+  //   while (turn === this.timeManager.currentTurn) {
+  //     actor = this.timeManager.nextOnSchedule();
+  //     if (actor.type === TileType.Entity) {
+  //       console.log("about to act on " + actor.name);
+  //       console.log("turn vs current turn", turn, this.timeManager.currentTurn);
+  //     }
+  //     if (actor?.plan) {
+  //       // check if dummy actor
+  //       actor.plan();
+  //       if (actor.action) {
+  //         if (actor.type === TileType.Entity) {
+  //           console.log("set duration " + actor.action.durationInTurns);
+  //         }
+  //         this.timeManager.setDuration(actor.action.durationInTurns);
 
-    this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay);
+  //         actor.act();
+  //       }
+  //     } else {
+  //       // if dummy actor, just force next turn
+  //       this.timeManager.setDuration(1);
+  //     }
+  //   }
+
+  //   // console.log("----- draw entities ------- ");
+  //   this.userInterface.drawEntities();
+
+  //   this.map.lightManager.clearLightMap();
+  //   this.map.lightManager.interpolateAmbientLight();
+
+  //   this.map.shadowMap.turnUpdate();
+  //   this.map.cloudMap.turnUpdate();
+  //   // update dynamic lights after all actors have moved
+  //   // will get picked up in next render
+  //   this.map.lightManager.clearChangedDynamicLights();
+  //   this.map.lightManager.updateDynamicLighting();
+  //   this.map.lightManager.recalculateDynamicLighting();
+  // }
+
+  private renderLoop(interpPercent: number) {
+    // console.log("now", now);
+    // this.scheduler.postTask(
+    //   () => this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay),
+    //   {
+    //     priority: "user-blocking",
+    //   }
+    // );
+
+    this.timeManager.renderUpdate(this.postTurnWaitTime);
 
     // console.log("rendering");
-    this.userInterface.camera.renderUpdate(deltaTime);
-    this.map.shadowMap.renderUpdate(deltaTime);
-    this.map.cloudMap.renderUpdate(deltaTime);
-    this.map.lightManager.renderUpdate(deltaTime);
+    // this.scheduler.postTask(
+    //   () => this.userInterface.camera.renderUpdate(deltaTime),
+    //   {
+    //     priority: "user-blocking",
+    //   }
+    // );
+    this.userInterface.camera.renderUpdate(interpPercent);
 
-    this.animManager.animUpdate(deltaTime);
+    this.scheduler.postTask(
+      () => this.map.shadowMap.renderUpdate(interpPercent),
+      {
+        priority: "user-blocking",
+      }
+    );
+    this.scheduler.postTask(
+      () => this.map.cloudMap.renderUpdate(interpPercent),
+      {
+        priority: "user-blocking",
+      }
+    );
+    this.scheduler.postTask(
+      () => this.map.lightManager.renderUpdate(interpPercent),
+      {
+        priority: "user-blocking",
+      }
+    );
+    // this.map.shadowMap.renderUpdate(deltaTime);
+    // this.map.cloudMap.renderUpdate(deltaTime);
+    // this.map.lightManager.renderUpdate(deltaTime);
 
-    this.userInterface.renderUpdate(deltaTime);
-    this.userInterface.components.renderUpdate(deltaTime);
+    this.animManager.animUpdate(); // no deltaTime needed as this uses the gameDelay timing for animation
+
+    // this.scheduler.postTask(() => this.userInterface.renderUpdate(deltaTime), {
+    //   priority: "user-blocking",
+    // });
+
+    this.userInterface.renderUpdate();
+
+    this.scheduler.postTask(
+      () => this.userInterface.components.renderUpdate(),
+      {
+        priority: "user-visible",
+      }
+    );
+
+    // this.userInterface.components.renderUpdate(deltaTime);
   }
 
-  private async uiLoop(now: number) {
-    const elapsed = now - this.lastuiRefreshTime;
-    const deltaTime = elapsed / 1000; // time elapsed in seconds
+  // private async gameLoop() {
+  //   const turn = this.timeManager.currentTurn;
+  //   let actor: Actor;
+  //   // loop through ALL actors each turn
+  //   while (turn === this.timeManager.currentTurn) {
+  //     actor = this.timeManager.nextOnSchedule();
+  //     if (actor) {
+  //       actor.plan();
+  //       if (actor.action) {
+  //         this.timeManager.setDuration(actor.action.durationInTurns);
+  //         await actor.act();
+  //         // await InputUtility.waitForInput(
+  //         //   this.userInterface.handleRightArrow.bind(this)
+  //         // );
+  //       }
+  //     } else {
+  //       // await InputUtility.waitForInput(
+  //       //   this.userInterface.HandleInputConfirm.bind(this)
+  //       // );
+  //       await InputUtility.waitForInput(
+  //         this.userInterface.handleRightArrow.bind(this)
+  //       );
+  //       this.timeManager.forceNextTurn();
+  //     }
+  //   }
 
+  //   this.map.lightManager.clearLightMap();
+  //   this.map.lightManager.interpolateAmbientLight();
+
+  //   this.map.shadowMap.turnUpdate();
+  //   this.map.cloudMap.turnUpdate();
+  //   // update dynamic lights after all actors have moved
+  //   // will get picked up in next render
+  //   this.map.lightManager.clearChangedDynamicLights();
+  //   this.map.lightManager.updateDynamicLighting();
+
+  //   if (this.gameState.isGameOver()) {
+  //     await InputUtility.waitForInput(
+  //       this.userInterface.HandleInputConfirm.bind(this)
+  //     );
+  //     await this.initializeGame();
+  //   }
+
+  //   await InputUtility.waitForInput(
+  //     this.userInterface.handleRightArrow.bind(this)
+  //   );
+  // }
+
+  // private async renderLoop(now: number) {
+  //   // console.log("now", now);
+  //   const elapsed = now - this.lastRenderTime;
+  //   const deltaTime = elapsed / 1000; // time elapsed in seconds
+  //   // this.scheduler.postTask(
+  //   //   () => this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay),
+  //   //   {
+  //   //     priority: "user-blocking",
+  //   //   }
+  //   // );
+
+  //   this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay);
+
+  //   // console.log("rendering");
+  //   // this.scheduler.postTask(
+  //   //   () => this.userInterface.camera.renderUpdate(deltaTime),
+  //   //   {
+  //   //     priority: "user-blocking",
+  //   //   }
+  //   // );
+  //   this.userInterface.camera.renderUpdate(deltaTime);
+
+  //   this.scheduler.postTask(() => this.map.shadowMap.renderUpdate(deltaTime), {
+  //     priority: "user-blocking",
+  //   });
+  //   this.scheduler.postTask(() => this.map.cloudMap.renderUpdate(deltaTime), {
+  //     priority: "user-blocking",
+  //   });
+  //   this.scheduler.postTask(
+  //     () => this.map.lightManager.renderUpdate(deltaTime),
+  //     {
+  //       priority: "user-blocking",
+  //     }
+  //   );
+  //   // this.map.shadowMap.renderUpdate(deltaTime);
+  //   // this.map.cloudMap.renderUpdate(deltaTime);
+  //   // this.map.lightManager.renderUpdate(deltaTime);
+
+  //   this.animManager.animUpdate(deltaTime);
+
+  //   // this.scheduler.postTask(() => this.userInterface.renderUpdate(deltaTime), {
+  //   //   priority: "user-blocking",
+  //   // });
+
+  //   this.userInterface.renderUpdate(deltaTime);
+
+  //   this.scheduler.postTask(
+  //     () => this.userInterface.components.renderUpdate(deltaTime),
+  //     {
+  //       priority: "user-visible",
+  //     }
+  //   );
+
+  //   // this.userInterface.components.renderUpdate(deltaTime);
+  // }
+
+  private async uiLoop(deltaTime: number) {
+    this.userInterface.camera.update(deltaTime);
     // loop through all ui components and run a refresh on them
     this.userInterface.components.refreshComponents();
   }
@@ -348,10 +790,52 @@ export class Game {
     this.plants = [];
     let positions = this.map.getRandomTilePositions(
       Biomes.Biomes.moistdirt.id,
-      this.options.treeCount
+      this.options.shrubCount,
+      true,
+      true
     );
+
+    // let positions = [
+    //   new Point(0, 0),
+    //   new Point(1, 0),
+    //   new Point(1, 1),
+    //   new Point(1, 2),
+    //   new Point(2, 1),
+    //   new Point(2, 2),
+    //   new Point(10, 10),
+    //   new Point(11, 11),
+    // ];
+    console.log("shrub positions", positions);
     for (let position of positions) {
       this.plants.push(new Shrub(this, position));
+    }
+
+    positions = this.map.getRandomTilePositions(
+      Biomes.Biomes.hillshigh.id,
+      this.options.treeCount,
+      true,
+      true
+    );
+    console.log("tree positions", positions);
+    for (let position of positions) {
+      const rand = RNG.getUniform();
+      let tree: Tree;
+      switch (true) {
+        case rand < 0.25:
+          tree = new Tree(this, position, "pine")
+          break;
+        case rand < 0.5:
+          tree = new Tree(this, position, "birch");
+          break;
+          case rand < 0.75:
+            tree = new Tree(this, position, "maple");
+          break;
+        default:
+          tree = new Tree(this, position, "cottoncandy"));
+          break;
+      }
+      this.plants.push(tree);
+      this.timeManager.addToSchedule(tree, true);
     }
   }
 
@@ -421,20 +905,21 @@ export class Game {
   private spawnRandomEntity(pos: Point): Actor {
     let entity: Actor;
     if (RNG.getUniform() < 0.5) {
-      entity = new Person(this, pos);
-      // entity = new Animal(this, pos);
+      // entity = new Person(this, pos);
+      entity = new Animal(this, pos);
     } else {
       entity = new Animal(this, pos);
     }
     this.entities.push(entity);
     this.timeManager.addToSchedule(entity, true);
-    this.renderer.addToScene(
-      entity.position,
-      Layer.ENTITY,
-      entity.tile.spritePath,
-      null,
-      entity.tile.animated
-    );
+    entity.draw();
+    // this.renderer.addToScene(
+    //   entity.position,
+    //   Layer.ENTITY,
+    //   entity.tile.spritePath,
+    //   null,
+    //   entity.tile.animated
+    // );
     return entity;
   }
 

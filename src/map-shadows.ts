@@ -250,7 +250,7 @@ export class MapShadows {
     this.updateShadowLength();
   }
 
-  public renderUpdate(deltaTime: number) {
+  public renderUpdate(interpPercent: number) {
     // move towards targetShadowMap from shadowMap every frame
     this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
   }

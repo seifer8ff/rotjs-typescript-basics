@@ -66,6 +66,9 @@ export class TimeManager {
       this.scheduler.remove(temp);
     }
 
+    // add single turn placeholder actor to ensure no turns are skipped due to lack of actors/timing edge cases
+    this.scheduler.add({}, true, 1);
+
     this.calculateCurrentTime();
   }
 
@@ -77,7 +80,7 @@ export class TimeManager {
     return this.scheduler.add(actor, repeat, initialTimeDelay);
   }
 
-  public renderUpdate(deltaTime: number, remainingAnimDelay: number) {
+  public renderUpdate(remainingAnimDelay: number) {
     this.calculateTurnPercent(remainingAnimDelay);
   }
 
@@ -89,6 +92,7 @@ export class TimeManager {
   public calculateTurnPercent(remainingAnimDelay: number): void {
     const timeTotal = this.game.options.turnAnimDelay;
     this.turnAnimTimePercent = (timeTotal - remainingAnimDelay) / timeTotal;
+    // console.log(this.turnAnimTimePercent);
   }
 
   public calculateCurrentTime(): void {
@@ -163,8 +167,14 @@ export class TimeManager {
     }
   }
 
-  public startTurnAnimation(): void {
+  public resetTurnAnimTime(): void {
     // reset turn time
     this.turnAnimTimePercent = 0;
+  }
+
+  public forceNextTurn() {
+    const temp = this.scheduler.add(null, false, 1);
+    this.scheduler.next();
+    this.scheduler.remove(temp);
   }
 }
