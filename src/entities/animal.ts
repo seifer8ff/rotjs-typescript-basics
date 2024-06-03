@@ -15,6 +15,7 @@ import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import { Layer } from "../renderer";
 import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
+import { Animator } from "../components/animator";
 
 export class Animal implements Actor {
   id: number;
@@ -24,7 +25,8 @@ export class Animal implements Actor {
   subType: TileSubType;
   action: Action;
   goal: Action;
-  sprite: Sprite | AnimatedSprite | Graphics;
+  sprite: AnimatedSprite;
+  private animator: Animator;
   private target: Point;
   private path: Point[];
   private range: number;
@@ -40,21 +42,14 @@ export class Animal implements Actor {
     this.type = this.tile.type;
     this.path = [];
     this.range = 15;
-
-    if (this.tile.animated) {
-      const animations = Assets.cache.get(this.tile.spritePath).data.frames;
-      const animKeys = Object.keys(animations).sort();
-      this.sprite = AnimatedSprite.fromFrames(animKeys);
-      (this.sprite as AnimatedSprite).animationSpeed =
-        this.game.options.animationSpeed * this.game.timeManager.timeScale;
-      (this.sprite as AnimatedSprite).loop = true;
-      (this.sprite as AnimatedSprite).play();
-    } else {
-      this.sprite = Sprite.from(this.tile.spritePath);
-    }
+    this.animator = new Animator(this.game, this);
   }
 
   draw(): void {
+    this.sprite.animationSpeed =
+      this.animator.animSpeed *
+      this.game.timeManager.timeScale *
+      this.game.options.animationSpeed;
     this.game.renderer.addToScene(this.position, Layer.ENTITY, this.sprite);
   }
 

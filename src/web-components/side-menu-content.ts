@@ -46,9 +46,11 @@ export class SideMenuContent extends HTMLElement {
       avatar.style.borderRadius = "10%";
       avatar.style.backgroundRepeat = "no-repeat";
       avatar.style.imageRendering = "pixelated";
-      avatar.style.backgroundImage = `url(${option.icon.url})`;
-      avatar.style.backgroundPositionX = `-${option.icon.xOffset}px`;
-      avatar.style.backgroundPositionY = `-${option.icon.yOffset}px`;
+      if (option.icon?.url) {
+        avatar.style.backgroundImage = `url(${option.icon.url})`;
+        avatar.style.backgroundPositionX = `-${option.icon.xOffset}px`;
+        avatar.style.backgroundPositionY = `-${option.icon.yOffset}px`;
+      }
 
       optionBtn.appendChild(avatar);
       optionBtn.style.pointerEvents = "auto";

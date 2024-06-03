@@ -11,6 +11,7 @@ export interface Animation {
   tileKey: string;
   action: "move";
   turnDuration: number;
+  callback?: () => void;
 }
 
 export interface AnimationOptions {
@@ -52,7 +53,8 @@ export class ManagerAnimation {
     actor: Actor,
     tileKey: string,
     oldPos: [number, number],
-    newPos: [number, number]
+    newPos: [number, number],
+    callback: () => void
   ) {
     const animation: MoveAnimation = {
       id: RNG.getUniformInt(0, 100000),
@@ -62,6 +64,7 @@ export class ManagerAnimation {
       newPos: newPos,
       action: "move",
       turnDuration: 1,
+      callback: callback,
     };
     this.animations.push(animation);
   }
@@ -72,11 +75,8 @@ export class ManagerAnimation {
     if (oldPos && newPos) {
       // let percent = (timeElapsed / timeTotal) * this.game.timeManager.timeScale;
       let percent = this.game.timeManager.turnAnimTimePercent;
-
-      if (percent >= 0.9) {
-        // percent = 1;
-        this.animations = this.animations.filter((a) => a.id !== animation.id);
-      }
+      let animDone = percent >= 0.65; // reduce for snappier feel
+      if (animDone) percent = 1;
 
       let x, y;
       if (this.options.lerpStyle === "linear") {
@@ -99,6 +99,13 @@ export class ManagerAnimation {
         x,
         y
       );
+
+      if (animDone) {
+        this.animations = this.animations.filter((a) => a.id !== animation.id);
+        if (animation.callback) {
+          animation.callback();
+        }
+      }
     }
   }
 }

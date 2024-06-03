@@ -135,7 +135,7 @@ export class ManagerWebComponents {
   }
 
   public mapEntityToMenuItem(entity: Actor): MenuItem {
-    const isAnimated = entity.tile.animated;
+    const isAnimated = entity.tile.animationKeys != null;
     // use regex to select "mushroom_00_walk_14x18",
     // out of "sprites/mushroom_00_walk_14x18/mushroom_00_walk_14x18.json",
     let spritePath;

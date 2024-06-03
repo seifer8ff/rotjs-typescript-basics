@@ -2,7 +2,8 @@ import { RNG } from "rot-js/lib/index";
 import { Player } from "./entities/player";
 import { Point } from "./point";
 import { Shrub } from "./entities/shrub";
-import { Tree } from "./entities/tree";
+import { Tree } from "./entities/tree/tree";
+import { TreeSpecies } from "./entities/tree/tree-species";
 import { Actor } from "./entities/actor";
 import { Person } from "./entities/person";
 import { GameState } from "./game-state";
@@ -11,6 +12,7 @@ import { Tile, TileType } from "./tile";
 import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
 import { Animal } from "./entities/animal";
+import { Cow } from "./entities/cow";
 import { Layer, Renderer } from "./renderer";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
@@ -31,7 +33,7 @@ export class Game {
     shouldRender: true,
     showClouds: true,
     animateShadows: true,
-    entityCount: 2,
+    entityCount: 45,
     treeCount: 100,
     shrubCount: 10,
     gameSize: {
@@ -231,7 +233,7 @@ export class Game {
   }
 
   private async initializePlants(): Promise<boolean> {
-    Tree.processTreeSpecies();
+    TreeSpecies.processTreeSpecies();
     return true;
   }
 
@@ -822,16 +824,20 @@ export class Game {
       let tree: Tree;
       switch (true) {
         case rand < 0.25:
-          tree = new Tree(this, position, "pine");
+          tree = new Tree(this, position, TreeSpecies.treeSpecies["pine"]);
           break;
         case rand < 0.5:
-          tree = new Tree(this, position, "birch");
+          tree = new Tree(this, position, TreeSpecies.treeSpecies["birch"]);
           break;
         case rand < 0.75:
-          tree = new Tree(this, position, "maple");
+          tree = new Tree(this, position, TreeSpecies.treeSpecies["maple"]);
           break;
         default:
-          tree = new Tree(this, position, "cottoncandy");
+          tree = new Tree(
+            this,
+            position,
+            TreeSpecies.treeSpecies["cottoncandy"]
+          );
           break;
       }
       this.plants.push(tree);
@@ -906,7 +912,7 @@ export class Game {
     let entity: Actor;
     if (RNG.getUniform() < 0.5) {
       // entity = new Person(this, pos);
-      entity = new Animal(this, pos);
+      entity = new Cow(this, pos);
     } else {
       entity = new Animal(this, pos);
     }

@@ -37,7 +37,7 @@ export class Person implements Actor {
     this.path = [];
     this.range = 8;
 
-    if (this.tile.animated) {
+    if (this.tile.animationKeys) {
       const animations = Assets.cache.get(this.tile.spritePath).data.frames;
       const animKeys = Object.keys(animations).sort();
       this.sprite = AnimatedSprite.fromFrames(animKeys);

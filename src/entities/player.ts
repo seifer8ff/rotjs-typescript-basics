@@ -28,7 +28,7 @@ export class Player implements Actor {
     this.type = this.tile.type;
     this.subType = TileSubType.Human;
 
-    if (this.tile.animated) {
+    if (this.tile.animationKeys) {
       const animations = Assets.cache.get(this.tile.spritePath).data.frames;
       const animKeys = Object.keys(animations).sort();
       this.sprite = AnimatedSprite.fromFrames(animKeys);

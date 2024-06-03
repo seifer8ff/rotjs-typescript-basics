@@ -184,7 +184,7 @@ export class TileInfo extends HTMLElement {
     let cachedSprite: CachedSprite;
 
     if (isActor(target.target)) {
-      const isAnimated = target.target.tile.animated;
+      const isAnimated = target.target.tile.animationKeys != null;
       let spritePath;
       this.label.textContent = `${target.target.name}`;
 

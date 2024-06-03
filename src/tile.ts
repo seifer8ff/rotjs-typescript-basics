@@ -44,9 +44,15 @@ export class Tile {
   static readonly person = new Tile(TileType.Entity, "human_00", "#E7E6AC");
   static readonly animal = new Tile(
     TileType.Entity,
-    "sprites/mushroom_00_walk/mushroom_00_walk.json",
+    "sprites/mushroom_00/mushroom_00.json",
     "#C1BF69",
-    true
+    ["idle"]
+  );
+  static readonly cow = new Tile(
+    TileType.Entity,
+    "sprites/cow_00/cow_00.json",
+    "#C1BF69",
+    ["walk_up", "walk_right", "walk_left", "walk_down"]
   );
   static readonly shrub = new Tile(TileType.Plant, "plant-8x8", "#95C577");
   static readonly tree = new Tile(TileType.Plant, "tree-trunk", "#95C577");
@@ -58,7 +64,8 @@ export class Tile {
     public readonly type: TileType,
     public readonly spritePath: string,
     public readonly color: string,
-    public readonly animated: boolean = false,
+    public readonly animationKeys?: string[],
+    // public readonly animated: boolean = false,
     public readonly biomeId?: BiomeId
   ) {
     // if (animated) {

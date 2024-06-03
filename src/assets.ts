@@ -3,7 +3,6 @@ import * as PIXI from "pixi.js";
 import { Tile, TileType, BaseTileKey } from "./tile";
 import { Season } from "./time-manager";
 import { Biome, BiomeId, Biomes } from "./biomes";
-import { LeafTextureSet, Tree } from "./entities/tree";
 
 export interface CachedSprite {
   url: string;
@@ -132,7 +131,7 @@ export function generateTileset(tilesetMeta: Biome) {
           TileType.Terrain,
           tilesetUrl,
           tilesetMeta.color,
-          false,
+          undefined,
           tilesetMeta.id
         )
       );
@@ -145,7 +144,7 @@ export function generateTileset(tilesetMeta: Biome) {
       TileType.Terrain,
       tilesetMeta.baseTile,
       tilesetMeta.color,
-      false,
+      undefined,
       tilesetMeta.id
     )
   );
@@ -161,13 +160,14 @@ export function getCachedTile(sprite: string): CachedSprite {
       xOffset: singleFrame.frame.x,
       yOffset: singleFrame.frame.y,
     };
-  } else {
+  } else if (pixiSprite) {
     return {
       url: pixiSprite.baseTexture.resource.src,
       xOffset: pixiSprite._frame.x,
       yOffset: pixiSprite._frame.y,
     };
   }
+  return null;
 }
 
 function addTileToTileset(

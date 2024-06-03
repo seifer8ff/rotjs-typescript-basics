@@ -3,7 +3,7 @@ import { Game } from "../game";
 import { Point } from "../point";
 import { Action } from "./action";
 import { Actor } from "../entities/actor";
-import { Tree } from "../entities/tree";
+import { Tree } from "../entities/tree/tree";
 
 export class GrowAction implements Action {
   readonly name: string;
