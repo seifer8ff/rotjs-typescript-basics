@@ -1,5 +1,5 @@
 import { Game } from "../game";
-import { AnimatedSprite, Assets } from "pixi.js";
+import { AnimatedSprite, Assets, Texture } from "pixi.js";
 import { Actor } from "../entities/actor";
 
 export class Animator {
@@ -34,14 +34,27 @@ export class Animator {
     if (this.currentAnimation === animation) return;
 
     this.currentAnimation = animation;
-    this.actor.sprite = AnimatedSprite.fromFrames(
-      this.animationFrames[this.currentAnimation]
-    );
-    (this.actor.sprite as AnimatedSprite).animationSpeed =
-      this.animSpeed *
-      this.game.options.animationSpeed *
-      this.game.timeManager.timeScale;
-    (this.actor.sprite as AnimatedSprite).loop = true;
-    (this.actor.sprite as AnimatedSprite).play();
+    if (this.actor.sprite) {
+      const animatedSprite = this.actor.sprite as AnimatedSprite;
+      animatedSprite.textures = this.animationFrames[this.currentAnimation].map(
+        (frame) => Texture.from(frame)
+      );
+      animatedSprite.animationSpeed =
+        this.animSpeed *
+        this.game.options.animationSpeed *
+        this.game.timeManager.timeScale;
+      animatedSprite.loop = true;
+      animatedSprite.play();
+    } else {
+      this.actor.sprite = AnimatedSprite.fromFrames(
+        this.animationFrames[this.currentAnimation]
+      );
+      (this.actor.sprite as AnimatedSprite).animationSpeed =
+        this.animSpeed *
+        this.game.options.animationSpeed *
+        this.game.timeManager.timeScale;
+      (this.actor.sprite as AnimatedSprite).loop = true;
+      (this.actor.sprite as AnimatedSprite).play();
+    }
   }
 }

@@ -40,22 +40,51 @@ export interface Tileset {
 export class Tile {
   static readonly size = 32;
   static readonly plantSize = 8;
-  static readonly player = new Tile(TileType.Player, "human_00", "#D2D2D2");
-  static readonly person = new Tile(TileType.Entity, "human_00", "#E7E6AC");
+  static readonly player = new Tile(
+    TileType.Player,
+    "human_00",
+    "human_00",
+    "#D2D2D2"
+  );
+  static readonly person = new Tile(
+    TileType.Entity,
+    "human_00",
+    "human_00",
+    "#E7E6AC"
+  );
   static readonly animal = new Tile(
     TileType.Entity,
     "sprites/mushroom_00/mushroom_00.json",
+    "idle_000",
     "#C1BF69",
     ["idle"]
   );
   static readonly cow = new Tile(
     TileType.Entity,
     "sprites/cow_00/cow_00.json",
+    "walk_down/walk_down_000",
     "#C1BF69",
     ["walk_up", "walk_right", "walk_left", "walk_down"]
   );
-  static readonly shrub = new Tile(TileType.Plant, "plant-8x8", "#95C577");
-  static readonly tree = new Tile(TileType.Plant, "tree-trunk", "#95C577");
+  static readonly sharkBlue = new Tile(
+    TileType.Entity,
+    "sprites/shark_blue/shark_blue.json",
+    "right/right_000",
+    "#C1BF69",
+    ["up", "right", "left", "down"]
+  );
+  static readonly shrub = new Tile(
+    TileType.Plant,
+    "plant-8x8",
+    "plant-8x8",
+    "#95C577"
+  );
+  static readonly tree = new Tile(
+    TileType.Plant,
+    "tree-trunk",
+    "tree-trunk",
+    "#95C577"
+  );
 
   static Tilesets: Tileset = {};
   // sprite: Sprite | AnimatedSprite | Graphics;
@@ -63,6 +92,7 @@ export class Tile {
   constructor(
     public readonly type: TileType,
     public readonly spritePath: string,
+    public readonly iconPath: string,
     public readonly color: string,
     public readonly animationKeys?: string[],
     // public readonly animated: boolean = false,
@@ -94,34 +124,34 @@ export class Tile {
       descriptionBlocks.push({
         icon: TextIcon,
         getDescription: (pointerTarget: PointerTarget) =>
-          `${pointerTarget.info.biome.description || "Unknown Biome"}`,
+          `${pointerTarget?.info?.biome.description || "Unknown Biome"}`,
       });
       descriptionBlocks.push({
         icon: TempIcon,
         getDescription: (pointerTarget: PointerTarget) =>
-          `${Math.round(pointerTarget.info.temperaturePercent * 100)}°F`,
+          `${Math.round(pointerTarget?.info?.temperaturePercent * 100)}°F`,
       });
       descriptionBlocks.push({
         icon: HeightIcon,
         getDescription: (pointerTarget: PointerTarget) =>
-          `${Math.round(pointerTarget.info.height * 100)} height`,
+          `${Math.round(pointerTarget?.info?.height * 100)} height`,
       });
       descriptionBlocks.push({
         icon: MoistureIcon,
         getDescription: (pointerTarget: PointerTarget) =>
-          `${Math.round(pointerTarget.info.moisture * 100)}% moisture`,
+          `${Math.round(pointerTarget?.info?.moisture * 100)}% moisture`,
       });
       descriptionBlocks.push({
         icon: MagnetIcon,
         getDescription: (pointerTarget: PointerTarget) =>
-          `${Math.round(pointerTarget.info.magnetism * 100)} magnetism`,
+          `${Math.round(pointerTarget?.info?.magnetism * 100)} magnetism`,
       });
       descriptionBlocks.push({
         icon: SunIcon,
         getDescription: (pointerTarget: PointerTarget) => {
           // console.log("update sunlight", pointerTarget);
           return `${
-            Math.round(pointerTarget.info.sunlight * 100) || "??"
+            Math.round(pointerTarget?.info?.sunlight * 100) || "??"
           }% light`;
         },
       });

@@ -11,8 +11,9 @@ import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
 import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
-import { Animal } from "./entities/animal";
+import { Mushroom } from "./entities/mushroom";
 import { Cow } from "./entities/cow";
+import { SharkBlue } from "./entities/shark-blue";
 import { Layer, Renderer } from "./renderer";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
@@ -855,7 +856,7 @@ export class Game {
 
   private generateBeings(): void {
     this.entities = [];
-    let entityQuarter = Math.ceil(this.options.entityCount / 4);
+    let entitySplit = Math.ceil(this.options.entityCount / 8);
     let positions = [];
     if (this.options.entityCount < 4) {
       positions.push(
@@ -868,19 +869,37 @@ export class Game {
       positions.push(
         ...this.map.getRandomTilePositions(
           Biomes.Biomes.moistdirt.id,
-          entityQuarter * 2
+          entitySplit * 2
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(Biomes.Biomes.ocean.id, entitySplit)
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.oceandeep.id,
+          entitySplit
         )
       );
       positions.push(
         ...this.map.getRandomTilePositions(
           Biomes.Biomes.hillshigh.id,
-          entityQuarter
+          entitySplit
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(Biomes.Biomes.beach.id, entitySplit)
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.sandydirt.id,
+          entitySplit
         )
       );
       positions.push(
         ...this.map.getRandomTilePositions(
           Biomes.Biomes.hillslow.id,
-          entityQuarter
+          entitySplit
         )
       );
     }
@@ -888,7 +907,9 @@ export class Game {
     console.log("got positions", positions);
     // this.player = new Player(this, positions.splice(0, 1)[0]);
     for (let position of positions) {
-      this.spawnRandomEntity(position);
+      const biome = this.map.getBiome(position.x, position.y);
+      this.spawnEntityInBiome(position, biome.id);
+      // this.spawnRandomEntity(position);
     }
 
     // render the entity layer upon spawning entities
@@ -908,13 +929,39 @@ export class Game {
     );
   }
 
+  private spawnEntityInBiome(pos: Point, biome: BiomeId): Actor {
+    let entity: Actor;
+    switch (biome) {
+      case Biomes.Biomes.moistdirt.id:
+        entity = new Cow(this, pos);
+        break;
+      case Biomes.Biomes.ocean.id:
+      case Biomes.Biomes.oceandeep.id:
+        entity = new SharkBlue(this, pos);
+        break;
+      case Biomes.Biomes.hillslow.id:
+        entity = new Mushroom(this, pos);
+        break;
+      default:
+        entity = new Mushroom(this, pos);
+        break;
+    }
+    this.entities.push(entity);
+    this.timeManager.addToSchedule(entity, true);
+    entity.draw();
+    return entity;
+  }
+
   private spawnRandomEntity(pos: Point): Actor {
     let entity: Actor;
-    if (RNG.getUniform() < 0.5) {
+    const rand = RNG.getUniform();
+    if (rand < 0.25) {
       // entity = new Person(this, pos);
       entity = new Cow(this, pos);
+    } else if (rand < 0.5) {
+      entity = new SharkBlue(this, pos);
     } else {
-      entity = new Animal(this, pos);
+      entity = new Mushroom(this, pos);
     }
     this.entities.push(entity);
     this.timeManager.addToSchedule(entity, true);

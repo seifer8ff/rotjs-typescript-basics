@@ -10,8 +10,9 @@ import { IndicatorSun } from "./web-components/indicator-sun";
 import { IndicatorTileSelection } from "./web-components/indicator-tile-selection";
 import { Actor, isActor } from "./entities/actor";
 import { UserInterface } from "./user-interface";
-import { animatedTilePathToStatic, getCachedTile } from "./assets";
+import { getCachedTileTexture } from "./assets";
 import OverlayIcon from "./shoelace/assets/icons/layers-half.svg";
+import { Sprite } from "pixi.js";
 
 export class ManagerWebComponents {
   private timeControl: TimeControl;
@@ -140,13 +141,14 @@ export class ManagerWebComponents {
     // out of "sprites/mushroom_00_walk_14x18/mushroom_00_walk_14x18.json",
     let spritePath;
     if (isAnimated) {
-      spritePath = animatedTilePathToStatic(entity.tile.spritePath);
+      // spritePath = animatedTilePathToStatic(entity.tile.spritePath);
+      spritePath = entity.tile.iconPath;
     } else {
       spritePath = entity.tile.spritePath;
     }
     return {
       id: `${entity.id}`,
-      icon: getCachedTile(spritePath),
+      icon: getCachedTileTexture(spritePath),
       clickHandler: () => {
         console.log(`clicked on ${entity.id}`);
         this.ui.camera.setPointerTarget(entity.position, entity, true);

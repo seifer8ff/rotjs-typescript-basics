@@ -75,7 +75,7 @@ export class ManagerAnimation {
     if (oldPos && newPos) {
       // let percent = (timeElapsed / timeTotal) * this.game.timeManager.timeScale;
       let percent = this.game.timeManager.turnAnimTimePercent;
-      let animDone = percent >= 0.65; // reduce for snappier feel
+      let animDone = percent >= 0.85; // reduce for snappier feel
       if (animDone) percent = 1;
 
       let x, y;

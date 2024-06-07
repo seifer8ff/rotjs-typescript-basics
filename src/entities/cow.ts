@@ -186,30 +186,14 @@ export class Cow implements Actor {
     return this.action
       .run()
       .then((res: { movementVector: [number, number] }) => {
-        if (res?.movementVector) {
-          switch (res.movementVector[0]) {
-            case 1:
-              this.animator.setAnimation("walk_right");
-              break;
-            case -1:
-              this.animator.setAnimation("walk_left");
-              break;
-            case 0:
-              switch (res.movementVector[1]) {
-                case 1:
-                  this.animator.setAnimation("walk_down");
-                  break;
-                case -1:
-                  this.animator.setAnimation("walk_up");
-                  break;
-              }
-              break;
-          }
-        }
+        // face the sprite/anim to the direction of movement
+        this.updateFacing(res?.movementVector);
 
         if (this.goal === this.action) {
+          // goal completed, pick a new one next turn
           this.goal = null;
         }
+        // action completed, pick a new one next turn
         this.action = null;
         return res;
       });
@@ -235,6 +219,30 @@ export class Cow implements Actor {
       getDescription: () => this.action?.name || "-",
     });
     return descriptionBlocks;
+  }
+
+  public updateFacing(moveVector: [number, number]): void {
+    if (moveVector) {
+      // the action involves movement, so update sprite facing
+      switch (moveVector[0]) {
+        case 1:
+          this.animator.setAnimation("walk_right");
+          break;
+        case -1:
+          this.animator.setAnimation("walk_left");
+          break;
+        case 0:
+          switch (moveVector[1]) {
+            case 1:
+              this.animator.setAnimation("walk_down");
+              break;
+            case -1:
+              this.animator.setAnimation("walk_up");
+              break;
+          }
+          break;
+      }
+    }
   }
 
   private pathCallback(x: number, y: number): void {

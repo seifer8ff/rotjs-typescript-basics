@@ -8,11 +8,7 @@ import CloseIcon from "../shoelace/assets/icons/x.svg";
 import { PointerTarget } from "../camera";
 import { DescriptionBlock, isActor } from "../entities/actor";
 import { Tile } from "../tile";
-import {
-  CachedSprite,
-  animatedTilePathToStatic,
-  getCachedTile,
-} from "../assets";
+import { CachedTexture, getCachedTileTexture } from "../assets";
 import { Biome, Biomes } from "../biomes";
 import { Game } from "../game";
 
@@ -181,7 +177,7 @@ export class TileInfo extends HTMLElement {
 
     this.container.style.display = "flex";
 
-    let cachedSprite: CachedSprite;
+    let cachedSprite: CachedTexture;
 
     if (isActor(target.target)) {
       const isAnimated = target.target.tile.animationKeys != null;
@@ -189,11 +185,11 @@ export class TileInfo extends HTMLElement {
       this.label.textContent = `${target.target.name}`;
 
       if (isAnimated) {
-        spritePath = animatedTilePathToStatic(target.target.tile.spritePath);
+        spritePath = target.target.tile.iconPath;
       } else {
         spritePath = target.target.tile.spritePath;
       }
-      cachedSprite = getCachedTile(spritePath);
+      cachedSprite = getCachedTileTexture(spritePath);
       this.avatar.style.transform =
         "translateX(25%) translateY(25%) scale(1.5)";
     }
@@ -201,18 +197,20 @@ export class TileInfo extends HTMLElement {
     if (target.target instanceof Tile) {
       const biome = Biomes.Biomes[target.target.biomeId];
       this.label.textContent = `${biome.name}`;
-      cachedSprite = getCachedTile(target.target.spritePath);
+      cachedSprite = getCachedTileTexture(target.target.spritePath);
       this.avatar.style.transform = "translateX(0%) translateY(0%) scale(1)";
     }
 
-    this.avatar.style.backgroundImage = `url(${cachedSprite.url})`;
-    this.avatar.style.backgroundRepeat = "no-repeat";
     this.avatar.style.width = "16px";
     this.avatar.style.height = "16px";
-
+    this.avatar.style.backgroundRepeat = "no-repeat";
     this.avatar.style.imageRendering = "pixelated";
-    this.avatar.style.backgroundPositionX = `-${cachedSprite.xOffset}px`;
-    this.avatar.style.backgroundPositionY = `-${cachedSprite.yOffset}px`;
+    if (cachedSprite) {
+      this.avatar.style.backgroundImage = `url(${cachedSprite.url})`;
+      this.avatar.style.backgroundPositionX = `-${cachedSprite.xOffset}px`;
+      this.avatar.style.backgroundPositionY = `-${cachedSprite.yOffset}px`;
+    }
+
     this.setBodyContent(target);
     this.setVisible(true);
   }
@@ -233,9 +231,7 @@ export class TileInfo extends HTMLElement {
 
     if (isActor(target.target)) {
       dBlocks = target.target.getDescription();
-    }
-
-    if (target.target instanceof Tile) {
+    } else if (target.target instanceof Tile) {
       dBlocks = Tile.getDescription(target);
     }
 

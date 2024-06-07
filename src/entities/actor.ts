@@ -18,6 +18,7 @@ export interface Actor {
   draw(): void; // render self to cache/screen
   plan(): void;
   act(): Promise<any>;
+  updateFacing?(moveVector: [number, number]): void;
   getDescription(): DescriptionBlock[];
 }
 

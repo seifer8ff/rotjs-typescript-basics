@@ -4,7 +4,7 @@ import { Tile, TileType, BaseTileKey } from "./tile";
 import { Season } from "./time-manager";
 import { Biome, BiomeId, Biomes } from "./biomes";
 
-export interface CachedSprite {
+export interface CachedTexture {
   url: string;
   xOffset: number;
   yOffset: number;
@@ -130,6 +130,7 @@ export function generateTileset(tilesetMeta: Biome) {
         new Tile(
           TileType.Terrain,
           tilesetUrl,
+          tilesetUrl,
           tilesetMeta.color,
           undefined,
           tilesetMeta.id
@@ -143,6 +144,7 @@ export function generateTileset(tilesetMeta: Biome) {
     new Tile(
       TileType.Terrain,
       tilesetMeta.baseTile,
+      tilesetMeta.baseTile,
       tilesetMeta.color,
       undefined,
       tilesetMeta.id
@@ -150,22 +152,20 @@ export function generateTileset(tilesetMeta: Biome) {
   );
 }
 
-export function getCachedTile(sprite: string): CachedSprite {
-  const pixiSprite = PIXI.Cache.get(sprite);
-  if (pixiSprite?.data?.frames) {
-    const staticPath = animatedTilePathToStatic(sprite);
-    const singleFrame = pixiSprite.data.frames[staticPath];
+export function getCachedTileTexture(sprite: string): CachedTexture {
+  const cachedTexture: PIXI.Texture = PIXI.Cache.get(sprite);
+  console.log(`getCached tile for ${sprite}: `, cachedTexture);
+  if (cachedTexture) {
     return {
-      url: staticPath,
-      xOffset: singleFrame.frame.x,
-      yOffset: singleFrame.frame.y,
+      url: cachedTexture.baseTexture.resource.src,
+      xOffset: cachedTexture.frame.x,
+      yOffset: cachedTexture.frame.y,
     };
-  } else if (pixiSprite) {
-    return {
-      url: pixiSprite.baseTexture.resource.src,
-      xOffset: pixiSprite._frame.x,
-      yOffset: pixiSprite._frame.y,
-    };
+    // return {
+    //   url: pixiSprite.baseTexture.resource.src,
+    //   xOffset: pixiSprite._frame.x,
+    //   yOffset: pixiSprite._frame.y,
+    // };
   }
   return null;
 }
@@ -189,13 +189,6 @@ function addTileToTileset(
     // add the generated tile to the tileset object
     Tile.Tilesets[tilesetMeta.id][season][tileIndex] = tile;
   }
-}
-
-export function animatedTilePathToStatic(spritePath: string): string {
-  const regex = /sprites\/(.+?)\//;
-  const match = spritePath.match(regex);
-  spritePath = match[1] + "_000"; // first frame in an animatedTile
-  return spritePath;
 }
 
 // function addBaseTileToTileset(tilesetMeta: Biome, tile: Tile) {

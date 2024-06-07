@@ -85,8 +85,9 @@ export class Renderer {
         left = centerViewport.x - Math.ceil(width / 2);
         top = centerViewport.y - Math.ceil(height / 2);
       }
-
-      this.clearLayer(layer);
+      if (layer !== Layer.ENTITY) {
+        this.clearLayer(layer);
+      }
 
       for (let x = left; x < right; x++) {
         for (let y = top; y < bottom; y++) {
