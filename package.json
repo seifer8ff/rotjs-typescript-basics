@@ -49,6 +49,7 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
+    "@pixi/mixin-get-global-position": "^7.4.2",
     "@shoelace-style/shoelace": "^2.14.0",
     "console-extras": "github:unconed/console-extras.js",
     "lindenmayer": "^1.5.4",

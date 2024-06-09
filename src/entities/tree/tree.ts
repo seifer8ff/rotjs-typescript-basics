@@ -171,6 +171,7 @@ export class Tree implements Actor {
           if (width < this.species.minBranchWidth)
             width = this.species.minBranchWidth;
           let order = _b.branch.order;
+
           let x1 = _b.branch.x2;
           let y1 = _b.branch.y2;
           let x2 = x1 + this.lengthdir_x(length, curve);
@@ -178,7 +179,7 @@ export class Tree implements Actor {
           // create branch segments, with length this.branchLength
           for (let i = 0; i < this.species.branchLength; i++) {
             let newBranch = {
-              position: new Point(x1, y1),
+              position: new Point(x1 + (x2 - x1) / 2, y1), // center on x
               branch: {
                 x1: x1,
                 y1: y1,
@@ -302,12 +303,36 @@ export class Tree implements Actor {
           // add a sprite for where the trunk meets the ground
           let trunkBaseSprite = new Sprite(this.trunkBaseTexture);
           this.sprite.addChild(trunkBaseSprite);
-          trunkBaseSprite.anchor.set(0.5, 0);
-          trunkBaseSprite.position.set(0, -22);
-          trunkBaseSprite.width *= 1.2;
-          trunkBaseSprite.height *= 1.2;
+
+          const trunkBaseIdealWidth = 6; // pixels wide space that aligns with the trunk
+          const ratio = branch.branch.width / trunkBaseIdealWidth;
+          trunkBaseSprite.width *= ratio;
+          trunkBaseSprite.height *= ratio;
           trunkBaseSprite.tint = tint;
+          trunkBaseSprite.anchor.set(0.5, 0.5);
+          trunkBaseSprite.position.set(
+            sprite.position.x,
+            sprite.position.y + sprite.height / 2
+          );
+          // trunkBaseSprite.rotation = sprite.rotation;
         }
+
+        // if (trunkBaseStep) {
+        //   // add a sprite for where the trunk meets the ground
+        //   let trunkBaseSprite = new Sprite(this.trunkBaseTexture);
+        //   this.sprite.addChild(trunkBaseSprite);
+
+        //   const trunkBaseIdealWidth = 8; // 8 pixels wide space that aligns with the trunk
+        //   const ratio = branch.branch.width / trunkBaseIdealWidth;
+        //   trunkBaseSprite.width *= ratio * 1.2;
+        //   // trunkBaseSprite.width *= 1.2;
+        //   // trunkBaseSprite.height *= 1.2;
+        //   trunkBaseSprite.height *= ratio * 1.2;
+        //   trunkBaseSprite.tint = tint;
+        //   trunkBaseSprite.anchor.set(0.5, 0);
+        //   // trunkBaseSprite.position.set(0, -22);
+        //   trunkBaseSprite.position.set(0, -22 * ratio * 1.2);
+        // }
 
         // add leafs to branches that are not done and are not trunk
         if (!branch.branch.done && !isTrunk) {

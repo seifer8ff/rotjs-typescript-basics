@@ -42,7 +42,6 @@ export class MoveAction implements Action {
       if (shouldLerp) {
         // add the animation to the managers queue
         this.game.animManager.addMoveAnimation(
-          this.actor,
           MapWorld.coordsToKey(this.actor.position.x, this.actor.position.y), // pos doesn't update until after anim
           oldPos,
           newPos,
@@ -57,7 +56,8 @@ export class MoveAction implements Action {
             );
             // keep actor's position in sync with target position
             this.actor.position = new Point(this.targetPos.x, this.targetPos.y);
-          }
+          },
+          this.actor
         );
       }
     }

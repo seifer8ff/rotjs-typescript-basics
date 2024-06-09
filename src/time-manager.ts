@@ -70,6 +70,7 @@ export class TimeManager {
     this.scheduler.add({}, true, 1);
 
     this.calculateCurrentTime();
+    this.isPaused = true;
   }
 
   public addToSchedule(

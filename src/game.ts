@@ -483,9 +483,9 @@ export class Game {
   // }
 
   private gameLoop() {
-    console.log(
-      "----- game loop, turn: " + this.timeManager.currentTurn + " -------"
-    );
+    // console.log(
+    //   "----- game loop, turn: " + this.timeManager.currentTurn + " -------"
+    // );
     const turn = this.timeManager.currentTurn;
     let actors: Actor[] = [];
     // loop through ALL actors each turn
@@ -519,7 +519,7 @@ export class Game {
           }
         })
       );
-      console.log("promises done");
+      // console.log("promises done");
       this.userInterface.drawEntities();
       this.map.lightManager.clearLightMap();
       this.map.lightManager.interpolateAmbientLight();

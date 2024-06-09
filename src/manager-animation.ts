@@ -7,7 +7,7 @@ import { lerp, lerpEaseIn, lerpEaseInOut, lerpEaseOut } from "./misc-utility";
 
 export interface Animation {
   id: number;
-  actor: Actor;
+  actor?: Actor; // UI lerps don't have actors
   tileKey: string;
   action: "move";
   turnDuration: number;
@@ -50,15 +50,14 @@ export class ManagerAnimation {
   }
 
   public addMoveAnimation(
-    actor: Actor,
     tileKey: string,
     oldPos: [number, number],
     newPos: [number, number],
-    callback: () => void
+    callback: () => void,
+    actor?: Actor
   ) {
     const animation: MoveAnimation = {
       id: RNG.getUniformInt(0, 100000),
-      actor: actor,
       tileKey: tileKey,
       oldPos: oldPos,
       newPos: newPos,
@@ -66,6 +65,9 @@ export class ManagerAnimation {
       turnDuration: 1,
       callback: callback,
     };
+    if (actor) {
+      animation.actor = actor;
+    }
     this.animations.push(animation);
   }
 

@@ -145,6 +145,10 @@ export class UserInterface {
     // update
     this.drawPlants();
 
+    // TODO: refactor to selection box to lerp follow the target
+    // TODO: stop clearing entire UI layer and just move the selection box
+    // TODO: allow smaller indicator for smaller grid sizes (i.e. plant layer 8x8)
+    // TODO: total rework.
     if (this.camera.pointerTarget) {
       this.game.renderer.clearLayer(Layer.UI, true);
       if (isActor(this.camera.pointerTarget.target)) {
