@@ -3,8 +3,10 @@ import { Game } from "../game";
 import { Point } from "../point";
 import { Action } from "./action";
 import { Actor } from "../entities/actor";
+import { generateId } from "../misc-utility";
 
 export class HarvestAction implements Action {
+  readonly id: number;
   readonly name: string;
   readonly description: string;
   durationInTurns: number; // how long the action lasts
@@ -14,6 +16,7 @@ export class HarvestAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
+    this.id = generateId();
     this.name = "Harvest Shrubs";
     this.durationInTurns = 10;
   }

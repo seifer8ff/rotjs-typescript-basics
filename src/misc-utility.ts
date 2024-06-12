@@ -1,4 +1,4 @@
-import { Color } from "rot-js";
+import { Color, RNG } from "rot-js";
 import { Color as ColorType } from "rot-js/lib/color";
 import Noise from "rot-js/lib/noise/noise";
 
@@ -116,4 +116,8 @@ export function getMapStats(
 
 export function getScaledNoise(noise: Noise, x: number, y: number): number {
   return (noise.get(x, y) + 1) / 2;
+}
+
+export function generateId(): number {
+  return Date.now() + RNG.getUniformInt(0, 100000);
 }

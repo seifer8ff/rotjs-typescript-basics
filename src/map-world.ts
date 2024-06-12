@@ -1045,8 +1045,7 @@ export class MapWorld {
         let pos = MapWorld.keyToPoint(key);
         if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
           if (isPlant) {
-            const ratio = Tile.size / Tile.plantSize;
-            pos = new Point(pos.x * ratio, pos.y * ratio);
+            pos = Tile.translatePoint(pos, Layer.TERRAIN, Layer.PLANT);
             buffer.push(
               pos,
               new Point(pos.x + 1, pos.y),

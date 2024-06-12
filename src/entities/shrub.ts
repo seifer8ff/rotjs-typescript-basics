@@ -12,6 +12,7 @@ import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import { Layer } from "../renderer";
 import { AnimatedSprite, Assets, Graphics, Sprite } from "pixi.js";
 import { PointerTarget } from "../camera";
+import { generateId } from "../misc-utility";
 
 export class Shrub implements Actor {
   id: number;
@@ -24,7 +25,7 @@ export class Shrub implements Actor {
   action: Action;
 
   constructor(private game: Game, public position: Point) {
-    this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.id = generateId();
     this.name = "Shrub";
     this.tile = Tile.shrub;
     this.type = this.tile.type;

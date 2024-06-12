@@ -65,25 +65,21 @@ export class Renderer {
     for (let layer of layers) {
       if (layer === Layer.PLANT || layer === Layer.GROUNDFX) {
         const ratio = Tile.size / Tile.plantSize;
-        centerViewport = new Point(
-          viewportCenterTile.x * ratio,
-          viewportCenterTile.y * ratio
+        centerViewport = Tile.translatePoint(
+          viewportCenterTile,
+          Layer.TERRAIN,
+          Layer.PLANT
         );
-        // console.log(
-        //   "center vs plant center",
-        //   viewportCenterTile.x,
-        //   centerViewport.x
-        // );
-        right = centerViewport.x + (width / 2) * ratio;
-        bottom = centerViewport.y + (height / 2) * ratio;
-        left = centerViewport.x - (width / 2) * ratio;
-        top = centerViewport.y - (height / 2) * ratio;
+        right = centerViewport.x + Math.ceil((width / 2) * ratio);
+        bottom = centerViewport.y + Math.ceil((height / 2) * ratio);
+        left = centerViewport.x - Math.floor((width / 2) * ratio);
+        top = centerViewport.y - Math.floor((height / 2) * ratio);
       } else {
         centerViewport = viewportCenterTile;
-        right = centerViewport.x + Math.floor(width / 2);
-        bottom = centerViewport.y + Math.floor(height / 2);
-        left = centerViewport.x - Math.ceil(width / 2);
-        top = centerViewport.y - Math.ceil(height / 2);
+        right = centerViewport.x + Math.ceil(width / 2);
+        bottom = centerViewport.y + Math.ceil(height / 2);
+        left = centerViewport.x - Math.floor(width / 2);
+        top = centerViewport.y - Math.floor(height / 2);
       }
       if (layer !== Layer.ENTITY) {
         this.clearLayer(layer);
@@ -115,10 +111,10 @@ export class Renderer {
               break;
             }
             case Layer.PLANT: {
-              const ratio = Tile.size / Tile.plantSize;
-              const terrainPoint = new Point(
-                Math.floor(x / ratio),
-                Math.floor(y / ratio)
+              const terrainPoint = Tile.translatePoint(
+                new Point(x, y),
+                Layer.PLANT,
+                Layer.TERRAIN
               );
               this.tintObjectWithChildren(displayObj, terrainPoint);
 

@@ -14,6 +14,7 @@ import { UserInterface } from "./user-interface";
 import { Mushroom } from "./entities/mushroom";
 import { Cow } from "./entities/cow";
 import { SharkBlue } from "./entities/shark-blue";
+import { Seagull } from "./entities/seagull";
 import { Layer, Renderer } from "./renderer";
 import { MapWorld } from "./map-world";
 import { TimeManager } from "./time-manager";
@@ -791,59 +792,103 @@ export class Game {
 
   private generatePlants(): void {
     this.plants = [];
-    let positions = this.map.getRandomTilePositions(
+    let positions: Point[] = [];
+
+    positions = this.map.getRandomTilePositions(
       Biomes.Biomes.moistdirt.id,
       this.options.shrubCount,
       true,
       true
     );
-
-    // let positions = [
-    //   new Point(0, 0),
-    //   new Point(1, 0),
-    //   new Point(1, 1),
-    //   new Point(1, 2),
-    //   new Point(2, 1),
-    //   new Point(2, 2),
-    //   new Point(10, 10),
-    //   new Point(11, 11),
-    // ];
     console.log("shrub positions", positions);
     for (let position of positions) {
       this.plants.push(new Shrub(this, position));
     }
 
-    positions = this.map.getRandomTilePositions(
-      Biomes.Biomes.hillshigh.id,
-      this.options.treeCount,
-      true,
-      true
-    );
-    console.log("tree positions", positions);
-    for (let position of positions) {
-      const rand = RNG.getUniform();
-      let tree: Tree;
-      switch (true) {
-        case rand < 0.25:
-          tree = new Tree(this, position, TreeSpecies.treeSpecies["pine"]);
-          break;
-        case rand < 0.5:
-          tree = new Tree(this, position, TreeSpecies.treeSpecies["birch"]);
-          break;
-        case rand < 0.75:
-          tree = new Tree(this, position, TreeSpecies.treeSpecies["maple"]);
-          break;
-        default:
-          tree = new Tree(
-            this,
-            position,
-            TreeSpecies.treeSpecies["cottoncandy"]
-          );
-          break;
-      }
-      this.plants.push(tree);
-      this.timeManager.addToSchedule(tree, true);
+    let split = Math.ceil(this.options.treeCount / 8);
+    positions = [];
+    if (this.options.treeCount < 4) {
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.moistdirt.id,
+          this.options.treeCount,
+          true,
+          true
+        )
+      );
+    } else {
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.moistdirt.id,
+          split * 3,
+          true,
+          true
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.hillsmid.id,
+          split * 1,
+          true,
+          true
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.hillshigh.id,
+          split,
+          true,
+          true
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.valley.id,
+          split * 2,
+          true,
+          true
+        )
+      );
     }
+
+    for (let position of positions) {
+      const worldPoint = Tile.translatePoint(
+        position,
+        Layer.PLANT,
+        Layer.TERRAIN
+      );
+      const biome = this.map.getBiome(worldPoint.x, worldPoint.y);
+      this.spawnPlantInBiome(position, biome.id);
+    }
+  }
+
+  private spawnPlantInBiome(pos: Point, biome: BiomeId): Actor {
+    let tree: Actor;
+    switch (biome) {
+      // case Biomes.Biomes.moistdirt.id:
+      //   tree = new Tree(this, pos, TreeSpecies.treeSpecies["pine"]);
+      //   break;
+      // case Biomes.Biomes.hillsmid.id:
+      // case Biomes.Biomes.hillshigh.id:
+      //   tree = new Tree(this, pos, TreeSpecies.treeSpecies["birch"]);
+      //   break;
+      // case Biomes.Biomes.valley.id:
+      //   tree = new Tree(this, pos, TreeSpecies.treeSpecies["cottoncandy"]);
+      //   break;
+      default:
+        const rand = RNG.getUniform();
+        tree =
+          rand < 0.33
+            ? new Tree(this, pos, TreeSpecies.treeSpecies["pine"])
+            : rand < 0.66
+            ? new Tree(this, pos, TreeSpecies.treeSpecies["birch"])
+            : new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
+        // tree = new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
+        break;
+    }
+    this.plants.push(tree);
+    this.timeManager.addToSchedule(tree, true);
+    return tree;
   }
 
   private generatePlayer(): void {
@@ -932,6 +977,9 @@ export class Game {
   private spawnEntityInBiome(pos: Point, biome: BiomeId): Actor {
     let entity: Actor;
     switch (biome) {
+      case Biomes.Biomes.sandydirt.id:
+        entity = new Seagull(this, pos);
+        break;
       case Biomes.Biomes.moistdirt.id:
         entity = new Cow(this, pos);
         break;

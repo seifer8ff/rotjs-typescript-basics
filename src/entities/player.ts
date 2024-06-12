@@ -11,6 +11,7 @@ import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
 import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
+import { generateId } from "../misc-utility";
 
 export class Player implements Actor {
   id: number;
@@ -23,7 +24,7 @@ export class Player implements Actor {
   private keyMap: { [key: number]: number };
 
   constructor(private game: Game, public position: Point) {
-    this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.id = generateId();
     this.tile = Tile.player;
     this.type = this.tile.type;
     this.subType = TileSubType.Human;

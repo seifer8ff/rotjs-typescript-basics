@@ -15,6 +15,7 @@ import PinIcon from "../shoelace/assets/icons/pin-map.svg";
 import { Layer } from "../renderer";
 import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
+import { generateId } from "../misc-utility";
 
 export class Person implements Actor {
   id: number;
@@ -29,7 +30,7 @@ export class Person implements Actor {
   private range: number;
 
   constructor(private game: Game, public position: Point) {
-    this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.id = generateId();
     this.subType = TileSubType.Human;
     this.name = this.game.nameGenerator.generate(this.subType);
     this.tile = Tile.person;

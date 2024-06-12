@@ -14,8 +14,10 @@ import { ParticleContainer, Sprite, Texture } from "pixi.js";
 import { PointerTarget } from "../../camera";
 import { TreeSpecies } from "./tree-species";
 import { RNG } from "rot-js";
+import { generateId } from "../../misc-utility";
 
-export interface Branch {
+export interface Segment {
+  position: Point;
   x1: number;
   y1: number;
   x2: number;
@@ -23,15 +25,27 @@ export interface Branch {
   curve: number;
   length: number;
   width: number;
+  rendered?: boolean;
+}
+
+export interface TreeBranch {
+  segments: Segment[];
   leafCount: number;
-  done: boolean;
+  leafMax: number;
+  doneExtending: boolean;
+  doneBranching: boolean;
   order: number;
-  shadow?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  branchCount: number;
+}
+
+export function isTreeTrunk(
+  branch: TreeBranch | TreeTrunk
+): branch is TreeTrunk {
+  return (<TreeTrunk>branch).trunkBase !== undefined;
+}
+
+export interface TreeTrunk extends TreeBranch {
+  trunkBase?: Sprite;
 }
 
 export class Tree implements Actor {
@@ -46,34 +60,50 @@ export class Tree implements Actor {
 
   trunkTexture: Texture; // final texture for trunk
   trunkBaseTexture: Texture; // texture used for where the trunk meets the ground
-  private leafSize: number; // final size of leaf;
+
+  private branchSegmentWidth: number; // current width of branch
+  private branchSegmentLength: number; // current length of branch
+  private trunkSegmentWidth: number; // current width of trunk
+  private branchesPerSegment: number; // maximum number of branches per segment (based on chance)
+  private leafSize: number; // current size of leaf;
+  private branchOrder: number; // current order of branch
+  private leavesPerBranch: number; // number of leaves per branch (used to calculate max number of leaves at any time)
+
   private branchChance: number;
   private leafSprites: Sprite[] = []; // array of leaf sprites (for easy removal)
   private growthStep = 0;
   private fullyGrown = false;
-  private branchGrowthStep = 0;
-  branches: { position: Point; branch: Branch }[] = [];
+  private curve: number;
+  private curveDir: number;
+  private treeTrunk: TreeTrunk;
+  private treeBranches: TreeBranch[];
+
+  private growLeaves: boolean = true;
 
   constructor(
     private game: Game,
     public position: Point,
     public species: TreeSpecies
   ) {
-    this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.id = generateId();
     this.tile = Tile.tree;
     this.type = this.tile.type;
     this.subType = TileSubType.Tree;
     this.name = `${this.subType} - ${this.species.name}`;
+    this.growLeaves = true;
 
-    const ratio = Tile.plantSize / Tile.size;
-    const screenPos = this.game.userInterface.camera.TileToScreenCoords(
-      this.position.x * ratio,
-      this.position.y * ratio,
+    const worldPoint = Tile.translatePoint(
+      this.position,
+      Layer.PLANT,
       Layer.TERRAIN
     );
-    this.branchChance = this.species.branchChance;
-    this.randomizeTrunkStyle();
-    this.generatePixelTree(screenPos.x, screenPos.y);
+    const screenPos = this.game.userInterface.camera.TileToScreenCoords(
+      worldPoint.x,
+      worldPoint.y,
+      Layer.TERRAIN
+    );
+    this.initTree(screenPos.x, screenPos.y);
+    this.renderTree(1);
   }
 
   private randomizeTrunkStyle() {
@@ -87,171 +117,368 @@ export class Tree implements Actor {
       ];
   }
 
-  private generatePixelTree(x: number, y: number): void {
-    // console.log("generate pixel tree");
-    this.branches = [];
+  private initTree(x: number, y: number): void {
+    // set tree options
+    // branch width
+    // leaf size
+    // leaf count
+    // branch count
+    // branch length
+    this.trunkSegmentWidth = this.getRandFrom(
+      this.species.trunkSegmentWidthMin,
+      this.species.trunkSegmentWidthRange
+    );
+    this.branchSegmentWidth = this.getRandFrom(
+      this.species.branchSegmentWidthMin,
+      this.species.branchSegmentWidthRange
+    );
+    this.branchChance = this.species.branchChance;
+    this.leafSize = this.getRandFrom(
+      this.species.leafMinSize,
+      this.species.leafSizeRange
+    );
+    this.branchesPerSegment = this.getRandFrom(
+      this.species.maxBranchesPerSegment,
+      this.species.maxBranchesPerSegmentRange
+    );
+    this.leavesPerBranch = this.getRandFrom(
+      this.species.leavesPerBranchMin,
+      this.species.leavesPerBranchRange
+    );
+    this.curve = 80 + RNG.getUniform() * 20; // close to 90 degrees from ground
+    this.randomizeTrunkStyle();
+    this.treeBranches = [];
+    this.treeTrunk = {
+      segments: [],
+      order: this.branchOrder,
+      leafCount: 0,
+      leafMax: 0,
+      doneExtending: false,
+      doneBranching: false,
+      branchCount: 0,
+    };
+    this.branchOrder = 0;
 
-    // trunk
-    let order = 0;
-    let curve = 80 + RNG.getUniform() * 20;
-    let width = this.species.trunkSegmentWidthMin;
-    // let width =
-    //   this.species.trunkSegmentWidthMin +
-    //   (RNG.getUniform() * this.species.trunkSegmentWidthRange);
-    let length = this.species.trunkSegmentHeight + RNG.getUniform() * 3;
+    // generate first trunk segment
+    // let width = this.trunkSegmentWidth;
+    let length = this.getRandFrom(
+      this.species.trunkSegmentHeightMin,
+      this.species.trunkSegmentHeightRange
+    );
     let x1 = x;
     let y1 = y;
-    let x2 = x1 + this.lengthdir_x(length, curve);
-    let y2 = y1 - this.lengthdir_y(length, curve);
-    for (let i = 0; i < this.species.trunkLength; i++) {
-      let newBranch = {
-        position: new Point(x1, y1),
-        branch: {
-          x1: x1,
-          y1: y1,
-          x2: x2,
-          y2: y2,
-          curve: curve,
-          length: length,
-          width: width,
-          done: false,
-          leafCount:
-            this.species.leafMinCount +
-            RNG.getUniform() * this.species.leafCountRange,
-          order: order,
-        },
-      };
-      if (
-        RNG.getUniform() * 100 > this.branchChance ||
-        order < this.species.minTrunkBaseSize
-      )
-        newBranch.branch.done = true; // don't allow branching on first couple segments
-      if (i > this.species.trunkLength - 2) newBranch.branch.done = false; // last 2 segment must branch
-      this.branches.push(newBranch);
-      curve +=
-        RNG.getUniform() *
-        this.species.branchBendAmount *
-        (RNG.getUniform() > 0.5 ? 1 : -1);
-      order++;
-      this.branchChance += this.species.branchChanceGrow;
+    let x2 = x1 + this.lengthdir_x(length, this.curve);
+    let y2 = y1 - this.lengthdir_y(length, this.curve);
+    let firstTrunkSegment: Segment = {
+      position: new Point(x1, y1),
+      x1: x1,
+      y1: y1,
+      x2: x2,
+      y2: y2,
+      curve: this.curve,
+      length: length,
+      width: this.trunkSegmentWidth,
+    };
+    this.treeTrunk.segments.push(firstTrunkSegment);
+
+    this.curveDir = RNG.getUniform() > 0.5 ? 1 : -1; // reset curve dir
+    this.curve +=
+      RNG.getUniform() * this.species.branchCurveAngle * this.curveDir; // set new curve dir
+    this.branchOrder++;
+    this.trunkSegmentWidth *= this.species.trunkWidthDegrade;
+    if (this.trunkSegmentWidth < this.species.branchSegmentWidthMin)
+      this.trunkSegmentWidth = this.species.branchSegmentWidthMin;
+    if (length < this.species.branchSegmentHeightMin)
+      length = this.species.branchSegmentHeightMin;
+    x1 = x2;
+    y1 = y2;
+    x2 = x1 + this.lengthdir_x(length, this.curve);
+    y2 = y1 - this.lengthdir_y(length, this.curve);
+  }
+
+  private getRandFrom(min: number, range: number): number {
+    return min + RNG.getUniform() * range;
+  }
+
+  private growTreeTrunk(): boolean {
+    const trunkSegments = this.species.trunkSegmentCount;
+
+    // add one trunk
+    // or add one branch to a single existing branch
+    if (this.treeTrunk.segments.length < trunkSegments) {
+      let lastSegment =
+        this.treeTrunk.segments[this.treeTrunk.segments.length - 1];
+      let width = lastSegment.width;
+      let length = lastSegment.length;
       width *= this.species.trunkWidthDegrade;
-      if (width < this.species.minBranchWidth)
-        width = this.species.minBranchWidth + RNG.getUniform() * 2;
-      if (length < this.species.minBranchLength)
-        length = this.species.minBranchLength + RNG.getUniform();
-      x1 = x2;
-      y1 = y2;
-      x2 = x1 + this.lengthdir_x(length, curve);
-      y2 = y1 - this.lengthdir_y(length, curve);
+      if (width < this.species.branchSegmentWidthMin)
+        width = this.species.branchSegmentWidthMin;
+      if (length < this.species.branchSegmentHeightMin)
+        length = this.species.branchSegmentHeightMin;
+      let x1 = lastSegment.x2;
+      let y1 = lastSegment.y2;
+      let x2 = x1 + this.lengthdir_x(length, this.curve);
+      let y2 = y1 - this.lengthdir_y(length, this.curve);
+      let newSegment: Segment = {
+        position: new Point(x1, y1),
+        x1: x1,
+        y1: y1,
+        x2: x2,
+        y2: y2,
+        curve: this.curve,
+        length: length,
+        width: width,
+      };
+      this.treeTrunk.segments.push(newSegment);
+      if (this.treeTrunk.segments.length === trunkSegments) {
+        this.treeTrunk.doneExtending = true;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private growTreeBranches(): boolean {
+    // add branches to trunk
+    // or add branches to existing branches
+    let growSuccess = false;
+
+    // add first branch to trunk
+    if (this.treeBranches.length === 0) {
+      let lastSegment =
+        this.treeTrunk.segments[this.treeTrunk.segments.length - 1];
+      this.curve =
+        lastSegment.curve +
+        (this.species.branchForkMin +
+          RNG.getUniform() * this.species.branchForkRange) *
+          (RNG.getUniform() > 0.5 ? 1 : -1);
+      let width = lastSegment.width;
+      let length = lastSegment.length;
+      width *= this.species.branchSegmentWidthDegrade;
+      if (width < this.species.branchSegmentWidthMin) {
+        width = this.species.branchSegmentWidthMin;
+      }
+      length *= this.species.branchSegmentHeightDegrade;
+      if (length < this.species.branchSegmentHeightMin) {
+        length = this.species.branchSegmentHeightMin;
+      }
+
+      let x1 = lastSegment.x2;
+      let y1 = lastSegment.y2;
+      let x2 = x1 + this.lengthdir_x(length, this.curve);
+      let y2 = y1 - this.lengthdir_y(length, this.curve);
+      let newBranch: TreeBranch = {
+        segments: [
+          {
+            position: new Point(x1, y1),
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2,
+            curve: this.curve,
+            length: length,
+            width: width,
+          },
+        ],
+        leafCount: 0,
+        leafMax: 0,
+        doneExtending: false,
+        doneBranching: false,
+        order: this.branchOrder,
+        branchCount: 0,
+      };
+      this.treeBranches.push(newBranch);
+      this.branchOrder++;
+      this.curveDir = RNG.getUniform() > 0.5 ? 1 : -1; // reset curve dir
+      this.curve +=
+        RNG.getUniform() * this.species.branchCurveAngle * this.curveDir; // set new curve dir
+      growSuccess = true;
     }
 
-    // branches
-    let count = 0;
-    const maxCount =
-      this.species.maxBranchesPerSegment +
-      RNG.getUniformInt(0, this.species.maxBranchesPerSegmentRange);
-    for (let k = 0; k < maxCount; k++) {
-      count = 0;
-      const size = this.branches.length;
-      for (let j = 0; j < size; j++) {
-        const _b = this.branches[j];
-        if (!_b.branch.done) {
-          _b.branch.done = RNG.getUniform() > 0.5;
-          let curve =
-            _b.branch.curve +
-            (this.species.branchForkMin +
-              RNG.getUniform() * this.species.branchForkRange) *
-              (RNG.getUniform() > 0.5 ? 1 : -1);
-          let length = _b.branch.length;
-          if (length < this.species.minBranchLength)
-            length = this.species.minBranchLength;
-          // let width = _b.branch.width / 2;
-          let width = _b.branch.width;
-          width *= this.species.branchWidthDegrade;
-          if (width < this.species.minBranchWidth)
-            width = this.species.minBranchWidth;
-          let order = _b.branch.order;
+    // extend existing branches
+    if (!growSuccess) {
+      for (let treeBranch of this.treeBranches) {
+        if (!treeBranch.doneExtending) {
+          let lastSegment = treeBranch.segments[treeBranch.segments.length - 1];
+          let width = lastSegment.width;
+          let length = lastSegment.length;
+          width *= this.species.branchSegmentWidthDegrade;
+          if (width < this.species.branchSegmentWidthMin)
+            width = this.species.branchSegmentWidthMin;
+          length *= this.species.branchSegmentHeightDegrade;
+          if (length < this.species.branchSegmentHeightMin)
+            length = this.species.branchSegmentHeightMin;
+          let x1 = lastSegment.x2;
+          let y1 = lastSegment.y2;
+          let x2 = x1 + this.lengthdir_x(length, this.curve);
+          let y2 = y1 - this.lengthdir_y(length, this.curve);
+          let newSegment: Segment = {
+            position: new Point(x1, y1),
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2,
+            curve: this.curve,
+            length: length,
+            width: width,
+          };
+          treeBranch.segments.push(newSegment);
 
-          let x1 = _b.branch.x2;
-          let y1 = _b.branch.y2;
-          let x2 = x1 + this.lengthdir_x(length, curve);
-          let y2 = y1 - this.lengthdir_y(length, curve);
-          // create branch segments, with length this.branchLength
-          for (let i = 0; i < this.species.branchLength; i++) {
-            let newBranch = {
-              position: new Point(x1 + (x2 - x1) / 2, y1), // center on x
-              branch: {
-                x1: x1,
-                y1: y1,
-                x2: x2,
-                y2: y2,
-                curve: curve,
-                length: length,
-                width: width,
-                done: false,
-                leafCount:
-                  this.species.leafMinCount +
-                  RNG.getUniform() * this.species.leafCountRange,
-                order: order + 1,
-              },
-            };
-            if (RNG.getUniform() * 100 > this.species.branchChance) {
-              newBranch.branch.done = true;
-            }
-
-            if (j === size || count === maxCount) {
-              newBranch.branch.done = false; // force leaves on the end of branches
-            }
-            this.branches.push(newBranch);
-
-            // setup next loop
-            curve +=
-              RNG.getUniform() *
-              this.species.branchBendAmount *
-              (RNG.getUniform() > 0.5 ? 1 : -1);
-            order++;
-            width *= this.species.trunkWidthDegrade;
-            if (width < this.species.minBranchWidth) {
-              width = this.species.minBranchWidth;
-            }
-            length *= this.species.branchLengthDegrade;
-            if (length < this.species.minBranchLength) {
-              length = this.species.minBranchLength;
-            }
-            x1 = x2;
-            y1 = y2;
-            x2 = x1 + this.lengthdir_x(length, curve);
-            y2 = y1 - this.lengthdir_y(length, curve);
+          if (treeBranch.segments.length >= this.species.branchSegmentCount) {
+            treeBranch.doneExtending = true;
           }
+          this.branchOrder++;
+          this.curveDir = RNG.getUniform() > 0.5 ? 1 : -1; // reset curve dir
+          this.curve +=
+            RNG.getUniform() * this.species.branchCurveAngle * this.curveDir; // set new curve dir
+          growSuccess = true;
+          break;
         }
       }
     }
 
-    this.leafSize =
-      this.species.leafMinSize + RNG.getUniform() * this.species.leafSizeRange;
-    // this.branches.sort((a, b) => b.branch.order - a.branch.order);
-    // generate sprite from branches
-    this.generateSprite();
+    // add a new branch to an existing segment/branch
+    // starting from top of tree
+    if (!growSuccess) {
+      for (let i = 0; i < this.treeBranches.length; i++) {
+        // start at the bottom of the tree for better looking branching
+        let treeBranch = this.treeBranches[i];
+        if (
+          treeBranch.branchCount < this.branchesPerSegment &&
+          !treeBranch.doneBranching
+        ) {
+          const randSegment = RNG.getItem(treeBranch.segments);
+          if (
+            !randSegment ||
+            randSegment?.width <= this.species.branchSegmentWidthMin
+          ) {
+            continue;
+          }
+          this.curve =
+            randSegment.curve +
+            (this.species.branchForkMin +
+              RNG.getUniform() * this.species.branchForkRange) *
+              (RNG.getUniform() > 0.5 ? 1 : -1);
+
+          let width = randSegment.width;
+          let length = randSegment.length;
+          width *= this.species.branchSegmentWidthDegrade;
+          if (width < this.species.branchSegmentWidthMin)
+            width = this.species.branchSegmentWidthMin;
+          if (length < this.species.branchSegmentHeightMin)
+            length = this.species.branchSegmentHeightMin;
+          let x1 = randSegment.x2;
+          let y1 = randSegment.y2;
+          let x2 = x1 + this.lengthdir_x(length, this.curve);
+          let y2 = y1 - this.lengthdir_y(length, this.curve);
+          let newBranch: TreeBranch = {
+            segments: [
+              {
+                position: new Point(x1, y1),
+                x1: x1,
+                y1: y1,
+                x2: x2,
+                y2: y2,
+                curve: this.curve,
+                length: length,
+                width: width,
+              },
+            ],
+            leafCount: 0,
+            leafMax: 0,
+            doneExtending: false,
+            // stop some branches from branching to keep tree from getting too dense
+            doneBranching: RNG.getUniform() > this.branchChance,
+            order: this.branchOrder,
+            branchCount: 0,
+          };
+          this.treeBranches.push(newBranch);
+          treeBranch.branchCount++;
+          this.branchOrder++;
+          this.branchChance += this.species.branchChanceGrow; // grow branch chance every time tree grows
+          this.curveDir = RNG.getUniform() > 0.5 ? 1 : -1; // reset curve dir
+          this.curve +=
+            RNG.getUniform() * this.species.branchCurveAngle * this.curveDir; // set new curve dir
+          growSuccess = true;
+          break;
+        }
+      }
+    }
+    return growSuccess;
   }
 
-  private generateSprite(growthSteps: number = 1): void {
+  private renderTrunkBase(attachSegment: Segment, attachSprite: Sprite): void {
+    // add a sprite for where the trunk meets the ground
+    let trunkBaseSprite = new Sprite(this.trunkBaseTexture);
+    this.sprite.addChild(trunkBaseSprite);
+
+    const trunkBaseIdealWidth = 6; // pixels wide space that aligns with the trunk
+    const ratio = attachSegment.width / trunkBaseIdealWidth;
+    trunkBaseSprite.width *= ratio;
+    trunkBaseSprite.height *= ratio;
+    trunkBaseSprite.tint = attachSprite.tint;
+    trunkBaseSprite.anchor.set(0.5, 0.5);
+    trunkBaseSprite.position.set(
+      attachSprite.position.x,
+      attachSprite.position.y + attachSprite.height / 2
+    );
+  }
+
+  private renderBranch(branch: TreeBranch, tint: string): boolean {
+    let renderSuccess: boolean = false;
+    let sprite: Sprite;
+    let isTrunk = branch === this.treeTrunk;
+    let segment: Segment;
+    const fullyRendered = branch.segments.every((s) => s.rendered);
+    if (!fullyRendered) {
+      segment = branch.segments[branch.segments.length - 1];
+
+      if (isTrunk) {
+        sprite = new Sprite(this.trunkTexture);
+      } else {
+        // TODO: add branch sprites
+        sprite = new Sprite(this.trunkTexture);
+      }
+      this.sprite.addChild(sprite);
+      segment.rendered = true;
+      renderSuccess = true;
+
+      sprite.anchor.set(0.5);
+      sprite.width = segment.width;
+      sprite.height = segment.length * 1.2; // hide gaps between segments
+
+      sprite.position.set(
+        segment.position.x - this.sprite.position.x,
+        segment.position.y - this.sprite.position.y
+      );
+      sprite.angle = -segment.curve + 90;
+      sprite.tint = tint;
+
+      if (this.growthStep === 1) {
+        // add a sprite for where the trunk meets the ground
+        // first trunk segment
+        this.renderTrunkBase(segment, sprite);
+      }
+    }
+
+    return renderSuccess;
+  }
+
+  // shouldn't this just render the latest version of the tree?
+  // shouldn't need growthSteps or any of that
+  private renderTree(growthSteps: number = 1): boolean {
     // add to existing sprite rather than clearing and redrawing
     const firstGrowth = this.growthStep === 0;
     const leafRot = RNG.getUniform() * 360;
-    const ratio = Tile.size / Tile.plantSize;
-
-    const tint = this.game.renderer.getTintForPosition(
-      new Point(
-        Math.floor(this.position.x / ratio), // get the light color of the larger tile
-        Math.floor(this.position.y / ratio)
-      )
+    const terrainPoint = Tile.translatePoint(
+      this.position,
+      Layer.PLANT,
+      Layer.TERRAIN
     );
-
-    // let sprite: Sprite;
+    const tint = this.game.renderer.getTintForPosition(terrainPoint);
+    let growSuccess: boolean = false;
 
     if (firstGrowth) {
-      // this.sprite = new Container();
-      // this.sprite = new ParticleContainer();
       this.sprite = new ParticleContainer(1000, {
         vertices: true,
         position: true,
@@ -261,121 +488,37 @@ export class Tree implements Actor {
       });
     }
 
-    let totalSegmentCount = this.growthStep + growthSteps; // how many segments to add
-    if (totalSegmentCount > this.branches.length) {
-      totalSegmentCount = this.branches.length;
-      this.fullyGrown = true;
-    }
+    for (let i = 0; i < growthSteps; i++) {
+      if (this.treeBranches.length > 1) {
+        // only start growing leaves once there are branches
+        this.renderLeaves(tint);
+      }
 
-    for (let i = this.growthStep; i <= totalSegmentCount; i++) {
-      const trunkBaseStep = this.growthStep === 2;
-
-      let sprite: Sprite;
-      const branch = this.branches[i];
-      let isTrunk = false;
-      if (branch) {
-        isTrunk = branch.branch.order <= this.species.trunkLength;
-
-        // draw trunk/branch
-        if (isTrunk) {
-          sprite = new Sprite(this.trunkTexture);
-          // sprite = Sprite.from(this.trunkSpritePath);
-        } else {
-          // TODO: add branch sprite
-          sprite = new Sprite(this.trunkTexture);
-        }
-        this.sprite.addChild(sprite);
-
-        sprite.anchor.set(0.5);
-        sprite.width = branch.branch.width;
-        // sprite.height = branch.branch.length;
-        // sprite.width = branch.branch.width * 1.1;
-        sprite.height = branch.branch.length * 1.2; // hide gaps between segments
-
-        sprite.position.set(
-          branch.position.x - this.sprite.position.x,
-          branch.position.y - this.sprite.position.y
-        );
-        sprite.angle = -branch.branch.curve + 90;
-        sprite.tint = tint;
-
-        if (trunkBaseStep) {
-          // add a sprite for where the trunk meets the ground
-          let trunkBaseSprite = new Sprite(this.trunkBaseTexture);
-          this.sprite.addChild(trunkBaseSprite);
-
-          const trunkBaseIdealWidth = 6; // pixels wide space that aligns with the trunk
-          const ratio = branch.branch.width / trunkBaseIdealWidth;
-          trunkBaseSprite.width *= ratio;
-          trunkBaseSprite.height *= ratio;
-          trunkBaseSprite.tint = tint;
-          trunkBaseSprite.anchor.set(0.5, 0.5);
-          trunkBaseSprite.position.set(
-            sprite.position.x,
-            sprite.position.y + sprite.height / 2
-          );
-          // trunkBaseSprite.rotation = sprite.rotation;
-        }
-
-        // if (trunkBaseStep) {
-        //   // add a sprite for where the trunk meets the ground
-        //   let trunkBaseSprite = new Sprite(this.trunkBaseTexture);
-        //   this.sprite.addChild(trunkBaseSprite);
-
-        //   const trunkBaseIdealWidth = 8; // 8 pixels wide space that aligns with the trunk
-        //   const ratio = branch.branch.width / trunkBaseIdealWidth;
-        //   trunkBaseSprite.width *= ratio * 1.2;
-        //   // trunkBaseSprite.width *= 1.2;
-        //   // trunkBaseSprite.height *= 1.2;
-        //   trunkBaseSprite.height *= ratio * 1.2;
-        //   trunkBaseSprite.tint = tint;
-        //   trunkBaseSprite.anchor.set(0.5, 0);
-        //   // trunkBaseSprite.position.set(0, -22);
-        //   trunkBaseSprite.position.set(0, -22 * ratio * 1.2);
-        // }
-
-        // add leafs to branches that are not done and are not trunk
-        if (!branch.branch.done && !isTrunk) {
-          let leafAlpha = this.species.maxLeafAlpha;
-          for (
-            let j = 0;
-            j < branch.branch.leafCount * this.species.leafDensity;
-            j++
-          ) {
-            if (this.leafSprites.length >= this.species.maxLeafCount) break;
-            leafAlpha -= 0.02;
-            if (leafAlpha < this.species.minLeafAlpha) {
-              leafAlpha = this.species.maxLeafAlpha;
-            }
-            let angle = RNG.getUniform() * this.species.leafCoverageAngle;
-            let distance =
-              RNG.getUniform() *
-              this.species.branchLength *
-              this.species.leafDistance;
-            let leafX = branch.branch.x2 + this.lengthdir_x(distance, angle);
-            let leafY = branch.branch.y2 - this.lengthdir_y(distance, angle);
-            let leafRotation = angle + RNG.getUniform() * 2 * leafRot - leafRot;
-            const leafSprite = new Sprite(
-              this.species.textureSet.leaf[
-                RNG.getUniformInt(0, this.species.textureSet.leaf.length - 1)
-              ]
-            );
-            this.sprite.addChild(leafSprite);
-            leafSprite.anchor.set(0.5);
-            leafSprite.position.set(
-              leafX - this.sprite.position.x,
-              leafY - this.sprite.position.y
-            );
-            leafSprite.tint = tint;
-            leafSprite.rotation = leafRotation;
-            leafSprite.alpha = leafAlpha;
-            this.leafSprites.push(leafSprite);
+      if (this.fullyGrown) {
+        break;
+      }
+      // add trunk
+      growSuccess = this.renderBranch(this.treeTrunk, tint);
+      if (!growSuccess) {
+        // add branches to trunk
+        for (let treeBranch of this.treeBranches) {
+          growSuccess = this.renderBranch(treeBranch, tint);
+          if (growSuccess) {
+            break;
           }
         }
-        this.growthStep += 1;
+      }
+      if (!growSuccess) {
+        this.fullyGrown = true;
       }
     }
-    console.throttle(250).log("this.treee sprite", this.sprite);
+
+    return growSuccess;
+  }
+
+  private randomizeLeafSize() {
+    this.leafSize =
+      this.species.leafMinSize + RNG.getUniform() * this.species.leafSizeRange;
   }
 
   private lengthdir_x(length: number, direction: number): number {
@@ -401,24 +544,128 @@ export class Tree implements Actor {
   }
 
   growTree() {
-    if (!this.fullyGrown) {
-      this.generateSprite(1);
-      // this.updateShadowSprite();
-      // this.shadowGraphics = this.generateShadowGraphics(this.graphics);
+    const growSteps = 1;
+    let growSuccess = false;
+
+    for (let i = 0; i < growSteps; i++) {
+      // grow leaves
+      this.ageLeaves();
+      // add trunk
+      growSuccess = this.growTreeTrunk();
+      if (!growSuccess) {
+        // add branches to trunk
+        growSuccess = this.growTreeBranches();
+      }
+      if (!growSuccess) {
+        this.fullyGrown = true;
+        break;
+      }
     }
-    this.ageTree();
-    return;
+
+    this.growthStep += 1; // increment growth step
+    this.renderTree(growSteps);
   }
 
-  private ageTree() {
-    const deadLeafCount = RNG.getUniformInt(3, 12);
-    if (this.leafSprites.length > this.species.maxLeafCount / 2) {
+  private renderLeaves(tint: string): void {
+    if (this.growLeaves === false) {
+      return;
+    }
+    const leafsPerGrowth = this.leavesPerBranch / 10;
+    const maxLeaves =
+      this.leavesPerBranch *
+      this.treeBranches.length *
+      this.species.leavesPerBranchDensity;
+
+    for (let i = 0; i < leafsPerGrowth; i++) {
+      if (this.leafSprites.length >= maxLeaves) {
+        break;
+      }
+      const leafRot = RNG.getUniform() * 360;
+      // get newer branches first
+      let randomValue = Math.pow(RNG.getUniform(), 2);
+      let branchIndex = Math.floor(
+        (1 - randomValue) * this.treeBranches.length
+      );
+      let branch = this.treeBranches[branchIndex];
+      let segment = RNG.getItem(branch?.segments || []);
+      if (!branch || !segment) {
+        return;
+      }
+      let leafAlpha = this.species.maxLeafAlpha;
+      leafAlpha -= 0.02;
+      this.leafSize -= 0.1;
+      if (leafAlpha < this.species.minLeafAlpha) {
+        leafAlpha = this.species.maxLeafAlpha;
+      }
+      if (this.leafSize < this.species.leafMinSize) {
+        this.randomizeLeafSize();
+      }
+      let angle = RNG.getUniform() * this.species.leafCoverageAngle;
+      let distance =
+        RNG.getUniform() *
+        this.species.branchSegmentCount *
+        this.species.leafDistance;
+      let leafX = segment.x2 + this.lengthdir_x(distance, angle);
+      let leafY = segment.y2 - this.lengthdir_y(distance, angle);
+      let leafRotation = angle + RNG.getUniform() * 2 * leafRot - leafRot;
+      const leafSprite = new Sprite(
+        this.species.textureSet.leaf[
+          RNG.getUniformInt(0, this.species.textureSet.leaf.length - 1)
+        ]
+      );
+      this.sprite.addChild(leafSprite);
+      leafSprite.anchor.set(0.5);
+      leafSprite.position.set(
+        leafX - this.sprite.position.x,
+        leafY - this.sprite.position.y
+      );
+      leafSprite.tint = tint;
+      leafSprite.rotation = leafRotation;
+      leafSprite.alpha = leafAlpha;
+      leafSprite.width = this.leafSize;
+      leafSprite.height = this.leafSize;
+      this.leafSprites.push(leafSprite);
+    }
+  }
+
+  private ageLeaves(): void {
+    const maxLeaves =
+      this.treeBranches.length *
+      this.leavesPerBranch *
+      this.species.leavesPerBranchDensity;
+    const timeScale = this.game.timeManager.timeScale;
+    // fudged nextLeafCount calc, but doesn't really matter
+    const nextLeafCount =
+      this.leafSprites.length +
+      this.leavesPerBranch * this.species.leavesPerBranchDensity;
+    const deadLeafCount = 3;
+    let newAlpha = 1;
+    let newScale = 1;
+    let leafIndex = 0;
+    let leaf: Sprite;
+    if (nextLeafCount >= maxLeaves) {
       for (let i = 0; i < deadLeafCount; i++) {
-        const leaf = this.leafSprites[i];
-        leaf.y += RNG.getUniform() * 8;
-        if (leaf.y > 0) {
-          leaf.destroy();
-          this.leafSprites.splice(i, 1);
+        leaf = this.leafSprites[i];
+        if (!leaf) break;
+
+        leafIndex = this.leafSprites.indexOf(leaf);
+        leaf.y += RNG.getUniform() * 8 * timeScale;
+        // gentle sway
+        leaf.x += (RNG.getUniform() * 2 - 1) * timeScale;
+        leaf.rotation += (RNG.getUniform() * 2 - 1) * timeScale;
+        if (leaf.y >= -20) {
+          // fade the leaf out as it reaches the ground
+          newAlpha = leaf.alpha - 0.12 * timeScale;
+          newAlpha = newAlpha < 0 ? 0 : newAlpha;
+          leaf.alpha = newAlpha;
+          newScale = leaf.scale.x - 0.03 * timeScale;
+          newScale = newScale < 0.4 ? 0.4 : newScale;
+          leaf.scale.set(newScale);
+
+          if (leaf.y >= 0) {
+            leaf.destroy();
+            this.leafSprites.splice(leafIndex, 1);
+          }
         }
       }
     }
@@ -428,8 +675,8 @@ export class Tree implements Actor {
     const descriptionBlocks: DescriptionBlock[] = [];
     descriptionBlocks.push({
       icon: PinIcon,
-      getDescription: (pointerTarget: PointerTarget) =>
-        `${pointerTarget.position.x}, ${pointerTarget.position.y}`,
+      getDescription: (pointerTarget?: PointerTarget) =>
+        `${pointerTarget?.position.x}, ${pointerTarget?.position.y}`,
     });
     descriptionBlocks.push({
       icon: TypeIcon,

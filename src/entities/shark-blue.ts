@@ -24,6 +24,7 @@ import {
 import { PointerTarget } from "../camera";
 import { Animator } from "../components/animator";
 import { Biomes } from "../biomes";
+import { generateId } from "../misc-utility";
 
 export class SharkBlue implements Actor {
   id: number;
@@ -40,7 +41,7 @@ export class SharkBlue implements Actor {
   private range: number;
 
   constructor(private game: Game, public position: Point) {
-    this.id = Date.now() + RNG.getUniformInt(0, 100000);
+    this.id = generateId();
     this.subType = TileSubType.Animal;
     this.name = this.game.nameGenerator.generate(this.subType);
     console.log(

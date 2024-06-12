@@ -3,7 +3,13 @@ import { Actor } from "./entities/actor";
 
 import { Game } from "./game";
 import { Layer } from "./renderer";
-import { lerp, lerpEaseIn, lerpEaseInOut, lerpEaseOut } from "./misc-utility";
+import {
+  generateId,
+  lerp,
+  lerpEaseIn,
+  lerpEaseInOut,
+  lerpEaseOut,
+} from "./misc-utility";
 
 export interface Animation {
   id: number;
@@ -11,6 +17,7 @@ export interface Animation {
   tileKey: string;
   action: "move";
   turnDuration: number;
+  endTurn: number;
   callback?: () => void;
 }
 
@@ -27,19 +34,32 @@ export class ManagerAnimation {
   public options = {
     lerpStyle: "easeInOut",
   };
-
-  public animations: Animation[] = [];
+  private animations: Animation[] = [];
+  private boundRunAnimation: (animation: Animation) => void =
+    this.runAnimation.bind(this);
 
   constructor(private game: Game) {}
 
   public start() {}
 
   public animUpdate() {
-    for (let i = 0; i < this.animations.length; i++) {
-      this.game.scheduler.postTask(
-        this.runAnimation.bind(this, this.animations[i]),
-        { priority: "user-visible" }
-      );
+    for (let i = this.animations.length - 1; i >= 0; i--) {
+      const anim = this.animations[i];
+      if (anim.endTurn <= this.game.timeManager.currentTurn) {
+        if (anim.callback) {
+          anim.callback();
+        }
+        // Swap the element to remove with the last element and pop it from the array
+        if (i !== this.animations.length - 1) {
+          this.animations[i] = this.animations[this.animations.length - 1];
+        }
+        this.animations.pop();
+      } else {
+        const runAnimationWithArgs = () => this.boundRunAnimation(anim);
+        this.game.scheduler.postTask(runAnimationWithArgs, {
+          priority: "user-visible",
+        });
+      }
     }
   }
 
@@ -50,19 +70,20 @@ export class ManagerAnimation {
   }
 
   public addMoveAnimation(
-    tileKey: string,
+    tileKey: string, // the tile position in the renderer's cache
     oldPos: [number, number],
     newPos: [number, number],
     callback: () => void,
     actor?: Actor
   ) {
     const animation: MoveAnimation = {
-      id: RNG.getUniformInt(0, 100000),
+      id: generateId(),
       tileKey: tileKey,
       oldPos: oldPos,
       newPos: newPos,
       action: "move",
       turnDuration: 1,
+      endTurn: this.game.timeManager.currentTurn + 1,
       callback: callback,
     };
     if (actor) {
@@ -75,9 +96,8 @@ export class ManagerAnimation {
     const newPos = animation.newPos;
     const oldPos = animation.oldPos;
     if (oldPos && newPos) {
-      // let percent = (timeElapsed / timeTotal) * this.game.timeManager.timeScale;
       let percent = this.game.timeManager.turnAnimTimePercent;
-      let animDone = percent >= 0.85; // reduce for snappier feel
+      let animDone = percent >= 0.99; // reduce for snappier feel
       if (animDone) percent = 1;
 
       let x, y;
@@ -101,13 +121,6 @@ export class ManagerAnimation {
         x,
         y
       );
-
-      if (animDone) {
-        this.animations = this.animations.filter((a) => a.id !== animation.id);
-        if (animation.callback) {
-          animation.callback();
-        }
-      }
     }
   }
 }

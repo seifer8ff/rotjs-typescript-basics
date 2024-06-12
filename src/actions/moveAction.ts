@@ -4,8 +4,10 @@ import { Action } from "./action";
 import { Actor } from "../entities/actor";
 import { Layer } from "../renderer";
 import { MapWorld } from "../map-world";
+import { generateId } from "../misc-utility";
 
 export class MoveAction implements Action {
+  readonly id: number;
   readonly name: string;
   durationInTurns: number; // how long the action lasts
 
@@ -14,6 +16,7 @@ export class MoveAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
+    this.id = generateId();
     this.name = "Move To Point";
     this.durationInTurns = 1;
   }

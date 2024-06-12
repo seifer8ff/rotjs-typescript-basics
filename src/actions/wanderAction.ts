@@ -3,8 +3,10 @@ import { Game } from "../game";
 import { Point } from "../point";
 import { Action } from "./action";
 import { Actor } from "../entities/actor";
+import { generateId } from "../misc-utility";
 
 export class WanderAction implements Action {
+  readonly id: number;
   readonly name: string;
   durationInTurns: number; // how long the action lasts
 
@@ -13,6 +15,7 @@ export class WanderAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
+    this.id = generateId();
     this.name = "Wander Around";
     this.durationInTurns = 3;
   }

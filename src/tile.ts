@@ -10,6 +10,8 @@ import HeightIcon from "./shoelace/assets/icons/arrow-up-short.svg";
 import { PointerTarget } from "./camera";
 import { AnimatedSprite, Assets, Graphics, Sprite } from "pixi.js";
 import { update } from "lodash";
+import { Point } from "./point";
+import { Layer } from "./renderer";
 
 // high level types
 export const enum TileType {
@@ -66,6 +68,13 @@ export class Tile {
     "#C1BF69",
     ["walk_up", "walk_right", "walk_left", "walk_down"]
   );
+  static readonly seagull = new Tile(
+    TileType.Entity,
+    "sprites/bird_seagull/bird_seagull.json",
+    "up/bird_seagull_up_000",
+    "#C1BF69",
+    ["up", "right", "left", "down"]
+  );
   static readonly sharkBlue = new Tile(
     TileType.Entity,
     "sprites/shark_blue/shark_blue.json",
@@ -109,6 +118,20 @@ export class Tile {
     // } else {
     //   this.sprite = Sprite.from(this.spritePath);
     // }
+  }
+
+  public static translatePoint(position: Point, from: Layer, to: Layer): Point {
+    if (from === to) return position;
+
+    const ratio = Tile.size / Tile.plantSize;
+    if (from === Layer.PLANT) {
+      return new Point(
+        Math.floor(position.x / ratio),
+        Math.floor(position.y / ratio)
+      );
+    } else if (to === Layer.PLANT) {
+      return new Point(position.x * ratio, position.y * ratio);
+    }
   }
 
   public static getDescription(target: PointerTarget): DescriptionBlock[] {

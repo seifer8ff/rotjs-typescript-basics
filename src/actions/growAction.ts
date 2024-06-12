@@ -4,8 +4,10 @@ import { Point } from "../point";
 import { Action } from "./action";
 import { Actor } from "../entities/actor";
 import { Tree } from "../entities/tree/tree";
+import { generateId } from "../misc-utility";
 
 export class GrowAction implements Action {
+  readonly id: number;
   readonly name: string;
   durationInTurns: number; // how long the action lasts
 
@@ -14,6 +16,7 @@ export class GrowAction implements Action {
     private actor: Actor,
     public targetPos: Point
   ) {
+    this.id = generateId();
     this.name = "Grow";
     this.durationInTurns = 2;
   }
