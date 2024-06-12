@@ -154,7 +154,7 @@ export class TreeSpecies {
     this.iconPath = options.iconPath; // path to the icon representing the tree species
     this.growthOptions = options.growthOptions; // growth options for the tree species
     this.trunkSegmentCount =
-      options.trunkSegmentCount !== undefined ? options.trunkSegmentCount : 6; // length of the trunk
+      options.trunkSegmentCount !== undefined ? options.trunkSegmentCount : 8; // length of the trunk
     this.branchSegmentCount =
       options.branchSegmentCount !== undefined ? options.branchSegmentCount : 9; // segments in each branch (segments can have different lengths and widths)
     this.trunkSegmentHeightMin =
@@ -176,7 +176,7 @@ export class TreeSpecies {
     this.trunkWidthDegrade =
       options.trunkSegmentWidthDegrade !== undefined
         ? options.trunkSegmentWidthDegrade
-        : 0.86; // degradation factor for trunk width
+        : 0.93; // degradation factor for trunk width
     this.maxBranchesPerSegment =
       options.maxBranchesPerSegment !== undefined
         ? options.maxBranchesPerSegment
@@ -230,7 +230,7 @@ export class TreeSpecies {
         ? options.leavesPerBranchDensity
         : 1; // density of leaves on each branch/segment
     this.leafDistance =
-      options.leafDistance !== undefined ? options.leafDistance : 1.1; // distance from the end of the branch where leaves are generated
+      options.leafDistance !== undefined ? options.leafDistance : 3; // distance from the end of the branch where leaves are generated
     this.leavesPerBranchMin =
       options.leavesPerBranchMin !== undefined
         ? options.leavesPerBranchMin
@@ -304,6 +304,21 @@ export class TreeSpecies {
             max: 100,
           },
         },
+        branchSegmentWidthDegrade: 0.96,
+        branchSegmentWidthMin: 1.2,
+        branchSegmentWidthRange: 3.5,
+
+        // minTrunkBaseSize: 3,
+        // branchSegmentHeightMin: 4,
+        // branchSegmentHeightRange: 8,
+        // branchSegmentHeightDegrade: 0.95,
+        branchChance: 1,
+        branchChanceGrow: -0.6,
+        maxBranchesPerSegment: 2,
+        maxBranchesPerSegmentRange: 1,
+        branchCurveAngle: 3,
+        branchForkMin: 23,
+        branchForkRange: 20,
       },
       {
         id: "birch",
@@ -333,7 +348,7 @@ export class TreeSpecies {
             max: 100,
           },
         },
-        trunkSegmentCount: 4,
+        trunkSegmentCount: 5,
         trunkSegmentHeightMin: 5,
         trunkSegmentHeightRange: 3,
         trunkSegmentWidthMin: 4,
@@ -344,16 +359,16 @@ export class TreeSpecies {
         branchSegmentHeightMin: 4,
         branchSegmentHeightRange: 8,
         branchSegmentHeightDegrade: 0.95,
-        branchSegmentWidthDegrade: 0.93,
+        branchSegmentWidthDegrade: 0.9,
         branchSegmentWidthMin: 0.81,
         branchSegmentWidthRange: 0,
-        branchChance: 1,
-        branchChanceGrow: -0.28,
+        branchChance: 0.8,
+        branchChanceGrow: -0.33,
         maxBranchesPerSegment: 2,
         maxBranchesPerSegmentRange: 1,
         branchCurveAngle: 5,
-        branchForkMin: 12,
-        branchForkRange: 8,
+        branchForkMin: 10,
+        branchForkRange: 7,
         leafDistance: 1.8,
         leavesPerBranchMin: 25,
         leavesPerBranchRange: 10,
@@ -418,6 +433,8 @@ export class TreeSpecies {
             max: 100,
           },
         },
+        minLeafAlpha: 0.1,
+        maxLeafAlpha: 0.75,
       },
     ];
 

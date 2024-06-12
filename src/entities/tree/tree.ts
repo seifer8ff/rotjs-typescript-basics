@@ -14,7 +14,8 @@ import { ParticleContainer, Sprite, Texture } from "pixi.js";
 import { PointerTarget } from "../../camera";
 import { TreeSpecies } from "./tree-species";
 import { RNG } from "rot-js";
-import { generateId } from "../../misc-utility";
+import { generateId, getItemFromRange } from "../../misc-utility";
+import { last } from "lodash";
 
 export interface Segment {
   position: Point;
@@ -30,8 +31,7 @@ export interface Segment {
 
 export interface TreeBranch {
   segments: Segment[];
-  leafCount: number;
-  leafMax: number;
+  growLeaves: boolean;
   doneExtending: boolean;
   doneBranching: boolean;
   order: number;
@@ -66,6 +66,7 @@ export class Tree implements Actor {
   private trunkSegmentWidth: number; // current width of trunk
   private branchesPerSegment: number; // maximum number of branches per segment (based on chance)
   private leafSize: number; // current size of leaf;
+  private leafAlpha: number; // current alpha of leaf
   private branchOrder: number; // current order of branch
   private leavesPerBranch: number; // number of leaves per branch (used to calculate max number of leaves at any time)
 
@@ -145,14 +146,14 @@ export class Tree implements Actor {
       this.species.leavesPerBranchMin,
       this.species.leavesPerBranchRange
     );
+    this.leafAlpha = this.species.maxLeafAlpha;
     this.curve = 80 + RNG.getUniform() * 20; // close to 90 degrees from ground
     this.randomizeTrunkStyle();
     this.treeBranches = [];
     this.treeTrunk = {
       segments: [],
       order: this.branchOrder,
-      leafCount: 0,
-      leafMax: 0,
+      growLeaves: false,
       doneExtending: false,
       doneBranching: false,
       branchCount: 0,
@@ -180,6 +181,7 @@ export class Tree implements Actor {
       width: this.trunkSegmentWidth,
     };
     this.treeTrunk.segments.push(firstTrunkSegment);
+    this.treeBranches.push(this.treeTrunk);
 
     this.curveDir = RNG.getUniform() > 0.5 ? 1 : -1; // reset curve dir
     this.curve +=
@@ -251,7 +253,7 @@ export class Tree implements Actor {
         lastSegment.curve +
         (this.species.branchForkMin +
           RNG.getUniform() * this.species.branchForkRange) *
-          (RNG.getUniform() > 0.5 ? 1 : -1);
+          this.curveDir;
       let width = lastSegment.width;
       let length = lastSegment.length;
       width *= this.species.branchSegmentWidthDegrade;
@@ -263,8 +265,8 @@ export class Tree implements Actor {
         length = this.species.branchSegmentHeightMin;
       }
 
-      let x1 = lastSegment.x2;
-      let y1 = lastSegment.y2;
+      let x1 = lastSegment.x2 + this.lengthdir_x(length, this.curve) / 2;
+      let y1 = lastSegment.y2 + this.lengthdir_y(length, this.curve) / 3;
       let x2 = x1 + this.lengthdir_x(length, this.curve);
       let y2 = y1 - this.lengthdir_y(length, this.curve);
       let newBranch: TreeBranch = {
@@ -280,8 +282,7 @@ export class Tree implements Actor {
             width: width,
           },
         ],
-        leafCount: 0,
-        leafMax: 0,
+        growLeaves: false,
         doneExtending: false,
         doneBranching: false,
         order: this.branchOrder,
@@ -342,12 +343,21 @@ export class Tree implements Actor {
     if (!growSuccess) {
       for (let i = 0; i < this.treeBranches.length; i++) {
         // start at the bottom of the tree for better looking branching
-        let treeBranch = this.treeBranches[i];
+        // let treeBranch = this.treeBranches[i];
+        let treeBranch = RNG.getItem(this.treeBranches);
+        if (!treeBranch) {
+          continue;
+        }
         if (
           treeBranch.branchCount < this.branchesPerSegment &&
           !treeBranch.doneBranching
         ) {
-          const randSegment = RNG.getItem(treeBranch.segments);
+          // const randSegment = RNG.getItem(treeBranch.segments);
+          const randSegment = getItemFromRange(
+            treeBranch.segments,
+            2,
+            treeBranch.segments.length - 1
+          );
           if (
             !randSegment ||
             randSegment?.width <= this.species.branchSegmentWidthMin
@@ -371,6 +381,22 @@ export class Tree implements Actor {
           let y1 = randSegment.y2;
           let x2 = x1 + this.lengthdir_x(length, this.curve);
           let y2 = y1 - this.lengthdir_y(length, this.curve);
+          const rand = RNG.getUniform();
+          let doneBranching = false;
+          doneBranching = rand > this.branchChance;
+          // if (isTreeTrunk(treeBranch)) {
+          //   doneBranching = false;
+          // } else {
+          //   doneBranching = rand > this.branchChance;
+          // }
+          // if (isTreeTrunk(treeBranch)) {
+          //   // tree trunk is less likely to finish branching
+          //   if (RNG.getUniform() > 0.6) {
+          //     doneBranching = rand > this.branchChance;
+          //   }
+          // } else {
+          //   doneBranching = rand > this.branchChance;
+          // }
           let newBranch: TreeBranch = {
             segments: [
               {
@@ -384,11 +410,10 @@ export class Tree implements Actor {
                 width: width,
               },
             ],
-            leafCount: 0,
-            leafMax: 0,
+            growLeaves: true,
             doneExtending: false,
             // stop some branches from branching to keep tree from getting too dense
-            doneBranching: RNG.getUniform() > this.branchChance,
+            doneBranching,
             order: this.branchOrder,
             branchCount: 0,
           };
@@ -422,6 +447,7 @@ export class Tree implements Actor {
       attachSprite.position.x,
       attachSprite.position.y + attachSprite.height / 2
     );
+    trunkBaseSprite.zIndex = -1;
   }
 
   private renderBranch(branch: TreeBranch, tint: string): boolean {
@@ -453,6 +479,7 @@ export class Tree implements Actor {
       );
       sprite.angle = -segment.curve + 90;
       sprite.tint = tint;
+      sprite.zIndex = branch.order;
 
       if (this.growthStep === 1) {
         // add a sprite for where the trunk meets the ground
@@ -570,7 +597,7 @@ export class Tree implements Actor {
     if (this.growLeaves === false) {
       return;
     }
-    const leafsPerGrowth = this.leavesPerBranch / 10;
+    const leafsPerGrowth = this.leavesPerBranch / 4;
     const maxLeaves =
       this.leavesPerBranch *
       this.treeBranches.length *
@@ -587,15 +614,17 @@ export class Tree implements Actor {
         (1 - randomValue) * this.treeBranches.length
       );
       let branch = this.treeBranches[branchIndex];
+      if (!branch.growLeaves) {
+        continue;
+      }
       let segment = RNG.getItem(branch?.segments || []);
       if (!branch || !segment) {
         return;
       }
-      let leafAlpha = this.species.maxLeafAlpha;
-      leafAlpha -= 0.02;
+      this.leafAlpha -= 0.02;
       this.leafSize -= 0.1;
-      if (leafAlpha < this.species.minLeafAlpha) {
-        leafAlpha = this.species.maxLeafAlpha;
+      if (this.leafAlpha < this.species.minLeafAlpha) {
+        this.leafAlpha = this.species.maxLeafAlpha;
       }
       if (this.leafSize < this.species.leafMinSize) {
         this.randomizeLeafSize();
@@ -621,9 +650,10 @@ export class Tree implements Actor {
       );
       leafSprite.tint = tint;
       leafSprite.rotation = leafRotation;
-      leafSprite.alpha = leafAlpha;
+      leafSprite.alpha = this.leafAlpha;
       leafSprite.width = this.leafSize;
       leafSprite.height = this.leafSize;
+      leafSprite.zIndex = branch.order + 1;
       this.leafSprites.push(leafSprite);
     }
   }

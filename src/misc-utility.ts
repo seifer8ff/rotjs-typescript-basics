@@ -121,3 +121,19 @@ export function getScaledNoise(noise: Noise, x: number, y: number): number {
 export function generateId(): number {
   return Date.now() + RNG.getUniformInt(0, 100000);
 }
+
+export function getItemFromRange<T>(
+  arr: T[],
+  minIndex = 0,
+  maxIndex = arr.length - 1
+): T {
+  if (arr.length === 0) {
+    throw new Error("Array is empty");
+  }
+  if (minIndex < 0 || maxIndex >= arr.length || minIndex > maxIndex) {
+    throw new Error(`Invalid index range, ${minIndex}, ${maxIndex}, ${arr}`);
+  }
+  const index =
+    Math.floor(Math.random() * (maxIndex - minIndex + 1)) + minIndex;
+  return arr[index];
+}

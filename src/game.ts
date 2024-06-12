@@ -844,7 +844,23 @@ export class Game {
       positions.push(
         ...this.map.getRandomTilePositions(
           Biomes.Biomes.valley.id,
-          split * 2,
+          split * 1,
+          true,
+          true
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.snowhillshillsmid.id,
+          split * 1,
+          true,
+          true
+        )
+      );
+      positions.push(
+        ...this.map.getRandomTilePositions(
+          Biomes.Biomes.snowmoistdirt.id,
+          split * 1,
           true,
           true
         )
@@ -865,25 +881,28 @@ export class Game {
   private spawnPlantInBiome(pos: Point, biome: BiomeId): Actor {
     let tree: Actor;
     switch (biome) {
-      // case Biomes.Biomes.moistdirt.id:
-      //   tree = new Tree(this, pos, TreeSpecies.treeSpecies["pine"]);
-      //   break;
-      // case Biomes.Biomes.hillsmid.id:
-      // case Biomes.Biomes.hillshigh.id:
-      //   tree = new Tree(this, pos, TreeSpecies.treeSpecies["birch"]);
-      //   break;
-      // case Biomes.Biomes.valley.id:
-      //   tree = new Tree(this, pos, TreeSpecies.treeSpecies["cottoncandy"]);
-      //   break;
+      case Biomes.Biomes.moistdirt.id:
+        tree = new Tree(this, pos, TreeSpecies.treeSpecies["pine"]);
+        break;
+      case Biomes.Biomes.hillsmid.id:
+      case Biomes.Biomes.hillshigh.id:
+        tree = new Tree(this, pos, TreeSpecies.treeSpecies["birch"]);
+        break;
+      case Biomes.Biomes.valley.id:
+        tree = new Tree(this, pos, TreeSpecies.treeSpecies["cottoncandy"]);
+        break;
+      case Biomes.Biomes.snowhillshillsmid.id:
+        tree = new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
+        break;
       default:
-        const rand = RNG.getUniform();
-        tree =
-          rand < 0.33
-            ? new Tree(this, pos, TreeSpecies.treeSpecies["pine"])
-            : rand < 0.66
-            ? new Tree(this, pos, TreeSpecies.treeSpecies["birch"])
-            : new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
-        // tree = new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
+        // const rand = RNG.getUniform();
+        // tree =
+        //   rand < 0.33
+        //     ? new Tree(this, pos, TreeSpecies.treeSpecies["pine"])
+        //     : rand < 0.66
+        //     ? new Tree(this, pos, TreeSpecies.treeSpecies["birch"])
+        //     : new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
+        tree = new Tree(this, pos, TreeSpecies.treeSpecies["maple"]);
         break;
     }
     this.plants.push(tree);
