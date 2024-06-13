@@ -426,154 +426,23 @@ export class Camera {
     }
     // this.ui.components.tileSelectionIndicator.handleClick(x, y);
     const tilePos = this.screenToTilePos(x, y);
-
-    this.selectTileAt(tilePos.x, tilePos.y);
+    if (tilePos) {
+      this.selectTileAt(tilePos.x, tilePos.y);
+    }
   };
 
   public screenToTilePos(x: number, y: number): Point {
-    // offset from center of viewport/container
-    const scale = this.ui.gameDisplay.stage.scale.x;
-    const pivot = this.ui.gameDisplay.stage.pivot;
-    const viewport = this.viewportUnpadded;
-    // calculate initial pivot based on map size and tile size
-    const screenCenterX = this.ui.gameCanvasContainer.clientWidth / 2;
-    const screenCenterY = this.ui.gameCanvasContainer.clientHeight / 2;
-    const pivotX = pivot.x;
-    const pivotY = pivot.y;
-
-    const centerTileX = viewport.center.x;
-    const centerTileY = viewport.center.y;
-    const centerTileScreenX = centerTileX * Tile.size;
-    const centerTileScreenY = centerTileY * Tile.size;
-    console.log("centerScreenX", centerTileScreenX);
-    const pivotDiffX = pivotX - centerTileScreenX;
-    const pivotDiffY = pivotY - centerTileScreenY;
-    console.log("pivotDiffX", pivotDiffX);
-
-    // const pixelOffsetFromTileCenter = pivot.x % Tile.size;
-    // console.log("pixel offset from tile center", pixelOffsetFromTileCenter);
-
-    // take into account how offset the stage is from the center of the tile
-    console.log(
-      "calculate offset, pivot, tile size, scale",
-      pivot.x,
-      Tile.size,
-      scale
-    );
-
-    const screenCenterXScaled = (screenCenterX - pivotDiffX) / scale;
-    const screenCenterYScaled = (screenCenterY - pivotDiffY) / scale;
-    const scaledClickOffsetX = x / scale - screenCenterXScaled;
-    const scaledClickOffsetY = y / scale - screenCenterYScaled;
-
-    const tileOffsetX = Math.round(scaledClickOffsetX / Tile.size);
-    const tileOffsetY = Math.round(scaledClickOffsetY / Tile.size);
-    const tileX = viewport.center.x + tileOffsetX;
-    const tileY = viewport.center.y + tileOffsetY;
-    return new Point(tileX, tileY);
+    for (const key of this.viewportTilesUnpadded) {
+      const point = MapWorld.keyToPoint(key);
+      const sprite = this.game.renderer.getFromCache(point, Layer.TERRAIN);
+      if (sprite) {
+        const bounds = sprite.getBounds();
+        if (bounds.contains(x, y)) {
+          return point;
+        }
+      }
+    }
   }
-
-  // public screenToTilePos(x: number, y: number): Point {
-  //   // offset from center of viewport/container
-  //   const scale = this.ui.gameDisplay.stage.scale.x;
-  //   const pivot = this.ui.gameDisplay.stage.pivot;
-  //   const viewport = this.getViewportInTiles(false);
-  //   // calculate initial pivot based on map size and tile size
-  //   const initialPivotX = (this.game.gameSize.width * Tile.size) / 2;
-  //   const initialPivotY = (this.game.gameSize.height * Tile.size) / 2;
-  //   const screenCenterX = this.ui.gameCanvasContainer.clientWidth / 2;
-  //   const screenCenterY = this.ui.gameCanvasContainer.clientHeight / 2;
-  //   const pivotX = pivot.x;
-  //   const pivotY = pivot.y;
-
-  //   const centerTileX = viewport.center.x;
-  //   const centerTileY = viewport.center.y;
-  //   const centerScreenX = centerTileX * Tile.size;
-  //   const centerScreenY = centerTileY * Tile.size;
-  //   console.log("centerScreenX", centerScreenX);
-  //   const pivotDiffX = pivotX - centerScreenX;
-  //   const pivotDiffY = pivotY - centerScreenY;
-  //   console.log("pivotDiffX", pivotDiffX);
-
-  //   // const pixelOffsetFromTileCenter = pivot.x % Tile.size;
-  //   // console.log("pixel offset from tile center", pixelOffsetFromTileCenter);
-
-  //   // take into account how offset the stage is from the center of the tile
-  //   console.log(
-  //     "calculate offset, pivot, tile size, scale",
-  //     pivot.x,
-  //     Tile.size,
-  //     scale
-  //   );
-
-  //   const screenCenterXScaled = (screenCenterX - pivotDiffX) / scale;
-  //   const screenCenterYScaled = (screenCenterY - pivotDiffY) / scale;
-  //   const scaledClickOffsetX = x / scale - screenCenterXScaled;
-  //   const scaledClickOffsetY = y / scale - screenCenterYScaled;
-
-  //   const tileOffsetX = Math.round(scaledClickOffsetX / Tile.size);
-  //   const tileOffsetY = Math.round(scaledClickOffsetY / Tile.size);
-  //   const tileX = viewport.center.x + tileOffsetX;
-  //   const tileY = viewport.center.y + tileOffsetY;
-  //   return new Point(tileX, tileY);
-  // }
-
-  // public screenToTilePos(x: number, y: number): Point {
-  //   // offset from center of viewport/container
-  //   const scale = this.ui.gameDisplay.stage.scale.x;
-  //   const pivot = this.ui.gameDisplay.stage.pivot;
-  //   const viewport = this.getViewportInTiles(false);
-  //   let centerX = this.ui.gameCanvasContainer.clientWidth / 2;
-  //   const centerY = this.ui.gameCanvasContainer.clientHeight / 2;
-  //   // take into account how offset the stage is from the center of the tile
-
-  //   const pixelOffsetFromTileCenter = pivot.x % Tile.size;
-  //   console.log("pixel offset from tile center", pixelOffsetFromTileCenter);
-  //   // const scaledTileSizeX = Tile.size / scale;
-  //   // const centerTileOffsetX =
-  //   //   ((pivot.x * 100000) % Math.round(Tile.size * 100000)) / 100000;
-
-  //   const centerTileOffsetY = pivot.y % (Tile.size / scale);
-  //   const centerTileOffsetX = pixelOffsetFromTileCenter;
-  //   console.log("centerTileOffsetX", centerTileOffsetX);
-  //   console.log("pivotX, scaledtilesize, ", pivot.x, Tile.size / scale);
-  //   centerX -= centerTileOffsetX;
-
-  //   const centerXScaled = centerX / scale;
-  //   const centerYScaled = centerY / scale;
-  //   const scaledClickOffsetX = (x + centerTileOffsetX) / scale - centerXScaled;
-  //   const scaledClickOffsetY = (y - centerTileOffsetY) / scale - centerYScaled;
-  //   // console.log("scaledClickOffsetX", scaledClickOffsetX);
-
-  //   const tileOffsetX = Math.round(scaledClickOffsetX / Tile.size);
-  //   const tileOffsetY = Math.round(scaledClickOffsetY / Tile.size);
-  //   const tileX = viewport.center.x + tileOffsetX;
-  //   const tileY = viewport.center.y + tileOffsetY;
-  //   return new Point(tileX, tileY);
-  // }
-
-  // public screenToTilePos(x: number, y: number): Point {
-  //   // offset from center of viewport/container
-  //   const scale = this.ui.gameDisplay.stage.scale.x;
-  //   const pivot = this.ui.gameDisplay.stage.pivot;
-  //   const viewport = this.getViewportInTiles(false);
-  //   const centerX = this.ui.gameCanvasContainer.clientWidth / 2;
-  //   const centerY = this.ui.gameCanvasContainer.clientHeight / 2;
-  //   // take into account how offset the stage is from the center of the tile
-  //   const centerTileOffsetX = pivot.x % Tile.size;
-  //   const centerTileOffsetY = pivot.y % Tile.size;
-
-  //   const centerXScaled = centerX / scale;
-  //   const centerYScaled = centerY / scale;
-  //   const scaledClickOffsetX = (x - centerTileOffsetX) / scale - centerXScaled;
-  //   const scaledClickOffsetY = (y - centerTileOffsetY) / scale - centerYScaled;
-
-  //   const tileOffsetX = Math.round(scaledClickOffsetX / Tile.size);
-  //   const tileOffsetY = Math.round(scaledClickOffsetY / Tile.size);
-  //   const tileX = viewport.center.x + tileOffsetX;
-  //   const tileY = viewport.center.y + tileOffsetY;
-  //   return new Point(tileX, tileY);
-  // }
 
   private handlePanStart = (g: TinyGesture) => {
     // console.log("pan start", g.velocityX, g.velocityY);
