@@ -184,7 +184,6 @@ export class MapShadows {
 
     for (let i = 0; i < this.game.options.gameSize.width; i++) {
       for (let j = 0; j < this.game.options.gameSize.height; j++) {
-        const key = MapWorld.coordsToKey(i, j);
         const adjacent = this.map.getAdjacent(i, j, heightLayerAdjacencyMap);
         if (adjacent) {
           this.calcTopDownDropoff(i, j, adjacent);

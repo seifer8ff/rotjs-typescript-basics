@@ -274,6 +274,18 @@ export class Game {
     );
   }
 
+  public indexToPosition(index: number, layer: Layer): Point {
+    let x = 0;
+    let y = 0;
+    let ratio = 1;
+    if (layer === Layer.PLANT) {
+      ratio = Tile.size / Tile.plantSize;
+    }
+    y = Math.floor(index / (this.options.gameSize.width * ratio));
+    x = index % (this.options.gameSize.width * ratio);
+    return new Point(x, y);
+  }
+
   private async initializePlants(): Promise<boolean> {
     TreeSpecies.processTreeSpecies();
     return true;

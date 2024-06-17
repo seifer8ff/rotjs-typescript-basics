@@ -276,20 +276,11 @@ export class Renderer {
   }
 
   // remove the sprite from the cache and from the scene, immediately
-  removeFromScene(
-    position: Point,
-    displayObj: PIXI.DisplayObject | string,
-    layer: Layer
-  ): void {
+  removeFromScene(tileIndex: number, layer: Layer): void {
     let cachedObj: PIXI.DisplayObject;
-    const index = this.game.positionToIndex(position.x, position.y, layer);
-    if (typeof displayObj === "string") {
-      cachedObj = this.spriteCache[index];
-    } else {
-      cachedObj = displayObj;
-    }
+    cachedObj = this.spriteCache[tileIndex];
     // remove from spriteByPos
-    this.spriteCache[index] = undefined;
+    this.spriteCache[tileIndex] = undefined;
     switch (layer) {
       case Layer.TERRAIN: {
         this.terrainLayer.removeChild(cachedObj);
