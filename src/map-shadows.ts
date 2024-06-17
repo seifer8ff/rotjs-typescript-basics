@@ -147,7 +147,9 @@ export class MapShadows {
       this.occlusionMap,
       this.targetOcclusionMap
     );
-    this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
+    this.interpolateShadowState(
+      this.game.userInterface.camera.viewportTilesUnpadded
+    );
   }
 
   public generateDropoffMaps() {
@@ -252,7 +254,9 @@ export class MapShadows {
 
   public renderUpdate(interpPercent: number) {
     // move towards targetShadowMap from shadowMap every frame
-    this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
+    this.interpolateShadowState(
+      this.game.userInterface.camera.viewportTilesUnpadded
+    );
   }
 
   private updateShadowDirection() {

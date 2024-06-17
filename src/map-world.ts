@@ -17,7 +17,8 @@ import { MapPoles } from "./map-poles";
 import { MapClouds } from "./map-clouds";
 import Noise from "rot-js/lib/noise/noise";
 import { clamp } from "rot-js/lib/util";
-import { Sprite } from "pixi.js";
+import { Sprite, Texture } from "pixi.js";
+import { CompositeTilemap, Tilemap } from "@pixi/tilemap";
 
 export type Map = ValueMap | BiomeMap | TileMap;
 
@@ -62,6 +63,8 @@ export class MapWorld {
   public polesMap: MapPoles;
   public cloudMap: MapClouds;
   public seaLevel: number;
+
+  public testTilemap: CompositeTilemap;
 
   public heightAdjacencyD1Map: { [key: string]: number[] }; // adjacency map with distance of 1 tile
   public heightAdjacencyD2Map: { [key: string]: number[] };
@@ -1138,6 +1141,19 @@ export class MapWorld {
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];
+  }
+
+  public initTilemap(): void {
+    // create test pixi tilemap for rendering
+    const tilemap = new CompositeTilemap();
+    this.testTilemap = tilemap;
+    // this.game.userInterface.gameDisplay.stage.addChild(tilemap);
+    this.game.renderer.entityLayer.addChild(tilemap);
+    // this.game.renderer.addToScene(
+    //   new Point(0, 0),
+    //   Layer.ENTITY,
+    //   tilemap as any
+    // );
   }
 
   onTileEnterViewport(positions: Point[]): void {

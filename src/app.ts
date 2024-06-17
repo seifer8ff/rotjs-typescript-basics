@@ -5,7 +5,6 @@ import "./style.css";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path.js";
 import "scheduler-polyfill";
 import "./scripts/console-extras.min.js";
-import "@pixi/mixin-get-global-position";
 
 declare global {
   export interface Console {
@@ -25,4 +24,5 @@ document.body.onload = async () => {
   var game = new Game();
   await game.Init();
   game.start();
+  // game.userInterface.loadGameStats();
 };

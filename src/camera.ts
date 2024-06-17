@@ -18,6 +18,13 @@ export interface Viewport {
   center: Point;
 }
 
+export interface ViewportBounds {
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
+}
+
 export interface PointerTarget {
   position: Point;
   target: Tile | Actor;
@@ -55,7 +62,7 @@ export class Camera {
   constructor(private game: Game, private ui: UserInterface) {
     this.defaultZoom = 1.4;
     this.currentZoom = this.defaultZoom;
-    this.minZoom = 0.5;
+    this.minZoom = 0.2;
     this.maxZoom = 7;
     this.moveSpeed = 0.3;
     this.showSidebarDelayMs = 500;
@@ -118,10 +125,10 @@ export class Camera {
     return (
       x >= 0 &&
       y >= 0 &&
-      x > this.viewport.center.x - this.viewport.width / 2 &&
-      x < this.viewport.center.x + this.viewport.width / 2 &&
-      y > this.viewport.center.y - this.viewport.height / 2 &&
-      y < this.viewport.center.y + this.viewport.height / 2
+      x > this.viewportUnpadded.center.x - this.viewportUnpadded.width / 2 &&
+      x < this.viewportUnpadded.center.x + this.viewportUnpadded.width / 2 &&
+      y > this.viewportUnpadded.center.y - this.viewportUnpadded.height / 2 &&
+      y < this.viewportUnpadded.center.y + this.viewportUnpadded.height / 2
     );
   }
 
@@ -283,7 +290,10 @@ export class Camera {
     return true;
   }
 
-  private getViewportTiles(pad: boolean = false): string[] {
+  private getViewportTiles(
+    pad: boolean = false,
+    layer: Layer = Layer.TERRAIN
+  ): string[] {
     const { width, height, center } = pad
       ? this.viewportUnpadded
       : this.viewport;
@@ -303,40 +313,258 @@ export class Camera {
     padded: Viewport;
   } {
     const normalizedZoom = this.getNormalizedZoom();
-    let unpaddedWidth =
+    let unpaddedWidthInTiles =
       this.ui.gameCanvasContainer.clientWidth /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
-    let unpaddedHeight =
+    let unpaddedHeightInTiles =
       this.ui.gameCanvasContainer.clientHeight /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
-    let paddedWidth = unpaddedWidth;
-    let paddedHeight = unpaddedHeight;
-    paddedWidth += Math.max(10, 0.1 * paddedWidth);
-    paddedHeight += Math.max(10, 0.1 * paddedHeight);
+    let paddedWidthInTiles = unpaddedWidthInTiles;
+    let paddedHeightInTiles = unpaddedHeightInTiles;
+    paddedWidthInTiles += Math.max(10, 0.1 * paddedWidthInTiles);
+    paddedHeightInTiles += Math.max(10, 0.1 * paddedHeightInTiles);
 
     if (normalizedZoom < 0.12) {
       // reduce viewport size at low zoom levels
       // hidden by weather overlays
-      unpaddedWidth = unpaddedWidth * 0.95;
-      unpaddedHeight = unpaddedHeight * 0.95;
+      unpaddedWidthInTiles = unpaddedWidthInTiles * 0.95;
+      unpaddedHeightInTiles = unpaddedHeightInTiles * 0.95;
     }
 
     if (normalizedZoom < 0.1) {
       // reduce viewport size at low zoom levels
       // hidden by weather overlays
-      unpaddedWidth = unpaddedWidth * 0.9;
-      unpaddedHeight = unpaddedHeight * 0.9;
+      unpaddedWidthInTiles = unpaddedWidthInTiles * 0.9;
+      unpaddedHeightInTiles = unpaddedHeightInTiles * 0.9;
     }
     const center = this.getViewportCenterTile();
-    unpaddedWidth = Math.ceil(unpaddedWidth);
-    unpaddedHeight = Math.ceil(unpaddedHeight);
-    paddedWidth = Math.ceil(paddedWidth);
-    paddedHeight = Math.ceil(paddedHeight);
+    unpaddedWidthInTiles = Math.ceil(unpaddedWidthInTiles);
+    unpaddedHeightInTiles = Math.ceil(unpaddedHeightInTiles);
+    paddedWidthInTiles = Math.ceil(paddedWidthInTiles);
+    paddedHeightInTiles = Math.ceil(paddedHeightInTiles);
     return {
-      unpadded: { width: unpaddedWidth, height: unpaddedHeight, center },
-      padded: { width: paddedWidth, height: paddedHeight, center },
+      unpadded: {
+        width: unpaddedWidthInTiles,
+        height: unpaddedHeightInTiles,
+        center,
+      },
+      padded: {
+        width: paddedWidthInTiles,
+        height: paddedHeightInTiles,
+        center,
+      },
     };
   }
+
+  // return the x1, x2, y1, y2 of the viewport
+  // allowed to go out of 'bounds' of stage
+  public getViewportBounds(viewport: Viewport, layer: Layer): ViewportBounds {
+    if (!viewport) {
+      return;
+    }
+    let x1, x2, y1, y2;
+    if (layer === Layer.PLANT || layer === Layer.GROUNDFX) {
+      // const translatedCenterPoint = Tile.translatePoint(
+      //   viewport.center,
+      //   Layer.TERRAIN,
+      //   layer
+      // );
+      x1;
+      viewport.center.x * Tile.plantSize -
+        (viewport.width * Tile.plantSize) / 2;
+      x2 =
+        viewport.center.x * Tile.plantSize +
+        (viewport.width * Tile.plantSize) / 2;
+      y1 =
+        viewport.center.y * Tile.plantSize -
+        (viewport.height * Tile.plantSize) / 2;
+      y2 =
+        viewport.center.y * Tile.plantSize +
+        (viewport.height * Tile.plantSize) / 2;
+    } else {
+      x1 = viewport.center.x - viewport.width / 2;
+      x2 = viewport.center.x + viewport.width / 2;
+      y1 = Math.max(0, viewport.center.y - viewport.height / 2);
+      y2 = viewport.center.y + viewport.height / 2;
+    }
+    x1 = Math.floor(x1);
+    x2 = Math.ceil(x2);
+    y1 = Math.floor(y1);
+    y2 = Math.ceil(y2);
+    // console.throttle(50).log("returning viewport bounds", x1, x2);
+
+    return { x1, x2, y1, y2 };
+  }
+  // public getViewportBounds(viewport: Viewport, layer: Layer): ViewportBounds {
+  //   if (!viewport) {
+  //     return;
+  //   }
+  //   let x1, x2, y1, y2;
+  //   if (layer === Layer.PLANT || layer === Layer.GROUNDFX) {
+  //     // const translatedCenterPoint = Tile.translatePoint(
+  //     //   viewport.center,
+  //     //   Layer.TERRAIN,
+  //     //   layer
+  //     // );
+  //     x1 = Math.max(
+  //       0,
+  //       viewport.center.x * Tile.plantSize -
+  //         (viewport.width * Tile.plantSize) / 2
+  //     );
+  //     x2 = Math.min(
+  //       this.game.options.gameSize.width * Tile.plantSize,
+  //       viewport.center.x * Tile.plantSize +
+  //         (viewport.width * Tile.plantSize) / 2
+  //     );
+  //     y1 = Math.max(
+  //       0,
+  //       viewport.center.y * Tile.plantSize -
+  //         (viewport.height * Tile.plantSize) / 2
+  //     );
+  //     y2 = Math.min(
+  //       this.game.options.gameSize.height * Tile.plantSize,
+  //       viewport.center.y * Tile.plantSize +
+  //         (viewport.height * Tile.plantSize) / 2
+  //     );
+  //   } else {
+  //     x1 = Math.max(0, viewport.center.x - viewport.width / 2);
+  //     x2 = Math.min(
+  //       this.game.options.gameSize.width,
+  //       viewport.center.x + viewport.width / 2
+  //     );
+  //     y1 = Math.max(0, viewport.center.y - viewport.height / 2);
+  //     y2 = Math.min(
+  //       this.game.options.gameSize.height,
+  //       viewport.center.y + viewport.height / 2
+  //     );
+  //   }
+  //   x1 = Math.floor(x1);
+  //   x2 = Math.ceil(x2);
+  //   y1 = Math.floor(y1);
+  //   y2 = Math.ceil(y2);
+  //   // console.throttle(50).log("returning viewport bounds", x1, x2);
+
+  //   return { x1, x2, y1, y2 };
+  // }
+
+  // public static translatePoint(position: Point, from: Layer, to: Layer): Point {
+  //   if (from === to) return position;
+
+  //   const ratio = Tile.size / Tile.plantSize;
+  //   if (from === Layer.PLANT) {
+  //     return new Point(
+  //       Math.floor(position.x / ratio),
+  //       Math.floor(position.y / ratio)
+  //     );
+  //   } else if (to === Layer.PLANT) {
+  //     return new Point(position.x * ratio, position.y * ratio);
+  //   }
+  // }
+
+  // public getViewportBounds(
+  //   viewport: Viewport,
+  //   layer: Layer
+  // ): {
+  //   x1: number;
+  //   x2: number;
+  //   y1: number;
+  //   y2: number;
+  // } {
+  //   if (!viewport) {
+  //     return;
+  //   }
+  //   let x1, x2, y1, y2;
+  //   if (layer === Layer.PLANT || layer === Layer.GROUNDFX) {
+  //     x1 = Math.max(
+  //       0,
+  //       viewport.center.x * Tile.plantSize -
+  //         (viewport.width * Tile.plantSize) / 2
+  //     );
+  //     x2 = Math.min(
+  //       this.game.options.gameSize.width * Tile.plantSize,
+  //       viewport.center.x * Tile.plantSize +
+  //         (viewport.width * Tile.plantSize) / 2
+  //     );
+  //     y1 = Math.max(
+  //       0,
+  //       viewport.center.y * Tile.plantSize -
+  //         (viewport.height * Tile.plantSize) / 2
+  //     );
+  //     y2 = Math.min(
+  //       this.game.options.gameSize.height * Tile.plantSize,
+  //       viewport.center.y * Tile.plantSize +
+  //         (viewport.height * Tile.plantSize) / 2
+  //     );
+  //   } else {
+  //     x1 = Math.max(0, viewport.center.x - viewport.width / 2);
+  //     x2 = Math.min(
+  //       this.game.options.gameSize.width,
+  //       viewport.center.x + viewport.width / 2
+  //     );
+  //     y1 = Math.max(0, viewport.center.y - viewport.height / 2);
+  //     y2 = Math.min(
+  //       this.game.options.gameSize.height,
+  //       viewport.center.y + viewport.height / 2
+  //     );
+  //   }
+  //   x1 = Math.floor(x1);
+  //   x2 = Math.ceil(x2);
+  //   y1 = Math.floor(y1);
+  //   y2 = Math.ceil(y2);
+  //   // console.throttle(250).log("returning viewport bounds", x1, x2);
+
+  //   return { x1, x2, y1, y2 };
+  // }
+  // public getViewportBounds(
+  //   viewport: Viewport,
+  //   layer: Layer
+  // ): {
+  //   x1: number;
+  //   x2: number;
+  //   y1: number;
+  //   y2: number;
+  // } {
+  //   if (!viewport) {
+  //     return;
+  //   }
+  //   let x1 = Math.max(0, viewport.center.x - viewport.width / 2);
+  //   let x2 = Math.min(
+  //     this.game.options.gameSize.width,
+  //     viewport.center.x + viewport.width / 2
+  //   );
+  //   let y1 = Math.max(0, viewport.center.y - viewport.height / 2);
+  //   let y2 = Math.min(
+  //     this.game.options.gameSize.height,
+  //     viewport.center.y + viewport.height / 2
+  //   );
+  //   x1 = Math.floor(x1);
+  //   x2 = Math.ceil(x2);
+  //   y1 = Math.floor(y1);
+  //   y2 = Math.ceil(y2);
+  //   // console.throttle(250).log("returning viewport bounds", x1, x2);
+  //   if (layer === Layer.PLANT || layer === Layer.GROUNDFX) {
+  //     x1 = Math.floor(x1 * Tile.plantSize);
+  //     x2 = Math.ceil(x2 * Tile.plantSize);
+  //     y1 = Math.floor(y1 * Tile.plantSize);
+  //     y2 = Math.ceil(y2 * Tile.plantSize);
+  //   }
+
+  //   return { x1, x2, y1, y2 };
+  // }
+
+  // public static translatePoint(position: Point, from: Layer, to: Layer): Point {
+  //   if (from === to) return position;
+
+  //   const ratio = Tile.size / Tile.plantSize;
+  //   if (from === Layer.PLANT) {
+  //     return new Point(
+  //       Math.floor(position.x / ratio),
+  //       Math.floor(position.y / ratio)
+  //     );
+  //   } else if (to === Layer.PLANT) {
+  //     return new Point(position.x * ratio, position.y * ratio);
+  //   }
+  // }
 
   // private getViewportCenterTile(): Point {
   //   const pivotXTile =
@@ -622,15 +850,18 @@ export class Camera {
   };
 
   private updateViewport() {
-    const oldTiles = new Set(this.viewportTiles);
+    const oldTiles = new Set(this.viewportTilesUnpadded);
     const viewport = this.getViewport();
     this.viewport = viewport.padded;
     this.viewportUnpadded = viewport.unpadded;
     this.viewportTiles = this.getViewportTiles(true);
     this.viewportTilesUnpadded = this.getViewportTiles(false);
+    console
+      .throttle(1000)
+      .log("viewport ", this.viewport, this.viewportUnpadded);
 
     const enteredTiles: Point[] = [];
-    for (const tileKey of this.viewportTiles) {
+    for (const tileKey of this.viewportTilesUnpadded) {
       if (!oldTiles.has(tileKey)) {
         const point = MapWorld.keyToPoint(tileKey);
         if (this.game.map.isPointInMap(point)) {

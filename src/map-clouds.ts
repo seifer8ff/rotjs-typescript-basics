@@ -177,7 +177,7 @@ export class MapClouds {
   public turnUpdate() {
     this.updateWindSpeed();
     this.updateCloudOffset();
-    this.game.userInterface.camera.viewportTiles.forEach((key) => {
+    this.game.userInterface.camera.viewportTilesUnpadded.forEach((key) => {
       this.targetCloudMap[key] = this.calcCloudsFor(MapWorld.keyToPoint(key));
     });
     this.interpolateStrength();
@@ -227,7 +227,7 @@ export class MapClouds {
   public interpolateCloudState() {
     let val: number;
     // only iterate through tiles in the viewport
-    this.game.userInterface.camera.viewportTiles.forEach((key) => {
+    this.game.userInterface.camera.viewportTilesUnpadded.forEach((key) => {
       val = lerp(
         this.game.timeManager.turnAnimTimePercent,
         this.cloudMap[key],

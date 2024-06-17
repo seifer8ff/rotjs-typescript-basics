@@ -42,6 +42,12 @@ export interface Tileset {
 export class Tile {
   static readonly size = 32;
   static readonly plantSize = 8;
+  static readonly testOcean = new Tile(
+    TileType.Terrain,
+    "sprites/season/spring/biomes/ocean/ocean_spring_moistdirt_00",
+    "biomes/ocean/ocean_spring_moistdirt_00",
+    "#C1BF69"
+  );
   static readonly player = new Tile(
     TileType.Player,
     "human_00",
@@ -120,6 +126,7 @@ export class Tile {
     // }
   }
 
+  // convert a tile position from one layer to another, taking into account grid sizes
   public static translatePoint(position: Point, from: Layer, to: Layer): Point {
     if (from === to) return position;
 

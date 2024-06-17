@@ -11,6 +11,7 @@ import { Camera } from "./camera";
 
 import { ManagerWebComponents } from "./manager-web-components";
 import { isActor } from "./entities/actor";
+import GameStats from "gamestats.js";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -137,13 +138,13 @@ export class UserInterface {
 
   renderUpdate(): void {
     // this.textDisplay.clear();
-    this.game.map.draw();
+
     // this.statusLine.draw();
     // this.messageLog.draw();
     this.components.updateTimeControl();
-    const viewportInTiles = this.camera.viewport;
+    // const viewportInTiles = this.camera.viewport;
     // update
-    this.drawPlants();
+    // this.drawPlants();
 
     // TODO: refactor to selection box to lerp follow the target
     // TODO: stop clearing entire UI layer and just move the selection box
@@ -181,13 +182,6 @@ export class UserInterface {
     //   viewportInTiles.center
     // );
 
-    this.game.renderer.renderLayers(
-      [Layer.TERRAIN, Layer.GROUNDFX, Layer.ENTITY, Layer.PLANT, Layer.UI],
-      viewportInTiles.width,
-      viewportInTiles.height,
-      viewportInTiles.center
-    );
-
     // this.game.renderer.renderLayers(
     //   [Layer.TERRAIN, Layer.ENTITY, Layer.UI],
     //   viewportInTiles.width,
@@ -196,8 +190,8 @@ export class UserInterface {
     // );
   }
 
-  private drawPlants(): void {
-    this.game.renderer.clearLayer(Layer.PLANT, true);
+  public drawPlants(): void {
+    this.game.renderer.clearCache(Layer.PLANT);
     for (let plant of this.game.plants) {
       // this.game.renderer.addToScene(
       //   plant.position,
