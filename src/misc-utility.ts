@@ -1,6 +1,8 @@
 import { Color, RNG } from "rot-js";
 import { Color as ColorType } from "rot-js/lib/color";
 import Noise from "rot-js/lib/noise/noise";
+import { Layer } from "./renderer";
+import { Tile } from "./tile";
 
 export function lerp(a: number, x: number, y: number): number {
   return x * (1 - a) + y * a;
@@ -136,4 +138,29 @@ export function getItemFromRange<T>(
   const index =
     Math.floor(Math.random() * (maxIndex - minIndex + 1)) + minIndex;
   return arr[index];
+}
+
+export function positionToIndex(
+  x: number,
+  y: number,
+  layer: Layer,
+  width: number,
+  height: number
+): number {
+  let index = -1;
+  let ratio = 1;
+  if (layer === Layer.PLANT) {
+    ratio = Tile.size / Tile.plantSize;
+  }
+  index =
+    layer * width * height +
+    Math.floor(y / ratio) * width +
+    Math.floor(x / ratio);
+
+  // each layer is a 2d array of width x height x ratio
+  // each layer has a ratio representing its tile size relative to Tile.size (default tile size)
+  if (index < 0 || index >= width * height * (layer + 1) * ratio) {
+    index = -1;
+  }
+  return index;
 }

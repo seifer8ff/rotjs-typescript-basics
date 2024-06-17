@@ -55,7 +55,7 @@ export class Camera {
   constructor(private game: Game, private ui: UserInterface) {
     this.defaultZoom = 1.4;
     this.currentZoom = this.defaultZoom;
-    this.minZoom = 0.5;
+    this.minZoom = 0.15;
     this.maxZoom = 7;
     this.moveSpeed = 0.3;
     this.showSidebarDelayMs = 500;

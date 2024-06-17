@@ -29,6 +29,7 @@ import { Ticker } from "pixi.js";
 import * as MainLoop from "mainloop.js";
 import GameStats from "gamestats.js";
 import * as PIXI from "pixi.js";
+import { positionToIndex } from "./misc-utility";
 
 export class Game {
   // starting options
@@ -260,6 +261,17 @@ export class Game {
       result.push(buffer.splice(index, 1)[0]);
     }
     return result;
+  }
+
+  // convert and x,y position to an index in the spriteCache (and other) array
+  public positionToIndex(x: number, y: number, layer: Layer): number {
+    return positionToIndex(
+      x,
+      y,
+      layer,
+      this.options.gameSize.width,
+      this.options.gameSize.height
+    );
   }
 
   private async initializePlants(): Promise<boolean> {
