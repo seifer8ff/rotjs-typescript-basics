@@ -27,6 +27,8 @@ import { ManagerAnimation } from "./manager-animation";
 import { clamp } from "rot-js/lib/util";
 import { Ticker } from "pixi.js";
 import * as MainLoop from "mainloop.js";
+import GameStats from "gamestats.js";
+import * as PIXI from "pixi.js";
 
 export class Game {
   // starting options
@@ -67,6 +69,7 @@ export class Game {
   public timeManager: TimeManager;
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
+  public stats: GameStats;
 
   public scheduler: {
     postTask: (
@@ -107,6 +110,31 @@ export class Game {
     this.map = new MapWorld(this);
     this.nameGenerator = new GeneratorNames(this);
     this.renderer = new Renderer(this);
+    this.stats = new GameStats();
+    this.initStats();
+  }
+
+  public initStats(): void {
+    this.stats.dom.style.top = "40vh";
+    this.stats.dom.style.left = "unset";
+    this.stats.dom.style.right = "15px";
+    this.stats.dom.style.zIndex = "5000";
+
+    document.body.appendChild(this.stats.dom);
+
+    // OR addtionally with options
+    const options = {
+      targetFPS: 60,
+      // maxMemorySize: 350, // GPU VRAM limit ( the max of the texture memory graph )
+      COLOR_MEM_TEXTURE: "#8ddcff", // the display color of the texture memory size in the graph
+      COLOR_MEM_BUFFER: "#ffd34d", // the display color of buffer memory size in the graph
+    };
+    this.stats.enableExtension("pixi", [
+      PIXI,
+      this.userInterface.gameDisplay,
+      options,
+    ]);
+    console.log("stats", this.stats);
   }
 
   public async Init(): Promise<boolean> {
@@ -124,7 +152,7 @@ export class Game {
       // MainLoop.stop();
       this.timeManager.setIsPaused(true);
     });
-    MainLoop.setBegin(this.startLoop)
+    MainLoop.setBegin(this.startLoop.bind(this))
       .setUpdate(this.mainLoop.bind(this))
       .setDraw(this.renderLoop.bind(this))
       .setEnd(this.endLoop.bind(this))
@@ -259,10 +287,12 @@ export class Game {
 
   private async startLoop() {
     // console.log("start loop");
+    this.stats?.begin("game loop");
   }
 
   private async endLoop() {
     // console.log("end loop");
+    this.stats?.end("game loop");
   }
 
   // private async drawLoop() {
@@ -621,13 +651,7 @@ export class Game {
   // }
 
   private renderLoop(interpPercent: number) {
-    // console.log("now", now);
-    // this.scheduler.postTask(
-    //   () => this.timeManager.renderUpdate(deltaTime, this.gameLoopDelay),
-    //   {
-    //     priority: "user-blocking",
-    //   }
-    // );
+    this.stats?.begin();
 
     this.timeManager.renderUpdate(this.postTurnWaitTime);
 
@@ -678,6 +702,8 @@ export class Game {
     );
 
     // this.userInterface.components.renderUpdate(deltaTime);
+
+    this.stats?.end();
   }
 
   // private async gameLoop() {

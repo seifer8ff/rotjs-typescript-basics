@@ -52,6 +52,7 @@
     "@pixi/mixin-get-global-position": "^7.4.2",
     "@shoelace-style/shoelace": "^2.14.0",
     "console-extras": "github:unconed/console-extras.js",
+    "gamestats.js": "^1.0.7",
     "lindenmayer": "^1.5.4",
     "lodash": "^4.17.21",
     "mainloop.js": "^1.0.4",
