@@ -22,7 +22,7 @@ import { MapPoles } from "./map-poles";
 import { MapClouds } from "./map-clouds";
 import Noise from "rot-js/lib/noise/noise";
 import { clamp } from "rot-js/lib/util";
-import { Sprite } from "pixi.js";
+import { Sprite, Texture } from "pixi.js";
 
 export type Map = ValueMap | BiomeMap | TileMap;
 
@@ -1137,11 +1137,7 @@ export class MapWorld {
       const tilePos = this.game.indexToPosition(tileIndex, Layer.TERRAIN);
       const tile = this.tileMap[tileIndex];
       this.game.renderer.removeFromScene(tileIndex, Layer.TERRAIN);
-      this.game.renderer.addToScene(
-        tilePos,
-        Layer.TERRAIN,
-        Sprite.from(tile.spritePath)
-      );
+      this.game.renderer.addToScene(tilePos, Layer.TERRAIN, tile.spritePath);
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];

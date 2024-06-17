@@ -49,7 +49,7 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
-    "@pixi/mixin-get-global-position": "^7.4.2",
+    "@pixi/tilemap": "^4.1.0",
     "@shoelace-style/shoelace": "^2.14.0",
     "console-extras": "github:unconed/console-extras.js",
     "gamestats.js": "^1.0.7",

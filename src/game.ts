@@ -36,11 +36,11 @@ export class Game {
   public options = {
     shouldAutotile: true,
     shouldRender: true,
-    showClouds: true,
+    showClouds: false,
     animateShadows: true,
-    entityCount: 45,
+    entityCount: 40,
     treeCount: 100,
-    shrubCount: 10,
+    shrubCount: 50,
     gameSize: {
       width: 200,
       height: 200,
@@ -1028,7 +1028,16 @@ export class Game {
 
     // render the entity layer upon spawning entities
     // TODO: RENDER SPECIFIC POINTS UPON SPAWNING ADDITIONAL ENTITIES
-    this.renderer.renderLayers(
+    // this.renderer.renderLayers(
+    //   [Layer.ENTITY],
+    //   this.options.gameSize.width,
+    //   this.options.gameSize.height,
+    //   new Point(
+    //     Math.floor(this.options.gameSize.width / 2),
+    //     Math.floor(this.options.gameSize.height / 2)
+    //   )
+    // );
+    this.renderer.renderChunkedLayers(
       [Layer.ENTITY],
       this.options.gameSize.width,
       this.options.gameSize.height,

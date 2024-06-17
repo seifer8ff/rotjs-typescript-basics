@@ -181,7 +181,14 @@ export class UserInterface {
     //   viewportInTiles.center
     // );
 
-    this.game.renderer.renderLayers(
+    // this.game.renderer.renderLayers(
+    //   [Layer.TERRAIN, Layer.GROUNDFX, Layer.ENTITY, Layer.PLANT, Layer.UI],
+    //   viewportInTiles.width,
+    //   viewportInTiles.height,
+    //   viewportInTiles.center
+    // );
+
+    this.game.renderer.renderChunkedLayers(
       [Layer.TERRAIN, Layer.GROUNDFX, Layer.ENTITY, Layer.PLANT, Layer.UI],
       viewportInTiles.width,
       viewportInTiles.height,
