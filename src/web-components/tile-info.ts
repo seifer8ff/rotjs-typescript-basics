@@ -145,7 +145,7 @@ export class TileInfo extends HTMLElement {
   // run frequently to keep the UI up to date
   public refreshContent(pointerTarget: PointerTarget): void {
     this.target = pointerTarget;
-    if (!this.dElements || !this.isVisible) {
+    if (!this.dElements || !this.isVisible || !this.target || !this.isVisible) {
       return;
     }
     this.dElements.forEach((dElement) => {
@@ -217,7 +217,10 @@ export class TileInfo extends HTMLElement {
 
   // only called when changing targets
   public setBodyContent(target: PointerTarget) {
-    this.body.removeChild(this.body.firstChild);
+    let oldBody = this.body.firstChild;
+    if (oldBody) {
+      this.body.removeChild(oldBody);
+    }
     this.body.textContent = "";
     const bodyContainer = document.createElement("div");
     bodyContainer.style.display = "flex";
@@ -233,6 +236,10 @@ export class TileInfo extends HTMLElement {
       dBlocks = target.target.getDescription();
     } else if (target.target instanceof Tile) {
       dBlocks = Tile.getDescription(target);
+    } else {
+      // nothing to display
+      this.isVisible = false;
+      return;
     }
 
     this.dElements = dBlocks.map((block) => {

@@ -91,8 +91,11 @@ export class TimeManager {
   }
 
   public calculateTurnPercent(remainingAnimDelay: number): void {
-    const timeTotal = this.game.options.turnAnimDelay;
-    this.turnAnimTimePercent = (timeTotal - remainingAnimDelay) / timeTotal;
+    if (!this.isPaused) {
+      const timeTotal = this.game.options.turnAnimDelay;
+      this.turnAnimTimePercent = (timeTotal - remainingAnimDelay) / timeTotal;
+    }
+
     // console.log(this.turnAnimTimePercent);
   }
 
