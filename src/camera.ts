@@ -113,15 +113,15 @@ export class Camera {
     );
   }
 
-  public inViewport(x: number, y: number): boolean {
-    // console.log("inViewport", x, this.viewport.center.x, this.viewport.width);
+  public inViewport(x: number, y: number, unpadded: boolean = true): boolean {
+    let viewport = unpadded ? this.viewportUnpadded : this.viewport;
     return (
       x >= 0 &&
       y >= 0 &&
-      x > this.viewport.center.x - this.viewport.width / 2 &&
-      x < this.viewport.center.x + this.viewport.width / 2 &&
-      y > this.viewport.center.y - this.viewport.height / 2 &&
-      y < this.viewport.center.y + this.viewport.height / 2
+      x > viewport.center.x - viewport.width / 2 &&
+      x < viewport.center.x + viewport.width / 2 &&
+      y > viewport.center.y - viewport.height / 2 &&
+      y < viewport.center.y + viewport.height / 2
     );
   }
 
@@ -175,6 +175,7 @@ export class Camera {
   public clearPointerTarget() {
     this.pointerTarget = null;
     this.ui.components.sideMenu.setEntityTarget(null);
+    this.ui.components.tileInfo.setContent(this.pointerTarget);
   }
 
   public selectTileAt(
@@ -285,11 +286,11 @@ export class Camera {
 
   private getViewportTiles(pad: boolean = false): string[] {
     const { width, height, center } = pad
-      ? this.viewportUnpadded
-      : this.viewport;
+      ? this.viewport
+      : this.viewportUnpadded;
     const tiles = [];
-    const halfWidth = Math.floor(width / 2);
-    const halfHeight = Math.floor(height / 2);
+    const halfWidth = Math.ceil(width / 2); // include any partial tiles
+    const halfHeight = Math.ceil(height / 2);
     for (let x = center.x - halfWidth; x < center.x + halfWidth; x++) {
       for (let y = center.y - halfHeight; y < center.y + halfHeight; y++) {
         tiles.push(`${x},${y}`);
@@ -302,40 +303,51 @@ export class Camera {
     unpadded: Viewport;
     padded: Viewport;
   } {
-    const normalizedZoom = this.getNormalizedZoom();
-    let unpaddedWidth =
+    const center = this.getViewportCenterTile();
+
+    const unpaddedWidthTiles =
       this.ui.gameCanvasContainer.clientWidth /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
-    let unpaddedHeight =
+    const unpaddedHeightTiles =
       this.ui.gameCanvasContainer.clientHeight /
       (Tile.size * this.ui.gameDisplay.stage.scale.x);
-    let paddedWidth = unpaddedWidth;
-    let paddedHeight = unpaddedHeight;
-    paddedWidth += Math.max(10, 0.1 * paddedWidth);
-    paddedHeight += Math.max(10, 0.1 * paddedHeight);
-
-    if (normalizedZoom < 0.12) {
-      // reduce viewport size at low zoom levels
-      // hidden by weather overlays
-      unpaddedWidth = unpaddedWidth * 0.95;
-      unpaddedHeight = unpaddedHeight * 0.95;
-    }
-
-    if (normalizedZoom < 0.1) {
-      // reduce viewport size at low zoom levels
-      // hidden by weather overlays
-      unpaddedWidth = unpaddedWidth * 0.9;
-      unpaddedHeight = unpaddedHeight * 0.9;
-    }
-    const center = this.getViewportCenterTile();
-    unpaddedWidth = Math.ceil(unpaddedWidth);
-    unpaddedHeight = Math.ceil(unpaddedHeight);
-    paddedWidth = Math.ceil(paddedWidth);
-    paddedHeight = Math.ceil(paddedHeight);
+    const paddedWidthTiles =
+      unpaddedWidthTiles + Math.max(10, 0.1 * unpaddedWidthTiles);
+    const paddedHeightTiles =
+      unpaddedHeightTiles + Math.max(10, 0.1 * unpaddedHeightTiles);
     return {
-      unpadded: { width: unpaddedWidth, height: unpaddedHeight, center },
-      padded: { width: paddedWidth, height: paddedHeight, center },
+      unpadded: {
+        width: Math.ceil(unpaddedWidthTiles) + 1,
+        height: Math.ceil(unpaddedHeightTiles) + 1,
+        center,
+      },
+      padded: {
+        width: Math.ceil(paddedWidthTiles),
+        height: Math.ceil(paddedHeightTiles),
+        center,
+      },
     };
+  }
+
+  private getViewportCenterTile(): Point {
+    const halfTileSize = Tile.size / 2;
+    const pivotXTile =
+      (this.game.userInterface.gameDisplay.stage.pivot.x + halfTileSize) /
+      Tile.size;
+    const pivotYTile =
+      (this.game.userInterface.gameDisplay.stage.pivot.y + halfTileSize) /
+      Tile.size;
+    let tilesOffsetX =
+      pivotXTile * this.game.userInterface.gameDisplay.stage.scale.x;
+    tilesOffsetX = Math.ceil(pivotXTile) - 1; // Adjusting for centering
+    const xPoint = tilesOffsetX;
+    let tilesOffsetY =
+      (pivotYTile / Tile.size) *
+      this.game.userInterface.gameDisplay.stage.scale.y;
+    tilesOffsetY = Math.ceil(pivotYTile) - 1; // Adjusting for centering
+    const yPoint = tilesOffsetY;
+
+    return new Point(xPoint, yPoint);
   }
 
   // private getViewportCenterTile(): Point {
@@ -353,28 +365,8 @@ export class Camera {
   //   tilesOffsetY = Math.ceil(pivotYTile);
   //   const yPoint = tilesOffsetY;
 
-  //   // console.log("viewport center", xPoint, yPoint);
-
   //   return new Point(xPoint, yPoint);
   // }
-
-  private getViewportCenterTile(): Point {
-    const pivotXTile =
-      this.game.userInterface.gameDisplay.stage.pivot.x / Tile.size;
-    const pivotYTile =
-      this.game.userInterface.gameDisplay.stage.pivot.y / Tile.size;
-    let tilesOffsetX =
-      pivotXTile * this.game.userInterface.gameDisplay.stage.scale.x;
-    tilesOffsetX = Math.ceil(pivotXTile);
-    const xPoint = tilesOffsetX;
-    let tilesOffsetY =
-      (pivotYTile / Tile.size) *
-      this.game.userInterface.gameDisplay.stage.scale.y;
-    tilesOffsetY = Math.ceil(pivotYTile);
-    const yPoint = tilesOffsetY;
-
-    return new Point(xPoint, yPoint);
-  }
 
   private handleInput(event: KeyboardEvent): boolean {
     let validInput = false;
@@ -424,24 +416,44 @@ export class Camera {
       x = g.touchStartX;
       y = g.touchStartY;
     }
-    // this.ui.components.tileSelectionIndicator.handleClick(x, y);
     const tilePos = this.screenToTilePos(x, y);
-    if (tilePos) {
+    console.log("----- tilePos", tilePos);
+    if (this.game.map.isPointInMap(tilePos)) {
+      // if (tilePos) {
       this.selectTileAt(tilePos.x, tilePos.y);
+    } else {
+      this.clearPointerTarget();
     }
   };
 
   public screenToTilePos(x: number, y: number): Point {
-    for (const key of this.viewportTilesUnpadded) {
-      const point = MapWorld.keyToPoint(key);
-      const sprite = this.game.renderer.getFromCache(point, Layer.TERRAIN);
-      if (sprite) {
-        const bounds = sprite.getBounds();
-        if (bounds.contains(x, y)) {
-          return point;
-        }
-      }
-    }
+    let stageScale = this.ui.gameDisplay.stage.scale.x;
+    let centerTile = this.viewport.center;
+    let pivotPoint = this.ui.gameDisplay.stage.pivot;
+    let screenCenterX = this.ui.gameCanvasContainer.clientWidth / 2;
+    let screenCenterY = this.ui.gameCanvasContainer.clientHeight / 2;
+    // offset from click to center of screen, represented in tiles.
+    // this will be the offset from the center of the tile
+    // so an offset of 0.5, means that the click was at the left edge of the tile one to the right from the center
+    const clickOffsetFromScreenCenterX =
+      (x - screenCenterX) / (Tile.size * stageScale); // in tiles
+    const clickOffsetFromScreenCenterY =
+      (y - screenCenterY) / (Tile.size * stageScale);
+    // offset from pivot point to center of centerTile, in tiles
+    // this exists because the camera isn't perfectly centered in a tile
+    const pivotOffsetFromTileCenterX =
+      (pivotPoint.x - centerTile.x * Tile.size) / Tile.size;
+    const pivotOffsetFromTileCenterY =
+      (pivotPoint.y - centerTile.y * Tile.size) / Tile.size;
+
+    return new Point(
+      Math.round(
+        centerTile.x + clickOffsetFromScreenCenterX + pivotOffsetFromTileCenterX
+      ),
+      Math.round(
+        centerTile.y + clickOffsetFromScreenCenterY + pivotOffsetFromTileCenterY
+      )
+    );
   }
 
   private handlePanStart = (g: TinyGesture) => {
@@ -630,7 +642,7 @@ export class Camera {
     this.viewportTilesUnpadded = this.getViewportTiles(false);
 
     const enteredTiles: Point[] = [];
-    for (const tileKey of this.viewportTiles) {
+    for (const tileKey of this.viewportTilesUnpadded) {
       if (!oldTiles.has(tileKey)) {
         const point = MapWorld.keyToPoint(tileKey);
         if (this.game.map.isPointInMap(point)) {
