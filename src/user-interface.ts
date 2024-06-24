@@ -11,6 +11,7 @@ import { Camera } from "./camera";
 
 import { ManagerWebComponents } from "./manager-web-components";
 import { isActor } from "./entities/actor";
+import { BiomeId } from "./biomes";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -107,6 +108,25 @@ export class UserInterface {
   public async init() {
     await InitAssets();
     this.game.renderer.addLayersToStage(this.gameDisplay.stage);
+  }
+
+  public async initializeBuildTools(): Promise<boolean> {
+    console.log("init build tools");
+    const options: { name: string; iconPath: string; id: BiomeId }[] = [
+      {
+        name: "Moist Dirt",
+        iconPath: "moistdirt_spring_sandydirt_00",
+        id: "moistdirt",
+      },
+      {
+        name: "Ocean",
+        iconPath: "ocean_spring_moistdirt_00",
+        id: "ocean",
+      },
+      { name: "Snow", iconPath: "snow_base", id: "snowmoistdirt" },
+    ];
+    this.components.updateSideBarContent("Build", options);
+    return true;
   }
 
   private writeHelpMessage(): void {

@@ -13,6 +13,8 @@ import { UserInterface } from "./user-interface";
 import { getCachedTileTexture } from "./assets";
 import OverlayIcon from "./shoelace/assets/icons/layers-half.svg";
 import { Sprite } from "pixi.js";
+import { BaseTileKey, Tile } from "./tile";
+import { BiomeId, Biomes } from "./biomes";
 
 export class ManagerWebComponents {
   private timeControl: TimeControl;
@@ -132,6 +134,13 @@ export class ManagerWebComponents {
         return this.mapEntityToMenuItem(entity);
       });
       this.sideMenu.setTabContent(tabName, entityMenuItems);
+    } else if (tabName === "Build") {
+      const buildMenuItems = content.map(
+        (buildOption: { name: string; iconPath: string; id: BiomeId }) => {
+          return this.mapBuildMenuItem(buildOption);
+        }
+      );
+      this.sideMenu.setTabContent(tabName, buildMenuItems);
     }
   }
 
@@ -155,6 +164,31 @@ export class ManagerWebComponents {
       },
       label: entity.name,
       tooltip: `Entity: ${entity.id}`,
+    };
+  }
+
+  public mapBuildMenuItem(option: {
+    name: string;
+    iconPath: string;
+    id: string;
+  }): MenuItem {
+    return {
+      id: `${option.name}`,
+      icon: getCachedTileTexture(option.iconPath),
+      clickHandler: () => {
+        const tile =
+          Tile.Tilesets[option.id as BiomeId][this.game.timeManager.season][
+            BaseTileKey
+          ];
+
+        this.game.map.setTile(
+          this.ui.camera.pointerTarget.position.x,
+          this.ui.camera.pointerTarget.position.y,
+          tile
+        );
+      },
+      label: option.name,
+      tooltip: `Set: ${option.name} Tile`,
     };
   }
 

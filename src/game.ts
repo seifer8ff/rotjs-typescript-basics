@@ -145,6 +145,7 @@ export class Game {
     await this.initializePlants();
     await this.initializeGame();
     await this.addActors();
+    await this.userInterface.initializeBuildTools();
 
     return true;
   }

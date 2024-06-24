@@ -1,29 +1,27 @@
+export enum Stages {
+  Loading,
+  Start,
+  Settings,
+  Play,
+  End,
+}
+
 export class GameState {
-  foundPineapple: boolean;
-  pineappleWasDestroyed: boolean;
-  playerWasCaught: boolean;
+  stage: Stages;
+  loading: boolean;
+  loadingPercent: number;
 
   constructor() {
     this.reset();
   }
 
   reset(): void {
-    this.foundPineapple = false;
-    this.pineappleWasDestroyed = false;
-    this.playerWasCaught = false;
+    this.stage = Stages.Loading;
+    this.loading = true;
+    this.loadingPercent = 0;
   }
 
-  doStartNextRound(): boolean {
-    return this.foundPineapple;
-  }
-
-  doRestartGame(): boolean {
-    return this.pineappleWasDestroyed || this.playerWasCaught;
-  }
-
-  isGameOver(): boolean {
-    return (
-      this.foundPineapple || this.pineappleWasDestroyed || this.playerWasCaught
-    );
+  isLoading(): boolean {
+    return this.loading;
   }
 }
