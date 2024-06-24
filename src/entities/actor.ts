@@ -28,5 +28,5 @@ export interface DescriptionBlock {
 }
 
 export function isActor(object: any): object is Actor {
-  return "id" in object && "position" in object;
+  return object && "id" in object && "position" in object;
 }
