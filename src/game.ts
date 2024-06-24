@@ -837,7 +837,7 @@ export class Game {
   // }
 
   private async uiLoop(deltaTime: number) {
-    this.userInterface.camera.update(deltaTime);
+    this.userInterface.camera.uiUpdate(deltaTime);
     // loop through all ui components and run a refresh on them
     this.userInterface.components.refreshComponents();
   }

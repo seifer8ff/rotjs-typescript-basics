@@ -652,13 +652,20 @@ export class Camera {
     this.game.map.onTileEnterViewport(enteredTiles);
   }
 
-  public update(deltaTime: number) {
+  public uiUpdate(deltaTime: number) {
+    // console.log("deltaTime", deltaTime);
     if (this.showSidebarTimer > 0) {
       this.showSidebarTimer -= deltaTime * 1000;
     } else if (this.showSidebarTimer < 0) {
       this.showSidebarTimer = 0;
       this.setSideMenuVisible(true);
     }
+
+    if (this.momentumTimer > 0) {
+      this.momentumTimer -= deltaTime;
+      this.handleMomentum();
+    }
+    this.moveTowardsTarget(deltaTime);
   }
 
   public renderUpdate(interpPercent: number) {
@@ -678,18 +685,6 @@ export class Camera {
       this.lastPivot.y = this.ui.gameDisplay.stage.pivot.y;
       this.updateViewport();
     }
-    // if (this.momentumTimer > 0) {
-    //   this.momentumTimer -= deltaTime * 1000;
-    //   this.handleMomentum();
-    // }
-    this.moveTowardsTarget(interpPercent);
-
-    // if (this.showSidebarTimer > 0) {
-    //   this.showSidebarTimer -= deltaTime * 1000;
-    // } else if (this.showSidebarTimer < 0) {
-    //   this.showSidebarTimer = 0;
-    //   this.setSideMenuVisible(true);
-    // }
   }
 
   private moveTowardsTarget(deltaTime: number) {
@@ -712,12 +707,12 @@ export class Camera {
         Math.abs(this.ui.gameDisplay.stage.pivot.y - targetPos.y) > 0.1
       ) {
         newPivotX = lerp(
-          deltaTime,
+          deltaTime / 1000,
           this.ui.gameDisplay.stage.pivot.x,
           targetPos.x
         );
         newPivotY = lerp(
-          deltaTime,
+          deltaTime / 1000,
           this.ui.gameDisplay.stage.pivot.y,
           targetPos.y
         );
