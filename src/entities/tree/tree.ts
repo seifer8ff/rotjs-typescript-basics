@@ -478,10 +478,12 @@ export class Tree implements Actor {
         segment.position.y - this.sprite.position.y
       );
       sprite.angle = -segment.curve + 90;
-      sprite.tint = tint;
+      if (tint) {
+        sprite.tint = tint;
+      }
       sprite.zIndex = branch.order;
 
-      if (this.growthStep === 1) {
+      if (this.growthStep === 0) {
         // add a sprite for where the trunk meets the ground
         // first trunk segment
         this.renderTrunkBase(segment, sprite);
@@ -502,8 +504,12 @@ export class Tree implements Actor {
       Layer.PLANT,
       Layer.TERRAIN
     );
-    const tint = this.game.renderer.getTintForPosition(terrainPoint);
+    let tint;
     let growSuccess: boolean = false;
+
+    if (this.game.options.enableGlobalLights) {
+      tint = this.game.renderer.getTintForPosition(terrainPoint);
+    }
 
     if (firstGrowth) {
       this.sprite = new ParticleContainer(1000, {
@@ -511,7 +517,7 @@ export class Tree implements Actor {
         position: true,
         rotation: true,
         scale: true,
-        tint: true,
+        tint: tint == undefined ? false : true,
       });
     }
 
@@ -648,7 +654,9 @@ export class Tree implements Actor {
         leafX - this.sprite.position.x,
         leafY - this.sprite.position.y
       );
-      leafSprite.tint = tint;
+      if (tint) {
+        leafSprite.tint = tint;
+      }
       leafSprite.rotation = leafRotation;
       leafSprite.alpha = this.leafAlpha;
       leafSprite.width = this.leafSize;

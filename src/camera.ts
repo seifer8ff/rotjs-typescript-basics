@@ -210,14 +210,12 @@ export class Camera {
     y: number,
     layer: Layer = Layer.TERRAIN
   ): Point {
-    let scaleRatio = 1;
-    // if (layer === Layer.ENTITY) {
-    //   scale = Tile.size / 2;
-    // }
+    let screenPoint = new Point(x * Tile.size, y * Tile.size);
     if (layer === Layer.PLANT) {
-      scaleRatio = Tile.size / Tile.plantSize;
+      screenPoint.x = Tile.translate(x, Layer.PLANT, Layer.TERRAIN);
+      screenPoint.y = Tile.translate(y, Layer.PLANT, Layer.TERRAIN);
     }
-    return new Point(x * Tile.size * scaleRatio, y * Tile.size * scaleRatio);
+    return screenPoint;
   }
 
   public setViewportZoom(stage: PIXI.Container, newZoom: number) {
@@ -564,7 +562,7 @@ export class Camera {
       pivotX,
       pivotY
     );
-    if (this.game.options.showClouds) {
+    if (this.game.options.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
@@ -576,7 +574,7 @@ export class Camera {
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
 
     this.ui.gameDisplay.stage.scale.set(scale);
-    if (this.game.options.showClouds) {
+    if (this.game.options.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
@@ -628,7 +626,7 @@ export class Camera {
     //   pivotX,
     //   pivotY
     // );
-    if (this.game.options.showClouds) {
+    if (this.game.options.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };

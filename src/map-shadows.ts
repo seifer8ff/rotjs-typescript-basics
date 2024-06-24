@@ -91,12 +91,14 @@ export class MapShadows {
     this.occlusionMap = {};
     this.targetOcclusionMap = {};
 
+    let key: string;
     for (let i = 0; i < this.game.options.gameSize.width; i++) {
       for (let j = 0; j < this.game.options.gameSize.height; j++) {
-        this.shadowMap[MapWorld.coordsToKey(i, j)] = 1;
-        this.targetShadowMap[MapWorld.coordsToKey(i, j)] = 1;
-        this.occlusionMap[MapWorld.coordsToKey(i, j)] = 1;
-        this.targetOcclusionMap[MapWorld.coordsToKey(i, j)] = 1;
+        key = MapWorld.coordsToKey(i, j);
+        this.shadowMap[key] = 1;
+        this.targetShadowMap[key] = 1;
+        this.occlusionMap[key] = 1;
+        this.targetOcclusionMap[key] = 1;
       }
     }
 
@@ -147,7 +149,9 @@ export class MapShadows {
       this.occlusionMap,
       this.targetOcclusionMap
     );
-    this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
+    this.interpolateShadowState(
+      this.game.userInterface.camera.viewportTilesUnpadded
+    );
   }
 
   public generateDropoffMaps() {
@@ -241,6 +245,7 @@ export class MapShadows {
   }
 
   public turnUpdate() {
+    if (!this.game.options.enableShadows) return;
     // shadow strength only changes when the time of day changes,
     // which only changes after a turn is taken
     this.interpolateStrength();
@@ -250,8 +255,17 @@ export class MapShadows {
   }
 
   public renderUpdate(interpPercent: number) {
-    // move towards targetShadowMap from shadowMap every frame
-    this.interpolateShadowState(this.game.userInterface.camera.viewportTiles);
+    if (
+      !this.game.options.enableShadows ||
+      !this.game.options.enableAnimatedShadows
+    )
+      return;
+    if (!this.game.timeManager.isPaused) {
+      // move towards targetShadowMap from shadowMap every frame
+      this.interpolateShadowState(
+        this.game.userInterface.camera.viewportTilesUnpadded
+      );
+    }
   }
 
   private updateShadowDirection() {

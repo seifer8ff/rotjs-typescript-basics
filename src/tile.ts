@@ -42,6 +42,7 @@ export interface Tileset {
 export class Tile {
   static readonly size = 32;
   static readonly plantSize = 8;
+  static readonly terrainTilePixelSize = 16; // actual pixel size of each terrain tile on disk
   static readonly player = new Tile(
     TileType.Player,
     "human_00",
@@ -134,6 +135,22 @@ export class Tile {
     }
   }
 
+  // translate x or y position from one layer to another
+  public static translate(
+    positionParameter: number,
+    from: Layer,
+    to: Layer
+  ): number {
+    if (from === to) return positionParameter;
+
+    const ratio = Tile.size / Tile.plantSize;
+    if (from === Layer.PLANT) {
+      return positionParameter / ratio;
+    } else if (to === Layer.PLANT) {
+      return positionParameter * ratio;
+    }
+  }
+
   public static getDescription(target: PointerTarget): DescriptionBlock[] {
     const descriptionBlocks: DescriptionBlock[] = [];
     if (!target) return descriptionBlocks;
@@ -143,11 +160,11 @@ export class Tile {
       getDescription: (pointerTarget: PointerTarget) =>
         `${pointerTarget.position.x}, ${target.position.y}`,
     });
-    if (target.info) {
+    if (target?.info) {
       descriptionBlocks.push({
         icon: TextIcon,
         getDescription: (pointerTarget: PointerTarget) =>
-          `${pointerTarget?.info?.biome.description || "Unknown Biome"}`,
+          `${pointerTarget?.info?.biome?.description || "Unknown Biome"}`,
       });
       descriptionBlocks.push({
         icon: TempIcon,

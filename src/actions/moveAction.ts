@@ -23,24 +23,23 @@ export class MoveAction implements Action {
 
   run(): Promise<{ movementVector: [number, number] }> {
     // Animated based on the sprites screen position
-    const oldPos = this.game.renderer.getSpriteTransformPosition(
-      this.actor.position,
+    const oldPos = this.game.userInterface.camera.TileToScreenCoords(
+      this.actor.position.x,
+      this.actor.position.y,
       Layer.ENTITY
     );
     // get the direction of movement
     const movementVector = this.targetPos.movementVector(this.actor.position);
-    // only move if there is a change in position
-    // const shouldAnimate = movementVector[0] != 0 || movementVector[1] != 0;
     const shouldLerp = true;
     if (oldPos) {
       // calculate the tile position of the movement vector
       // and get the screen position of that tile
-      // use the terrain layer because it's guaranteed to have a tile at that position
-      const newPos = this.game.renderer.getSpriteTransformPosition(
-        this.actor.position.add(
-          new Point(movementVector[0], movementVector[1])
-        ),
-        Layer.TERRAIN
+      const nextTilePos = this.actor.position.add(
+        new Point(movementVector[0], movementVector[1])
+      );
+      const newPos = this.game.userInterface.camera.TileToScreenCoords(
+        nextTilePos.x,
+        nextTilePos.y
       );
       if (shouldLerp) {
         // add the animation to the managers queue

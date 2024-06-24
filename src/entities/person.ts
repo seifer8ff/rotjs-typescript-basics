@@ -12,7 +12,7 @@ import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 import { HarvestAction } from "../actions/harvestAction";
 import { WanderAction } from "../actions/wanderAction";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
-import { Layer } from "../renderer";
+import { Layer, Renderable } from "../renderer";
 import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
 import { generateId } from "../misc-utility";
@@ -25,7 +25,7 @@ export class Person implements Actor {
   subType: TileSubType;
   goal: Action;
   action: Action;
-  sprite: Sprite | AnimatedSprite | Graphics;
+  sprite: Renderable;
   private path: Point[];
   private range: number;
 

@@ -79,7 +79,7 @@ async function FetchAssetsManifest(url: string) {
 /** Initialise and start background loading of all assets */
 export async function InitAssets() {
   initPixiOptions();
-  console.log("init assets");
+  console.log("Start loading assets...");
   // Load assets manifest
   assetsManifest = await FetchAssetsManifest("public/assets-manifest.json");
   console.log("assets manifest length: " + assetsManifest.bundles.length);
@@ -97,7 +97,6 @@ export async function InitAssets() {
   // Assets.backgroundLoadBundle(allBundles);
 
   await Assets.backgroundLoadBundle(allBundles);
-  console.log("about to process tilesets into tiles");
   ProcessTilesetsIntoTiles();
 }
 
@@ -109,12 +108,11 @@ export function initPixiOptions(): void {
 }
 
 export function ProcessTilesetsIntoTiles() {
-  console.log("process tilesets into tiles");
   // for each tileset, create new Tile 0 through 47
   Object.keys(Biomes.Biomes).forEach((biomeId: BiomeId) => {
     generateTileset(Biomes.Biomes[biomeId]);
   });
-  console.log("end result: ", Tile.Tilesets);
+  console.log("Final processed Tilesets: ", Tile.Tilesets);
 }
 
 export function generateTileset(tilesetMeta: Biome) {
@@ -154,7 +152,7 @@ export function generateTileset(tilesetMeta: Biome) {
 
 export function getCachedTileTexture(sprite: string): CachedTexture {
   const cachedTexture: PIXI.Texture = PIXI.Cache.get(sprite);
-  console.log(`getCached tile for ${sprite}: `, cachedTexture);
+  // console.log(`getCached tile for ${sprite}: `, cachedTexture);
   if (cachedTexture) {
     return {
       url: cachedTexture.baseTexture.resource.src,

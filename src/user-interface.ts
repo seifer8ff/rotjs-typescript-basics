@@ -141,7 +141,7 @@ export class UserInterface {
     // this.statusLine.draw();
     // this.messageLog.draw();
     this.components.updateTimeControl();
-    const viewportInTiles = this.camera.viewport;
+    const viewportInTiles = this.camera.viewportUnpadded;
     // update
     this.drawPlants();
 
@@ -150,7 +150,7 @@ export class UserInterface {
     // TODO: allow smaller indicator for smaller grid sizes (i.e. plant layer 8x8)
     // TODO: total rework.
     if (this.camera.pointerTarget) {
-      this.game.renderer.clearLayer(Layer.UI, true);
+      this.game.renderer.clearLayer(Layer.UI, true); // clears cache
       if (isActor(this.camera.pointerTarget.target)) {
         this.game.renderer.addToScene(
           this.camera.pointerTarget.target.position,
@@ -166,30 +166,8 @@ export class UserInterface {
       }
     }
 
-    // render the entire scene, including UI layers, LAST
-    // this.game.renderer.renderLayers(
-    //   [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
-    //   viewportInTiles.width,
-    //   viewportInTiles.height,
-    //   viewportInTiles.center
-    // );
-
-    // this.game.renderer.renderLayers(
-    //   [Layer.TERRAIN, Layer.PLANT, Layer.ENTITY, Layer.UI],
-    //   viewportInTiles.width,
-    //   viewportInTiles.height,
-    //   viewportInTiles.center
-    // );
-
-    // this.game.renderer.renderLayers(
-    //   [Layer.TERRAIN, Layer.GROUNDFX, Layer.ENTITY, Layer.PLANT, Layer.UI],
-    //   viewportInTiles.width,
-    //   viewportInTiles.height,
-    //   viewportInTiles.center
-    // );
-
     this.game.renderer.renderChunkedLayers(
-      [Layer.TERRAIN, Layer.GROUNDFX, Layer.ENTITY, Layer.PLANT, Layer.UI],
+      [Layer.TERRAIN, Layer.ENTITY, Layer.PLANT, Layer.UI],
       viewportInTiles.width,
       viewportInTiles.height,
       viewportInTiles.center
@@ -199,23 +177,17 @@ export class UserInterface {
     //   [Layer.TERRAIN, Layer.ENTITY, Layer.UI],
     //   viewportInTiles.width,
     //   viewportInTiles.height,
-    //   viewportInTiles.center
+    //   viewportInTiles.center.x,
+    //   viewportInTiles.center.y,
+    //   0
     // );
   }
 
   private drawPlants(): void {
     this.game.renderer.clearLayer(Layer.PLANT, true);
     for (let plant of this.game.plants) {
-      // this.game.renderer.addToScene(
-      //   plant.position,
-      //   Layer.PLANT,
-      //   plant.tile.spritePath,
-      //   null,
-      //   plant.tile.animated
-      // );
       // instead of having the userinterface add the plant to the scene,
       // let each plant add itself, including branches and leaves
-      // do same for entities
       // this simplifies multitile entities
       plant.draw();
     }

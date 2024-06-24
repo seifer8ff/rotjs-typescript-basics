@@ -12,6 +12,7 @@ import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
 import { generateId } from "../misc-utility";
+import { Renderable } from "../renderer";
 
 export class Player implements Actor {
   id: number;
@@ -20,7 +21,7 @@ export class Player implements Actor {
   subType: TileSubType;
   action: Action;
   goal: Action;
-  sprite: Sprite | AnimatedSprite | Graphics;
+  sprite: Renderable;
   private keyMap: { [key: number]: number };
 
   constructor(private game: Game, public position: Point) {

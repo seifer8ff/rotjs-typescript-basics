@@ -9,7 +9,7 @@ import TypeIcon from "../shoelace/assets/icons/person-vcard.svg";
 import GoalIcon from "../shoelace/assets/icons/geo-alt.svg";
 import ActionIcon from "../shoelace/assets/icons/sign-turn-slight-right.svg";
 import PinIcon from "../shoelace/assets/icons/pin-map.svg";
-import { Layer } from "../renderer";
+import { Layer, Renderable } from "../renderer";
 import { AnimatedSprite, Assets, Graphics, Sprite } from "pixi.js";
 import { PointerTarget } from "../camera";
 import { generateId } from "../misc-utility";
@@ -18,7 +18,7 @@ export class Shrub implements Actor {
   id: number;
   name?: string;
   tile: Tile;
-  sprite: Sprite | AnimatedSprite | Graphics;
+  sprite: Renderable;
   subType: TileSubType;
   type: TileType;
   goal: Action;

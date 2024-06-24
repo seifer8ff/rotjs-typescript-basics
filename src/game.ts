@@ -34,13 +34,15 @@ import { positionToIndex } from "./misc-utility";
 export class Game {
   // starting options
   public options = {
-    shouldAutotile: true,
-    shouldRender: true,
-    showClouds: false,
-    animateShadows: true,
-    entityCount: 40,
-    treeCount: 100,
-    shrubCount: 50,
+    enableAutotile: true,
+    enableRendering: true,
+    enableGlobalLights: false,
+    enableCloudLayer: false,
+    enableShadows: false,
+    enableAnimatedShadows: false,
+    entityCount: 50,
+    treeCount: 50,
+    shrubCount: 250,
     gameSize: {
       width: 200,
       height: 200,

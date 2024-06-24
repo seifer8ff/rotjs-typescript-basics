@@ -8,8 +8,6 @@ export class Animator {
   private animationFrames: { [key: string]: string[] }; // frames by key name
 
   constructor(private game: Game, private actor: Actor) {
-    console.log(`Animator for ${this.actor.name}`);
-
     if (this.actor.tile.animationKeys) {
       const frames: { [key: string]: any } = Assets.cache.get(
         this.actor.tile.spritePath

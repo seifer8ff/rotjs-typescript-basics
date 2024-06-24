@@ -10,6 +10,7 @@ import {
   lerpEaseInOut,
   lerpEaseOut,
 } from "./misc-utility";
+import { Point } from "./point";
 
 export interface Animation {
   id: number;
@@ -26,8 +27,8 @@ export interface AnimationOptions {
 }
 
 export interface MoveAnimation extends Animation {
-  oldPos: [number, number];
-  newPos: [number, number];
+  oldPos: Point;
+  newPos: Point;
 }
 
 export class ManagerAnimation {
@@ -71,8 +72,8 @@ export class ManagerAnimation {
 
   public addMoveAnimation(
     tileKey: string, // the tile position in the renderer's cache
-    oldPos: [number, number],
-    newPos: [number, number],
+    oldPos: Point,
+    newPos: Point,
     callback: () => void,
     actor?: Actor
   ) {
@@ -102,17 +103,17 @@ export class ManagerAnimation {
 
       let x, y;
       if (this.options.lerpStyle === "linear") {
-        x = lerp(percent, oldPos[0], newPos[0]);
-        y = lerp(percent, oldPos[1], newPos[1]);
+        x = lerp(percent, oldPos.x, newPos.x);
+        y = lerp(percent, oldPos.y, newPos.y);
       } else if (this.options.lerpStyle === "easeIn") {
-        x = lerpEaseIn(percent, oldPos[0], newPos[0]);
-        y = lerpEaseIn(percent, oldPos[1], newPos[1]);
+        x = lerpEaseIn(percent, oldPos.x, newPos.x);
+        y = lerpEaseIn(percent, oldPos.y, newPos.y);
       } else if (this.options.lerpStyle === "easeOut") {
-        x = lerpEaseOut(percent, oldPos[0], newPos[0]);
-        y = lerpEaseOut(percent, oldPos[1], newPos[1]);
+        x = lerpEaseOut(percent, oldPos.x, newPos.x);
+        y = lerpEaseOut(percent, oldPos.y, newPos.y);
       } else if (this.options.lerpStyle === "easeInOut") {
-        x = lerpEaseInOut(percent, oldPos[0], newPos[0]);
-        y = lerpEaseInOut(percent, oldPos[1], newPos[1]);
+        x = lerpEaseInOut(percent, oldPos.x, newPos.x);
+        y = lerpEaseInOut(percent, oldPos.y, newPos.y);
       }
 
       this.game.renderer.moveCachedSpriteTransform(

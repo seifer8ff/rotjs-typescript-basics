@@ -31,10 +31,12 @@ export class MapClouds {
     this.baseCloudNoise = 35;
     this.cloudOffset = new Point(0, 0);
 
+    let key: string;
     for (let i = 0; i < this.game.options.gameSize.width; i++) {
       for (let j = 0; j < this.game.options.gameSize.height; j++) {
-        this.cloudMap[MapWorld.coordsToKey(i, j)] = 0;
-        this.targetCloudMap[MapWorld.coordsToKey(i, j)] = 0;
+        key = MapWorld.coordsToKey(i, j);
+        this.cloudMap[key] = 0;
+        this.targetCloudMap[key] = 0;
       }
     }
   }
@@ -177,9 +179,14 @@ export class MapClouds {
   public turnUpdate() {
     this.updateWindSpeed();
     this.updateCloudOffset();
-    this.game.userInterface.camera.viewportTiles.forEach((key) => {
+    const tileIDs = this.game.userInterface.camera.viewportTilesUnpadded;
+    for (let i = 0; i < tileIDs.length; i++) {
+      const key = tileIDs[i];
       this.targetCloudMap[key] = this.calcCloudsFor(MapWorld.keyToPoint(key));
-    });
+    }
+    // this.game.userInterface.camera.viewportTilesUnpadded.forEach((key) => {
+    //   this.targetCloudMap[key] = this.calcCloudsFor(MapWorld.keyToPoint(key));
+    // });
     this.interpolateStrength();
   }
 
@@ -227,14 +234,25 @@ export class MapClouds {
   public interpolateCloudState() {
     let val: number;
     // only iterate through tiles in the viewport
-    this.game.userInterface.camera.viewportTiles.forEach((key) => {
+    const tileIDs = this.game.userInterface.camera.viewportTilesUnpadded;
+    for (let i = 0; i < tileIDs.length; i++) {
+      const key = tileIDs[i];
       val = lerp(
         this.game.timeManager.turnAnimTimePercent,
         this.cloudMap[key],
         this.targetCloudMap[key]
       );
       this.cloudMap[key] = val;
-    });
+    }
+
+    // this.game.userInterface.camera.viewportTilesUnpadded.forEach((key) => {
+    //   val = lerp(
+    //     this.game.timeManager.turnAnimTimePercent,
+    //     this.cloudMap[key],
+    //     this.targetCloudMap[key]
+    //   );
+    //   this.cloudMap[key] = val;
+    // });
   }
 
   setCloudLevel(x: number, y: number, cloudLevel: number): void {

@@ -22,7 +22,7 @@ import { MapPoles } from "./map-poles";
 import { MapClouds } from "./map-clouds";
 import Noise from "rot-js/lib/noise/noise";
 import { clamp } from "rot-js/lib/util";
-import { Sprite, Texture } from "pixi.js";
+import { Assets, Sprite, Texture } from "pixi.js";
 
 export type Map = ValueMap | BiomeMap | TileMap;
 
@@ -299,7 +299,7 @@ export class MapWorld {
     this.shadowMap.generateShadowMaps();
 
     // finally, generate the tile map
-    if (this.game.options.shouldAutotile) {
+    if (this.game.options.enableAutotile) {
       this.generateAutotileMap(this.biomeMap);
     } else {
       this.generateBasetileMap(this.biomeMap);

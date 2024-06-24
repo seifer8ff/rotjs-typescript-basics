@@ -1,8 +1,8 @@
 import { Point } from "../point";
 import { Tile, TileSubType, TileType } from "../tile";
 import { Action } from "../actions/action";
-import { AnimatedSprite, DisplayObject, Graphics, Sprite } from "pixi.js";
 import { PointerTarget } from "../camera";
+import { Renderable } from "../renderer";
 
 export interface Actor {
   id: number;
@@ -13,7 +13,7 @@ export interface Actor {
   subType: TileSubType;
   action: Action; // intermediary action to take to reach goal action
   goal: Action; // end goal action of the actor
-  sprite: DisplayObject;
+  sprite: Renderable;
 
   draw(): void; // render self to cache/screen
   plan(): void;
