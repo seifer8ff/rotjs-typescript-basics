@@ -12,6 +12,7 @@ import { Camera } from "./camera";
 import { ManagerWebComponents } from "./manager-web-components";
 import { isActor } from "./entities/actor";
 import { BiomeId } from "./biomes";
+import { Stages } from "./game-state";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -106,12 +107,11 @@ export class UserInterface {
   }
 
   public async init() {
-    await InitAssets();
     this.game.renderer.addLayersToStage(this.gameDisplay.stage);
+    await this.initializeBuildTools();
   }
 
   public async initializeBuildTools(): Promise<boolean> {
-    console.log("init build tools");
     const options: { name: string; iconPath: string; id: BiomeId }[] = [
       {
         name: "Moist Dirt",
@@ -157,13 +157,12 @@ export class UserInterface {
 
   renderUpdate(): void {
     // this.textDisplay.clear();
-    this.game.map.draw();
+
     // this.statusLine.draw();
     // this.messageLog.draw();
     this.components.updateTimeControl();
-    const viewportInTiles = this.camera.viewportUnpadded;
+    // const viewportInTiles = this.camera.viewportUnpadded;
     // update
-    this.drawPlants();
 
     // TODO: refactor to selection box to lerp follow the target
     // TODO: stop clearing entire UI layer and just move the selection box
@@ -184,39 +183,6 @@ export class UserInterface {
           PIXI.Sprite.from(this.sprites.selectionBox)
         );
       }
-    }
-
-    this.game.renderer.renderChunkedLayers(
-      [Layer.TERRAIN, Layer.ENTITY, Layer.PLANT, Layer.UI],
-      viewportInTiles.width,
-      viewportInTiles.height,
-      viewportInTiles.center
-    );
-
-    // this.game.renderer.renderLayers(
-    //   [Layer.TERRAIN, Layer.ENTITY, Layer.UI],
-    //   viewportInTiles.width,
-    //   viewportInTiles.height,
-    //   viewportInTiles.center.x,
-    //   viewportInTiles.center.y,
-    //   0
-    // );
-  }
-
-  private drawPlants(): void {
-    this.game.renderer.clearLayer(Layer.PLANT, true);
-    for (let plant of this.game.plants) {
-      // instead of having the userinterface add the plant to the scene,
-      // let each plant add itself, including branches and leaves
-      // this simplifies multitile entities
-      plant.draw();
-    }
-  }
-
-  public drawEntities(): void {
-    // this.game.renderer.clearLayer(Layer.ENTITY, true);
-    for (let entity of this.game.entities) {
-      entity.draw();
     }
   }
 

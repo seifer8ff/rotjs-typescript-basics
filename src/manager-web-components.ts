@@ -1,5 +1,6 @@
 import { Game } from "./game";
 import { TimeControl } from "./web-components/time-control";
+import { TitleMenu } from "./web-components/title-menu";
 import { MenuItem, SideMenu, TopLevelMenu } from "./web-components/side-menu";
 import { SideMenuContent } from "./web-components/side-menu-content";
 import { TileInfo } from "./web-components/tile-info";
@@ -15,9 +16,11 @@ import OverlayIcon from "./shoelace/assets/icons/layers-half.svg";
 import { Sprite } from "pixi.js";
 import { BaseTileKey, Tile } from "./tile";
 import { BiomeId, Biomes } from "./biomes";
+import { Stages } from "./game-state";
 
 export class ManagerWebComponents {
   private timeControl: TimeControl;
+  public titleMenu: TitleMenu;
   public sideMenu: SideMenu;
   public tileInfo: TileInfo;
   public skyMask: SkyMask;
@@ -35,17 +38,20 @@ export class ManagerWebComponents {
     if (this.overlay && this.overlay.isVisible) {
       this.overlay.refresh(this.game.map);
     }
-    if (this.ui.camera.pointerTarget) {
-      // refresh the target info data obj
-      this.game.userInterface.camera.refreshPointerTargetInfo();
-      // refresh the tile info UI with the new data
-      this.tileInfo.refreshContent(
-        this.game.userInterface.camera.pointerTarget
-      );
+    if (this.game.gameState.stage === Stages.Play) {
+      if (this.ui.camera.pointerTarget) {
+        // refresh the target info data obj
+        this.game.userInterface.camera.refreshPointerTargetInfo();
+        // refresh the tile info UI with the new data
+        this.tileInfo.refreshContent(
+          this.game.userInterface.camera.pointerTarget
+        );
+      }
     }
   }
 
   private initWebComponents() {
+    customElements.define("title-menu", TitleMenu);
     customElements.define("time-control", TimeControl);
     customElements.define("side-menu-content", SideMenuContent);
     customElements.define("side-menu", SideMenu);
@@ -70,6 +76,16 @@ export class ManagerWebComponents {
       this.timeControl.timeSlider.addEventListener("sl-input", (e: any) => {
         this.game.timeManager.setTimescale(e.target.value);
         console.log("time scale: ", this.game.timeManager.timeScale);
+      });
+    }
+    this.titleMenu = document.querySelector("title-menu");
+    if (this.titleMenu) {
+      this.titleMenu.handle.addEventListener("click", () => {
+        this.titleMenu.setCollapsed(!this.titleMenu.isCollapsed);
+      });
+      this.titleMenu.startBtn.addEventListener("click", () => {
+        this.game.gameState.changeStage(Stages.Play);
+        this.game.generateWorld();
       });
     }
     this.sideMenu = document.querySelector("side-menu");
@@ -123,8 +139,22 @@ export class ManagerWebComponents {
   }
 
   public renderUpdate() {
-    if (this.tileSelectionIndicator) {
-      this.tileSelectionIndicator.renderUpdate();
+    if (this.game.gameState.isLoading()) {
+      if (this.game.gameState.stage === Stages.Title) {
+        this.titleMenu.setCollapsed(false);
+        this.sideMenu.setVisible(false, true);
+        this.timeControl.setVisible(false);
+      } else if (this.game.gameState.stage === Stages.Play) {
+        this.titleMenu.setCollapsed(true);
+        this.sideMenu.setVisible(true, true);
+        this.timeControl.setVisible(true);
+      }
+      this.game.gameState.loading = false;
+    }
+    if (this.game.gameState.stage === Stages.Title) {
+      if (this.tileSelectionIndicator) {
+        this.tileSelectionIndicator.renderUpdate();
+      }
     }
   }
 

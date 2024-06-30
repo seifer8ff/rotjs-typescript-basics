@@ -60,6 +60,7 @@ export class Cow implements Actor {
       this.animator.animSpeed *
       this.game.timeManager.timeScale *
       this.game.options.animationSpeed;
+
     this.game.renderer.addToScene(this.position, Layer.ENTITY, this.sprite);
   }
 

@@ -60,7 +60,7 @@ export class SideMenu extends HTMLElement {
       { name: "Resources", icon: BackpackIcon, content: [] },
       { name: "Build", icon: WrenchIcon, content: [] },
     ];
-    this.isVisible = true;
+    this.isVisible = false;
 
     this.container = document.createElement("div");
     this.container.style.pointerEvents = "auto";
@@ -123,6 +123,7 @@ export class SideMenu extends HTMLElement {
     this.container.appendChild(this.midControls);
 
     shadow.appendChild(this.container);
+    this.setVisible(false, true);
   }
 
   public getTab(tabName: string): MenuTab {

@@ -11,6 +11,7 @@ import { Layer } from "./renderer";
 import { lerp } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { TileStats } from "./web-components/tile-info";
+import { Stages } from "./game-state";
 
 export interface Viewport {
   width: number;
@@ -149,6 +150,9 @@ export class Camera {
     target: Tile | Actor,
     viewportTarget = false
   ) {
+    if (this.game.gameState.stage !== Stages.Play) {
+      return;
+    }
     if (isActor(target)) {
       this.pointerTarget = {
         position: target.position,
@@ -173,9 +177,11 @@ export class Camera {
   }
 
   public clearPointerTarget() {
-    this.pointerTarget = null;
     this.ui.components.sideMenu.setEntityTarget(null);
-    this.ui.components.tileInfo.setContent(this.pointerTarget);
+    this.ui.components.tileInfo.setContent(null);
+    this.game.renderer.removeFromCache(this.pointerTarget.position, Layer.UI);
+    this.pointerTarget = null;
+    this.viewportTarget = null;
   }
 
   public selectTileAt(
@@ -235,36 +241,61 @@ export class Camera {
 
     gesture.on("pinch", (event) => {
       event.preventDefault();
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
       this.handlePinchZoom(gesture);
     });
     gesture.on("panstart", (event) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
       this.handlePanStart(gesture);
     });
     gesture.on("panmove", (event) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
       this.handlePointerDrag(gesture);
     });
     gesture.on("panend", (event) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
       this.handlePanEnd(gesture);
     });
     gesture.on("tap", (event) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
       this.handleClick(gesture, event);
     });
     gesture.on("doubletap", (event) => {
       // The gesture was a double tap. The 'tap' event will also have been fired on
       // the first tap.
-
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
       this.handleDoubleTap(gesture);
     });
 
-    this.ui.gameCanvasContainer.addEventListener(
-      "wheel",
-      this.handleMouseZoom,
-      {
-        passive: false,
+    this.ui.gameCanvasContainer.addEventListener("wheel", (e: WheelEvent) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
       }
-    );
-    window.addEventListener("keydown", this.handleInput.bind(this), {
-      passive: false,
+      this.handleMouseZoom(e),
+        {
+          passive: false,
+        };
+    });
+    window.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
+      this.handleInput(e),
+        {
+          passive: false,
+        };
     });
   }
 
@@ -654,18 +685,20 @@ export class Camera {
 
   public uiUpdate(deltaTime: number) {
     // console.log("deltaTime", deltaTime);
-    if (this.showSidebarTimer > 0) {
-      this.showSidebarTimer -= deltaTime * 1000;
-    } else if (this.showSidebarTimer < 0) {
-      this.showSidebarTimer = 0;
-      this.setSideMenuVisible(true);
-    }
+    if (this.game.gameState.stage === Stages.Play) {
+      if (this.showSidebarTimer > 0) {
+        this.showSidebarTimer -= deltaTime * 1000;
+      } else if (this.showSidebarTimer < 0) {
+        this.showSidebarTimer = 0;
+        this.setSideMenuVisible(true);
+      }
 
-    if (this.momentumTimer > 0) {
-      this.momentumTimer -= deltaTime;
-      this.handleMomentum();
+      if (this.momentumTimer > 0) {
+        this.momentumTimer -= deltaTime;
+        this.handleMomentum();
+      }
+      this.moveTowardsTarget(deltaTime);
     }
-    this.moveTowardsTarget(deltaTime);
   }
 
   public renderUpdate(interpPercent: number) {

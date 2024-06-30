@@ -255,11 +255,7 @@ export class MapShadows {
   }
 
   public renderUpdate(interpPercent: number) {
-    if (
-      !this.game.options.enableShadows ||
-      !this.game.options.enableAnimatedShadows
-    )
-      return;
+    if (!this.game.options.enableShadows) return;
     if (!this.game.timeManager.isPaused) {
       // move towards targetShadowMap from shadowMap every frame
       this.interpolateShadowState(

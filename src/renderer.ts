@@ -370,6 +370,13 @@ export class Renderer {
     }
   }
 
+  removeFromCache(tilePos: Point, layer: Layer): void {
+    // set to null rather than removing the index
+    // to prevent shifting all of the indexes
+    this.spriteCache[this.game.positionToIndex(tilePos.x, tilePos.y, layer)] =
+      null;
+  }
+
   clearCache(layer?: Layer): void {
     if (layer) {
       // iterate through all indexes of spriteCache layer and set to null

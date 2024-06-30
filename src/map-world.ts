@@ -296,7 +296,9 @@ export class MapWorld {
     }
     console.log("cloudMap", this.cloudMap.cloudMap);
     console.log("moistureMap", this.moistureMap.moistureMap);
-    this.shadowMap.generateShadowMaps();
+    if (this.game.options.enableShadows) {
+      this.shadowMap.generateShadowMaps();
+    }
 
     // finally, generate the tile map
     if (this.game.options.enableAutotile) {

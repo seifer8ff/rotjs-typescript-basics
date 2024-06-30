@@ -66,6 +66,7 @@ module.exports = {
             <body>
                 <div id="uiContainer">
                     <sky-mask></sky-mask>
+                    <title-menu></title-menu>
                     <time-control></time-control>
                     <side-menu></side-menu>
                     <tile-info></tile-info>

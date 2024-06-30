@@ -30,7 +30,9 @@ export class MoveAction implements Action {
     );
     // get the direction of movement
     const movementVector = this.targetPos.movementVector(this.actor.position);
-    const shouldLerp = true;
+    const shouldLerp =
+      this.game.options.enableAnimations &&
+      (movementVector[0] !== 0 || movementVector[1] !== 0);
     if (oldPos) {
       // calculate the tile position of the movement vector
       // and get the screen position of that tile
@@ -61,6 +63,15 @@ export class MoveAction implements Action {
           },
           this.actor
         );
+      } else {
+        // if no lerp, just update the sprite cache position
+        this.game.renderer.updateSpriteCachePosition(
+          this.actor.position,
+          this.targetPos,
+          Layer.ENTITY
+        );
+        // keep actor's position in sync with target position
+        this.actor.position = new Point(this.targetPos.x, this.targetPos.y);
       }
     }
 

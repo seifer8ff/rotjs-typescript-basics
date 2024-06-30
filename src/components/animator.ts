@@ -32,27 +32,24 @@ export class Animator {
     if (this.currentAnimation === animation) return;
 
     this.currentAnimation = animation;
+    let animatedSprite: AnimatedSprite = this.actor.sprite as AnimatedSprite;
     if (this.actor.sprite) {
-      const animatedSprite = this.actor.sprite as AnimatedSprite;
       animatedSprite.textures = this.animationFrames[this.currentAnimation].map(
         (frame) => Texture.from(frame)
       );
+    } else {
+      this.actor.sprite = AnimatedSprite.fromFrames(
+        this.animationFrames[this.currentAnimation]
+      );
+      animatedSprite = this.actor.sprite as AnimatedSprite;
+    }
+    if (this.game.options.enableAnimations) {
       animatedSprite.animationSpeed =
         this.animSpeed *
         this.game.options.animationSpeed *
         this.game.timeManager.timeScale;
       animatedSprite.loop = true;
       animatedSprite.play();
-    } else {
-      this.actor.sprite = AnimatedSprite.fromFrames(
-        this.animationFrames[this.currentAnimation]
-      );
-      (this.actor.sprite as AnimatedSprite).animationSpeed =
-        this.animSpeed *
-        this.game.options.animationSpeed *
-        this.game.timeManager.timeScale;
-      (this.actor.sprite as AnimatedSprite).loop = true;
-      (this.actor.sprite as AnimatedSprite).play();
     }
   }
 }
