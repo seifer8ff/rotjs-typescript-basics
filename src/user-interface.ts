@@ -13,6 +13,7 @@ import { ManagerWebComponents } from "./manager-web-components";
 import { isActor } from "./entities/actor";
 import { BiomeId } from "./biomes";
 import { Stages } from "./game-state";
+import { GameSettings } from "./game-settings";
 
 export class UserInterface {
   public gameDisplay: PIXI.Application<PIXI.ICanvas>;
@@ -59,7 +60,7 @@ export class UserInterface {
     this.gameDisplay = new PIXI.Application(this.gameDisplayOptions);
     this.gameDisplay.stage.sortableChildren = true;
     this.textDisplay = new Display({
-      width: this.game.options.gameSize.width * 2,
+      width: GameSettings.options.gameSize.width * 2,
       height: 10,
       fontSize: this.fontSize,
     });
@@ -77,13 +78,13 @@ export class UserInterface {
     this.statusLine = new StatusLine(
       this,
       this.statusLinePosition,
-      this.game.options.gameSize.width * 3,
+      GameSettings.options.gameSize.width * 3,
       { maxBoxes: this.maximumBoxes }
     );
     this.messageLog = new MessageLog(
       this,
       this.actionLogPosition,
-      this.game.options.gameSize.width * 3,
+      GameSettings.options.gameSize.width * 3,
       6
     );
 
@@ -188,6 +189,6 @@ export class UserInterface {
 
   resetStatusLine(): void {
     this.statusLine.reset();
-    this.statusLine.maxBoxes = this.game.options.shrubCount;
+    this.statusLine.maxBoxes = GameSettings.options.plants.shrubCount;
   }
 }

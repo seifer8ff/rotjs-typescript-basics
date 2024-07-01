@@ -14,6 +14,7 @@ export enum Layer {
 import { CompositeTilemap } from "@pixi/tilemap";
 import { Viewport } from "./camera";
 import { settings } from "@pixi/tilemap";
+import { GameSettings } from "./game-settings";
 
 export type Renderable =
   | PIXI.Sprite
@@ -112,7 +113,7 @@ export class Renderer {
     let viewportCenterX = centerX;
     let viewportCenterY = centerY;
     let displayObj: Renderable;
-    const globalLighting = this.game.options.enableGlobalLights;
+    const globalLighting = GameSettings.options.toggles.enableGlobalLights;
 
     for (let layer of layers) {
       if (layer === Layer.PLANT) {
@@ -130,8 +131,8 @@ export class Renderer {
       left = Math.ceil(viewportCenterX - (width / 2) * ratio);
       top = Math.ceil(viewportCenterY - (height / 2) * ratio);
 
-      const gameWidth = this.game.options.gameSize.width * ratio;
-      const gameHeight = this.game.options.gameSize.height * ratio;
+      const gameWidth = GameSettings.options.gameSize.width * ratio;
+      const gameHeight = GameSettings.options.gameSize.height * ratio;
 
       right = Math.min(gameWidth, right);
       bottom = Math.min(gameHeight, bottom);
@@ -185,7 +186,7 @@ export class Renderer {
                 this.tintObjectWithChildren(displayObj, terrainPoint);
               }
 
-              // displayObj.zIndex = this.game.options.gameSize.height * ratio - y;
+              // displayObj.zIndex = GameSettings.options.gameSize.height * ratio - y;
               this.plantLayer.addChild(displayObj as PIXI.DisplayObject);
               break;
             }
@@ -381,7 +382,8 @@ export class Renderer {
     if (layer) {
       // iterate through all indexes of spriteCache layer and set to null
       const layerCount =
-        this.game.options.gameSize.width * this.game.options.gameSize.height;
+        GameSettings.options.gameSize.width *
+        GameSettings.options.gameSize.height;
       for (let i = layer * layerCount; i < (layer + 1) * layerCount; i++) {
         this.spriteCache[i] = null;
       }

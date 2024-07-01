@@ -31,37 +31,11 @@ import GameStats from "gamestats.js";
 import * as PIXI from "pixi.js";
 import { positionToIndex } from "./misc-utility";
 import { InitAssets } from "./assets";
+import { GameSettings } from "./game-settings";
 
 export class Game {
   // starting options
-  public options = {
-    enableAutotile: true,
-    enableRendering: true,
-    enableGlobalLights: false,
-    enableCloudLayer: false,
-    enableShadows: false,
-    enableAnimations: true,
-    entityCount: 50,
-    treeCount: 50,
-    shrubCount: 250,
-    gameSize: {
-      width: 200,
-      height: 200,
-    },
-    dayStart: true,
-    // gameSeed: 1234,
-    // gameSeed: 610239,
-    gameSeed: 594628,
-    // gameSeed: null,
-    turnAnimDelay: 500, // two turns per second (1 second / 500ms anim phase = 2)
-    mainLoopRate: 1000 / 60, // run main loop at 60 fps (all other loops are lower than this)
-    refreshRate: 1000 / 60, // 60 fps
-    gameLoopRate: 1000 / 10, // how many times to run the game loop (still limited by turnAnimDelay)
-    uiLoopRate: 1000 / 10,
-    maxTickRate: 1000 / 60, // 60 game updates per second max
-    minTickRate: 1000 / 4, // 2 game updates per second min
-    animationSpeed: 0.55, // speed at which pixijs animates AnimatedSprites
-  };
+  public settings: GameSettings;
   public noise: Noise;
   public map: MapWorld;
   public player: Player;
@@ -91,6 +65,7 @@ export class Game {
   private postTurnWaitTime: number = 0; // how long to delay the game loop for (like when animations are playing)
 
   constructor() {
+    this.settings = new GameSettings();
     if ((window as any).scheduler) {
       this.scheduler = (window as any).scheduler;
     }
@@ -98,11 +73,11 @@ export class Game {
     this.ticker = Ticker.shared;
     this.ticker.autoStart = false;
     this.ticker.stop();
-    if (this.options.gameSeed == undefined) {
-      this.options.gameSeed = Math.floor(RNG.getUniform() * 1000000);
+    if (GameSettings.options.gameSeed == undefined) {
+      GameSettings.options.gameSeed = Math.floor(RNG.getUniform() * 1000000);
     }
-    RNG.setSeed(this.options.gameSeed);
-    console.log("Game seed:", this.options.gameSeed);
+    RNG.setSeed(GameSettings.options.gameSeed);
+    console.log("Game seed:", GameSettings.options.gameSeed);
     this.noise = new Simplex();
     this.entities = [];
     this.plants = [];
@@ -269,8 +244,8 @@ export class Game {
       x,
       y,
       layer,
-      this.options.gameSize.width,
-      this.options.gameSize.height
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height
     );
   }
 
@@ -281,8 +256,8 @@ export class Game {
     if (layer === Layer.PLANT) {
       ratio = Tile.size / Tile.plantSize;
     }
-    y = Math.floor(index / (this.options.gameSize.width * ratio));
-    x = index % (this.options.gameSize.width * ratio);
+    y = Math.floor(index / (GameSettings.options.gameSize.width * ratio));
+    x = index % (GameSettings.options.gameSize.width * ratio);
     return new Point(x, y);
   }
 
@@ -310,8 +285,8 @@ export class Game {
   public async generateWorld(): Promise<boolean> {
     this.gameState.loading = true;
     this.map.generateMap(
-      this.options.gameSize.width,
-      this.options.gameSize.height
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height
     );
     await this.addActors();
     return true;
@@ -343,7 +318,7 @@ export class Game {
 
       if (!this.timeManager.isPaused && this.postTurnWaitTime <= 0) {
         this.gameLoop();
-        this.postTurnWaitTime = this.options.turnAnimDelay;
+        this.postTurnWaitTime = GameSettings.options.turnAnimDelay;
         this.timeManager.resetTurnAnimTime();
       }
     }
@@ -423,7 +398,7 @@ export class Game {
     if (this.gameState.stage === Stages.Play) {
       this.timeManager.renderUpdate(this.postTurnWaitTime);
 
-      if (this.options.enableShadows) {
+      if (GameSettings.options.toggles.enableShadows) {
         this.scheduler.postTask(
           () => this.map.shadowMap.renderUpdate(interpPercent),
           {
@@ -432,7 +407,7 @@ export class Game {
         );
       }
 
-      if (this.options.enableCloudLayer) {
+      if (GameSettings.options.toggles.enableCloudLayer) {
         this.scheduler.postTask(
           () => this.map.cloudMap.renderUpdate(interpPercent),
           {
@@ -441,7 +416,7 @@ export class Game {
         );
       }
 
-      if (this.options.enableGlobalLights) {
+      if (GameSettings.options.toggles.enableGlobalLights) {
         this.scheduler.postTask(
           () => this.map.lightManager.renderUpdate(interpPercent),
           {
@@ -456,7 +431,7 @@ export class Game {
 
       this.drawPlants();
 
-      if (this.options.enableAnimations) {
+      if (GameSettings.options.toggles.enableAnimations) {
         this.animManager.animUpdate(); // no deltaTime needed as this uses the gameDelay timing for animation
       }
     }
@@ -504,7 +479,7 @@ export class Game {
 
     positions = this.map.getRandomTilePositions(
       Biomes.Biomes.moistdirt.id,
-      this.options.shrubCount,
+      GameSettings.options.plants.shrubCount,
       true,
       true
     );
@@ -513,13 +488,13 @@ export class Game {
       this.plants.push(new Shrub(this, position));
     }
 
-    let split = Math.ceil(this.options.treeCount / 8);
+    let split = Math.ceil(GameSettings.options.plants.treeCount / 8);
     positions = [];
-    if (this.options.treeCount < 4) {
+    if (GameSettings.options.plants.treeCount < 4) {
       positions.push(
         ...this.map.getRandomTilePositions(
           Biomes.Biomes.moistdirt.id,
-          this.options.treeCount,
+          GameSettings.options.plants.treeCount,
           true,
           true
         )
@@ -628,13 +603,13 @@ export class Game {
 
   private generateBeings(): void {
     this.entities = [];
-    let entitySplit = Math.ceil(this.options.entityCount / 8);
+    let entitySplit = Math.ceil(GameSettings.options.entities.entityCount / 8);
     let positions = [];
-    if (this.options.entityCount < 4) {
+    if (GameSettings.options.entities.entityCount < 4) {
       positions.push(
         ...this.map.getRandomTilePositions(
           Biomes.Biomes.moistdirt.id,
-          this.options.entityCount
+          GameSettings.options.entities.entityCount
         )
       );
     } else {
@@ -687,20 +662,20 @@ export class Game {
     // TODO: RENDER SPECIFIC POINTS UPON SPAWNING ADDITIONAL ENTITIES
     // this.renderer.renderLayers(
     //   [Layer.ENTITY],
-    //   this.options.gameSize.width,
-    //   this.options.gameSize.height,
+    //   GameSettings.options.gameSize.width,
+    //   GameSettings.options.gameSize.height,
     //   new Point(
-    //     Math.floor(this.options.gameSize.width / 2),
-    //     Math.floor(this.options.gameSize.height / 2)
+    //     Math.floor(GameSettings.options.gameSize.width / 2),
+    //     Math.floor(GameSettings.options.gameSize.height / 2)
     //   )
     // );
     this.renderer.renderChunkedLayers(
       [Layer.ENTITY],
-      this.options.gameSize.width,
-      this.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       new Point(
-        Math.floor(this.options.gameSize.width / 2),
-        Math.floor(this.options.gameSize.height / 2)
+        Math.floor(GameSettings.options.gameSize.width / 2),
+        Math.floor(GameSettings.options.gameSize.height / 2)
       )
     );
     this.userInterface.components.updateSideBarContent(

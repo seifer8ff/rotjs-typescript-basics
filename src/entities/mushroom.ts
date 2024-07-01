@@ -17,6 +17,7 @@ import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
 import { Animator } from "../components/animator";
 import { generateId } from "../misc-utility";
+import { GameSettings } from "../game-settings";
 
 export class Mushroom implements Actor {
   id: number;
@@ -53,7 +54,7 @@ export class Mushroom implements Actor {
     this.sprite.animationSpeed =
       this.animator.animSpeed *
       this.game.timeManager.timeScale *
-      this.game.options.animationSpeed;
+      GameSettings.options.animationSpeed;
     this.game.renderer.addToScene(this.position, Layer.ENTITY, this.sprite);
   }
 

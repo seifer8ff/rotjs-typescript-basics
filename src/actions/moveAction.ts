@@ -5,6 +5,7 @@ import { Actor } from "../entities/actor";
 import { Layer } from "../renderer";
 import { MapWorld } from "../map-world";
 import { generateId } from "../misc-utility";
+import { GameSettings } from "../game-settings";
 
 export class MoveAction implements Action {
   readonly id: number;
@@ -31,7 +32,7 @@ export class MoveAction implements Action {
     // get the direction of movement
     const movementVector = this.targetPos.movementVector(this.actor.position);
     const shouldLerp =
-      this.game.options.enableAnimations &&
+      GameSettings.options.toggles.enableAnimations &&
       (movementVector[0] !== 0 || movementVector[1] !== 0);
     if (oldPos) {
       // calculate the tile position of the movement vector

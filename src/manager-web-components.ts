@@ -1,6 +1,9 @@
 import { Game } from "./game";
 import { TimeControl } from "./web-components/time-control";
-import { TitleMenu } from "./web-components/title-menu";
+import {
+  GameSettingsToggleOption,
+  TitleMenu,
+} from "./web-components/title-menu";
 import { MenuItem, SideMenu, TopLevelMenu } from "./web-components/side-menu";
 import { SideMenuContent } from "./web-components/side-menu-content";
 import { TileInfo } from "./web-components/tile-info";
@@ -17,6 +20,8 @@ import { Sprite } from "pixi.js";
 import { BaseTileKey, Tile } from "./tile";
 import { BiomeId, Biomes } from "./biomes";
 import { Stages } from "./game-state";
+import { GameSettings } from "./game-settings";
+import { serialize } from "@shoelace-style/shoelace";
 
 export class ManagerWebComponents {
   private timeControl: TimeControl;
@@ -64,6 +69,54 @@ export class ManagerWebComponents {
   }
 
   private initControls() {
+    this.titleMenu = document.querySelector("title-menu");
+    if (this.titleMenu) {
+      this.titleMenu.handle.addEventListener("click", () => {
+        this.titleMenu.setCollapsed(!this.titleMenu.isCollapsed);
+      });
+
+      let optionToggles: GameSettingsToggleOption[] = [];
+      for (let toggle in GameSettings.options.toggles) {
+        optionToggles.push({
+          key: toggle,
+          label: toggle,
+          defaultValue: GameSettings.options.toggles[toggle],
+        });
+      }
+      this.titleMenu.generateGameOptions(optionToggles);
+      this.titleMenu.worldSizeInput.addEventListener(
+        "sl-change",
+        (e: CustomEvent) => {
+          let updatedSize;
+          try {
+            updatedSize = JSON.parse(
+              this.titleMenu.worldSizeInput.value as string
+            );
+            GameSettings.options.gameSize = updatedSize;
+          } catch (error) {
+            console.log("Error: parsing world size. Invalid input?", e, error);
+          }
+        }
+      );
+      this.titleMenu.form.addEventListener("submit", (e: CustomEvent) => {
+        e.preventDefault();
+        try {
+          const data = new FormData(this.titleMenu.form);
+          const serializedData: Record<string, string> = serialize(
+            this.titleMenu.form
+          ) as any;
+          for (let toggle in GameSettings.options.toggles) {
+            GameSettings.options.toggles[toggle] =
+              serializedData[toggle] === "true";
+          }
+          this.game.gameState.changeStage(Stages.Play);
+          this.game.generateWorld();
+        } catch (error) {
+          console.log("error on form submit", e, error);
+        }
+        return false;
+      });
+    }
     this.timeControl = document.querySelector("time-control");
     if (this.timeControl) {
       // this.timeControl.toggleTooltip();
@@ -78,16 +131,7 @@ export class ManagerWebComponents {
         console.log("time scale: ", this.game.timeManager.timeScale);
       });
     }
-    this.titleMenu = document.querySelector("title-menu");
-    if (this.titleMenu) {
-      this.titleMenu.handle.addEventListener("click", () => {
-        this.titleMenu.setCollapsed(!this.titleMenu.isCollapsed);
-      });
-      this.titleMenu.startBtn.addEventListener("click", () => {
-        this.game.gameState.changeStage(Stages.Play);
-        this.game.generateWorld();
-      });
-    }
+
     this.sideMenu = document.querySelector("side-menu");
     if (this.sideMenu) {
       this.sideMenu.dropdownMenu.addEventListener(
@@ -269,65 +313,65 @@ export class ManagerWebComponents {
 
   public registerOverlays() {
     this.overlay.generateBiomeOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Terrain",
       () => this.game.map.terrainMap
     );
 
     this.overlay.generateOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Magnetism",
       () => this.game.map.polesMap.magnetismMap
     );
 
     this.overlay.generateOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Temperature",
       () => this.game.map.tempMap.tempMap
     );
 
     this.overlay.generateGradientOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Temperature (blue <---> red)",
       { min: "blue", max: "red" },
       () => this.game.map.tempMap.tempMap
     );
 
     this.overlay.generateOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Moisture",
       () => this.game.map.moistureMap.moistureMap
     );
 
     this.overlay.generateOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Height",
       () => this.game.map.heightMap
     );
 
     this.overlay.generateOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Sunlight",
       () => this.game.map.shadowMap.shadowMap
     );
 
     this.overlay.generateBiomeOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Biomes",
       () => this.game.map.biomeMap
     );
 
     this.overlay.generateOverlay(
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       "Clouds",
       () => this.game.map.cloudMap.targetCloudMap
     );

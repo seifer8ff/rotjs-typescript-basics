@@ -1,6 +1,7 @@
 import { Game } from "../game";
 import { AnimatedSprite, Assets, Texture } from "pixi.js";
 import { Actor } from "../entities/actor";
+import { GameSettings } from "../game-settings";
 
 export class Animator {
   public animSpeed: number = 1;
@@ -43,10 +44,10 @@ export class Animator {
       );
       animatedSprite = this.actor.sprite as AnimatedSprite;
     }
-    if (this.game.options.enableAnimations) {
+    if (GameSettings.options.toggles.enableAnimations) {
       animatedSprite.animationSpeed =
         this.animSpeed *
-        this.game.options.animationSpeed *
+        GameSettings.options.animationSpeed *
         this.game.timeManager.timeScale;
       animatedSprite.loop = true;
       animatedSprite.play();

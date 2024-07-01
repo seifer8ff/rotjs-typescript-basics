@@ -12,6 +12,7 @@ import { lerp } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { TileStats } from "./web-components/tile-info";
 import { Stages } from "./game-state";
+import { GameSettings } from "./game-settings";
 
 export interface Viewport {
   width: number;
@@ -94,8 +95,8 @@ export class Camera {
     screenWidth: number,
     screenHeight: number
   ): void {
-    const gameWidthPixels = this.game.options.gameSize.width * Tile.size;
-    const gameHeightPixels = this.game.options.gameSize.height * Tile.size;
+    const gameWidthPixels = GameSettings.options.gameSize.width * Tile.size;
+    const gameHeightPixels = GameSettings.options.gameSize.height * Tile.size;
     const screenCenterX = screenWidth / 2;
     const screenCenterY = screenHeight / 2;
     const pivotX = gameWidthPixels / 2;
@@ -593,7 +594,7 @@ export class Camera {
       pivotX,
       pivotY
     );
-    if (this.game.options.enableCloudLayer) {
+    if (GameSettings.options.toggles.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
@@ -605,7 +606,7 @@ export class Camera {
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
 
     this.ui.gameDisplay.stage.scale.set(scale);
-    if (this.game.options.enableCloudLayer) {
+    if (GameSettings.options.toggles.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
@@ -657,7 +658,7 @@ export class Camera {
     //   pivotX,
     //   pivotY
     // );
-    if (this.game.options.enableCloudLayer) {
+    if (GameSettings.options.toggles.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };

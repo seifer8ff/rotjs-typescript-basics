@@ -13,6 +13,7 @@ import { Sprite, AnimatedSprite, Graphics, Assets } from "pixi.js";
 import { PointerTarget } from "../camera";
 import { generateId } from "../misc-utility";
 import { Renderable } from "../renderer";
+import { GameSettings } from "../game-settings";
 
 export class Player implements Actor {
   id: number;
@@ -35,7 +36,7 @@ export class Player implements Actor {
       const animKeys = Object.keys(animations).sort();
       this.sprite = AnimatedSprite.fromFrames(animKeys);
       (this.sprite as AnimatedSprite).animationSpeed =
-        this.game.options.animationSpeed * this.game.timeManager.timeScale;
+        GameSettings.options.animationSpeed * this.game.timeManager.timeScale;
       (this.sprite as AnimatedSprite).loop = true;
       (this.sprite as AnimatedSprite).play();
     } else {

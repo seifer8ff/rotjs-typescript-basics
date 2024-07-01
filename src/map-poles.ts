@@ -4,6 +4,7 @@ import { lerp, normalizeNoise } from "./misc-utility";
 import { MapWorld } from "./map-world";
 import { Point } from "./point";
 import Noise from "rot-js/lib/noise/noise";
+import { GameSettings } from "./game-settings";
 
 export class MapPoles {
   public magnetismMap: { [key: string]: number };
@@ -17,16 +18,16 @@ export class MapPoles {
   constructor(private game: Game, private map: MapWorld) {
     this.magnetismMap = {};
     this.scale = 1.2;
-    this.tileHeight = this.game.options.gameSize.height / 3;
-    this.tileWidth = this.game.options.gameSize.width / 1.5;
-    const poleYOffset = this.game.options.gameSize.width / 10;
+    this.tileHeight = GameSettings.options.gameSize.height / 3;
+    this.tileWidth = GameSettings.options.gameSize.width / 1.5;
+    const poleYOffset = GameSettings.options.gameSize.width / 10;
     this.northPole = new Point(
-      Math.floor(this.game.options.gameSize.width / 2),
+      Math.floor(GameSettings.options.gameSize.width / 2),
       poleYOffset
     );
     this.southPole = new Point(
-      Math.floor(this.game.options.gameSize.width / 2),
-      this.game.options.gameSize.height - poleYOffset
+      Math.floor(GameSettings.options.gameSize.width / 2),
+      GameSettings.options.gameSize.height - poleYOffset
     );
   }
 

@@ -6,6 +6,7 @@ import { Biomes } from "./biomes";
 import Noise from "rot-js/lib/noise/noise";
 import { LightPhase } from "./map-shadows";
 import { RNG } from "rot-js";
+import { GameSettings } from "./game-settings";
 
 export class MapClouds {
   public windSpeed: Point; // vector of cloud speed and direction
@@ -32,8 +33,8 @@ export class MapClouds {
     this.cloudOffset = new Point(0, 0);
 
     let key: string;
-    for (let i = 0; i < this.game.options.gameSize.width; i++) {
-      for (let j = 0; j < this.game.options.gameSize.height; j++) {
+    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
+      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
         key = MapWorld.coordsToKey(i, j);
         this.cloudMap[key] = 0;
         this.targetCloudMap[key] = 0;
@@ -169,8 +170,8 @@ export class MapClouds {
     return this.generateCloudLevel(
       pos.x,
       pos.y,
-      this.game.options.gameSize.width,
-      this.game.options.gameSize.height,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
       this.game.noise
     );
   }

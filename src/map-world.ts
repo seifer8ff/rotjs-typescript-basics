@@ -23,6 +23,7 @@ import { MapClouds } from "./map-clouds";
 import Noise from "rot-js/lib/noise/noise";
 import { clamp } from "rot-js/lib/util";
 import { Assets, Sprite, Texture } from "pixi.js";
+import { GameSettings } from "./game-settings";
 
 export type Map = ValueMap | BiomeMap | TileMap;
 
@@ -296,12 +297,12 @@ export class MapWorld {
     }
     console.log("cloudMap", this.cloudMap.cloudMap);
     console.log("moistureMap", this.moistureMap.moistureMap);
-    if (this.game.options.enableShadows) {
+    if (GameSettings.options.toggles.enableShadows) {
       this.shadowMap.generateShadowMaps();
     }
 
     // finally, generate the tile map
-    if (this.game.options.enableAutotile) {
+    if (GameSettings.options.toggles.enableAutotile) {
       this.generateAutotileMap(this.biomeMap);
     } else {
       this.generateBasetileMap(this.biomeMap);
@@ -658,8 +659,8 @@ export class MapWorld {
   }
 
   // private regenerateAdjacencyMap(map: "terrain" | "biome") {
-  //   for (let x = 0; x < this.game.options.gameSize.width; x++) {
-  //     for (let y = 0; y < this.game.options.gameSize.height; y++) {
+  //   for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
+  //     for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
   //       const key = MapWorld.coordsToKey(x, y);
   //       if (map === "terrain") {
   //         this.terrainAdjacencyD1Map[key] = this.assignAdjacentBiomes(
@@ -695,8 +696,8 @@ export class MapWorld {
   private regenerateAdjacencyMap(
     map: "terrain" | "biome" | "height" | "heightLayer"
   ) {
-    for (let x = 0; x < this.game.options.gameSize.width; x++) {
-      for (let y = 0; y < this.game.options.gameSize.height; y++) {
+    for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
+      for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
         const key = MapWorld.coordsToKey(x, y);
         const index = this.game.positionToIndex(x, y, Layer.TERRAIN);
         if (map === "terrain") {
@@ -1153,9 +1154,9 @@ export class MapWorld {
   isPointInMap(point: Point): boolean {
     return (
       point.x >= 0 &&
-      point.x < this.game.options.gameSize.width &&
+      point.x < GameSettings.options.gameSize.width &&
       point.y >= 0 &&
-      point.y < this.game.options.gameSize.height
+      point.y < GameSettings.options.gameSize.height
     );
   }
 }

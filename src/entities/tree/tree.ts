@@ -16,6 +16,7 @@ import { TreeSpecies } from "./tree-species";
 import { RNG } from "rot-js";
 import { generateId, getItemFromRange } from "../../misc-utility";
 import { last } from "lodash";
+import { GameSettings } from "../../game-settings";
 
 export interface Segment {
   position: Point;
@@ -507,7 +508,7 @@ export class Tree implements Actor {
     let tint;
     let growSuccess: boolean = false;
 
-    if (this.game.options.enableGlobalLights) {
+    if (GameSettings.options.toggles.enableGlobalLights) {
       tint = this.game.renderer.getTintForPosition(terrainPoint);
     }
 

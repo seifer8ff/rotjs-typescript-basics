@@ -6,6 +6,7 @@ import { inverseLerp, lerp, normalizeNoise } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { Point } from "./point";
 import { Biome } from "./biomes";
+import { GameSettings } from "./game-settings";
 
 export enum LightPhase {
   "rising" = 0,
@@ -92,8 +93,8 @@ export class MapShadows {
     this.targetOcclusionMap = {};
 
     let key: string;
-    for (let i = 0; i < this.game.options.gameSize.width; i++) {
-      for (let j = 0; j < this.game.options.gameSize.height; j++) {
+    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
+      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
         key = MapWorld.coordsToKey(i, j);
         this.shadowMap[key] = 1;
         this.targetShadowMap[key] = 1;
@@ -186,8 +187,8 @@ export class MapShadows {
       }
     }
 
-    for (let i = 0; i < this.game.options.gameSize.width; i++) {
-      for (let j = 0; j < this.game.options.gameSize.height; j++) {
+    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
+      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
         const adjacent = this.map.getAdjacent(i, j, heightLayerAdjacencyMap);
         if (adjacent) {
           this.calcTopDownDropoff(i, j, adjacent);
@@ -207,8 +208,8 @@ export class MapShadows {
         mapToUpdate[key] = this.occlusionMap[key];
       }
     }
-    for (let x = 0; x < this.game.options.gameSize.width; x++) {
-      for (let y = 0; y < this.game.options.gameSize.height; y++) {
+    for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
+      for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
         const key = MapWorld.coordsToKey(x, y);
         mapToUpdate[key] = this.getShadowFor(x, y, "topdown");
       }
@@ -245,7 +246,7 @@ export class MapShadows {
   }
 
   public turnUpdate() {
-    if (!this.game.options.enableShadows) return;
+    if (!GameSettings.options.toggles.enableShadows) return;
     // shadow strength only changes when the time of day changes,
     // which only changes after a turn is taken
     this.interpolateStrength();
@@ -255,7 +256,7 @@ export class MapShadows {
   }
 
   public renderUpdate(interpPercent: number) {
-    if (!this.game.options.enableShadows) return;
+    if (!GameSettings.options.toggles.enableShadows) return;
     if (!this.game.timeManager.isPaused) {
       // move towards targetShadowMap from shadowMap every frame
       this.interpolateShadowState(
@@ -342,8 +343,8 @@ export class MapShadows {
   //   map: { [key: string]: Biome },
   //   vector: Point = new Point(1, 1)
   // ): string[] {
-  //   const rows = this.game.options.gameSize.height;
-  //   const columns = this.game.options.gameSize.width;
+  //   const rows = GameSettings.options.gameSize.height;
+  //   const columns = GameSettings.options.gameSize.width;
   //   const total = columns + rows - 1;
   //   const result = [];
 
@@ -359,8 +360,8 @@ export class MapShadows {
   // }
 
   private calcSundownMap(): [number, number][][] {
-    const rows = this.game.options.gameSize.height;
-    const columns = this.game.options.gameSize.width;
+    const rows = GameSettings.options.gameSize.height;
+    const columns = GameSettings.options.gameSize.width;
     const total = columns + rows - 1;
     const result = [];
 
@@ -382,8 +383,8 @@ export class MapShadows {
   }
 
   private calcSunupMap(): [number, number][][] {
-    const rows = this.game.options.gameSize.height;
-    const columns = this.game.options.gameSize.width;
+    const rows = GameSettings.options.gameSize.height;
+    const columns = GameSettings.options.gameSize.width;
     const total = columns + rows - 1;
     const result = [];
 
