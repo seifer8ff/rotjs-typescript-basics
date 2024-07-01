@@ -100,20 +100,22 @@ export class ManagerWebComponents {
       );
       this.titleMenu.form.addEventListener("submit", (e: CustomEvent) => {
         e.preventDefault();
-        try {
-          const data = new FormData(this.titleMenu.form);
-          const serializedData: Record<string, string> = serialize(
-            this.titleMenu.form
-          ) as any;
-          for (let toggle in GameSettings.options.toggles) {
-            GameSettings.options.toggles[toggle] =
-              serializedData[toggle] === "true";
+        this.titleMenu.setVisible(false, true);
+        setTimeout(() => {
+          try {
+            const serializedData: Record<string, string> = serialize(
+              this.titleMenu.form
+            ) as any;
+            for (let toggle in GameSettings.options.toggles) {
+              GameSettings.options.toggles[toggle] =
+                serializedData[toggle] === "true";
+            }
+            this.game.gameState.changeStage(Stages.Play);
+            this.game.generateWorld();
+          } catch (error) {
+            console.log("error on form submit", e, error);
           }
-          this.game.gameState.changeStage(Stages.Play);
-          this.game.generateWorld();
-        } catch (error) {
-          console.log("error on form submit", e, error);
-        }
+        }, 100);
         return false;
       });
     }
