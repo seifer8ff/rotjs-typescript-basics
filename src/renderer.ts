@@ -51,7 +51,13 @@ export class Renderer {
   }
 
   addLayersToStage(stage: PIXI.Container): void {
-    this.terrainLayer.forEach((layer) => {
+    let colorMatrix = new PIXI.ColorMatrixFilter();
+    colorMatrix.night(3, true);
+    this.terrainLayer.forEach((layer, index) => {
+      // if (index % 2) {
+      // layer.filters = [colorMatrix];
+      // }
+
       stage.addChild(layer as PIXI.DisplayObject);
     });
     stage.addChild(this.groundFXLayer as PIXI.DisplayObject);

@@ -9,7 +9,6 @@ import { Person } from "./entities/person";
 import { GameState, Stages } from "./game-state";
 import { InputUtility } from "./input-utility";
 import { Tile, TileType } from "./tile";
-import { MapWorldCellular } from "./map-world-cellular";
 import { UserInterface } from "./user-interface";
 import { Mushroom } from "./entities/mushroom";
 import { Cow } from "./entities/cow";
@@ -57,19 +56,13 @@ export class Game {
   };
 
   public ticker: Ticker;
-
-  private lastMainLoopTime: number;
-  private lastRenderTime: number;
-  private lastuiRefreshTime: number;
-  private lastGameLoopTime: number;
-  private postTurnWaitTime: number = 0; // how long to delay the game loop for (like when animations are playing)
+  private turnAnimDelay: number = 0; // how long to delay the game loop for (like when animations are playing)
 
   constructor() {
     this.settings = new GameSettings();
     if ((window as any).scheduler) {
       this.scheduler = (window as any).scheduler;
     }
-    console.log("this.scheduler", this.scheduler, window);
     this.ticker = Ticker.shared;
     this.ticker.autoStart = false;
     this.ticker.stop();
@@ -90,10 +83,10 @@ export class Game {
     this.nameGenerator = new GeneratorNames(this);
     this.renderer = new Renderer(this);
     this.stats = new GameStats();
-    this.initStats();
+    this.initGameStatsMonitor();
   }
 
-  public initStats(): void {
+  public initGameStatsMonitor(): void {
     this.stats.dom.style.top = "40vh";
     this.stats.dom.style.left = "unset";
     this.stats.dom.style.right = "15px";
@@ -110,14 +103,13 @@ export class Game {
     };
     this.stats.enableExtension("pixi", [
       PIXI,
-      this.userInterface.gameDisplay,
+      this.userInterface.application,
       options,
     ]);
-    console.log("stats", this.stats);
   }
 
   public async Init(): Promise<boolean> {
-    await this.initializeProceduralAssets();
+    await InitAssets();
     await this.initializeGame();
     await this.userInterface.init();
 
@@ -261,16 +253,6 @@ export class Game {
     return new Point(x, y);
   }
 
-  private async initializeProceduralAssets(): Promise<boolean> {
-    // load all sprites
-    // generate Tilesets
-    await InitAssets();
-
-    // generate Tree Species definitions
-    TreeSpecies.processTreeSpecies();
-    return true;
-  }
-
   private async addActors(): Promise<boolean> {
     this.generatePlants();
     this.generateBeings();
@@ -309,16 +291,16 @@ export class Game {
 
     if (this.gameState.stage === Stages.Play) {
       // handle counting down wait time after a turn (like for animation)
-      if (this.postTurnWaitTime > 0 && !this.timeManager.isPaused) {
-        this.postTurnWaitTime -= deltaTime * this.timeManager.timeScale;
+      if (this.turnAnimDelay > 0 && !this.timeManager.isPaused) {
+        this.turnAnimDelay -= deltaTime * this.timeManager.timeScale;
       }
-      if (this.postTurnWaitTime < 0) {
-        this.postTurnWaitTime = 0;
+      if (this.turnAnimDelay < 0) {
+        this.turnAnimDelay = 0;
       }
 
-      if (!this.timeManager.isPaused && this.postTurnWaitTime <= 0) {
+      if (!this.timeManager.isPaused && this.turnAnimDelay <= 0) {
         this.gameLoop();
-        this.postTurnWaitTime = GameSettings.options.turnAnimDelay;
+        this.turnAnimDelay = GameSettings.options.turnAnimDelay;
         this.timeManager.resetTurnAnimTime();
       }
     }
@@ -396,7 +378,7 @@ export class Game {
     this.userInterface.camera.renderUpdate(interpPercent);
 
     if (this.gameState.stage === Stages.Play) {
-      this.timeManager.renderUpdate(this.postTurnWaitTime);
+      this.timeManager.renderUpdate(this.turnAnimDelay);
 
       if (GameSettings.options.toggles.enableShadows) {
         this.scheduler.postTask(
@@ -732,13 +714,5 @@ export class Game {
     //   entity.tile.animated
     // );
     return entity;
-  }
-
-  static delay(delayInMs: number): Promise<any> {
-    return new Promise((resolve) =>
-      setTimeout(() => {
-        return resolve(true);
-      }, delayInMs)
-    );
   }
 }

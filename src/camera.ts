@@ -83,7 +83,7 @@ export class Camera {
     };
 
     this.centerViewport(
-      this.ui.gameDisplay.stage,
+      this.ui.application.stage,
       this.ui.gameCanvasContainer.clientWidth,
       this.ui.gameCanvasContainer.clientHeight
     );
@@ -233,7 +233,7 @@ export class Camera {
   private initEventListeners() {
     window.onresize = () =>
       this.centerViewport(
-        this.ui.gameDisplay.stage,
+        this.ui.application.stage,
         this.ui.gameCanvasContainer.clientWidth,
         this.ui.gameCanvasContainer.clientHeight
       );
@@ -337,10 +337,10 @@ export class Camera {
 
     const unpaddedWidthTiles =
       this.ui.gameCanvasContainer.clientWidth /
-      (Tile.size * this.ui.gameDisplay.stage.scale.x);
+      (Tile.size * this.ui.application.stage.scale.x);
     const unpaddedHeightTiles =
       this.ui.gameCanvasContainer.clientHeight /
-      (Tile.size * this.ui.gameDisplay.stage.scale.x);
+      (Tile.size * this.ui.application.stage.scale.x);
     const paddedWidthTiles =
       unpaddedWidthTiles + Math.max(10, 0.1 * unpaddedWidthTiles);
     const paddedHeightTiles =
@@ -362,18 +362,18 @@ export class Camera {
   private getViewportCenterTile(): Point {
     const halfTileSize = Tile.size / 2;
     const pivotXTile =
-      (this.game.userInterface.gameDisplay.stage.pivot.x + halfTileSize) /
+      (this.game.userInterface.application.stage.pivot.x + halfTileSize) /
       Tile.size;
     const pivotYTile =
-      (this.game.userInterface.gameDisplay.stage.pivot.y + halfTileSize) /
+      (this.game.userInterface.application.stage.pivot.y + halfTileSize) /
       Tile.size;
     let tilesOffsetX =
-      pivotXTile * this.game.userInterface.gameDisplay.stage.scale.x;
+      pivotXTile * this.game.userInterface.application.stage.scale.x;
     tilesOffsetX = Math.ceil(pivotXTile) - 1; // Adjusting for centering
     const xPoint = tilesOffsetX;
     let tilesOffsetY =
       (pivotYTile / Tile.size) *
-      this.game.userInterface.gameDisplay.stage.scale.y;
+      this.game.userInterface.application.stage.scale.y;
     tilesOffsetY = Math.ceil(pivotYTile) - 1; // Adjusting for centering
     const yPoint = tilesOffsetY;
 
@@ -403,7 +403,7 @@ export class Camera {
     let code = event.keyCode;
     if (code in this.keyMap) {
       let diff = DIRS[8][this.keyMap[code]];
-      if (this.moveCamera(this.ui.gameDisplay.stage, diff)) {
+      if (this.moveCamera(this.ui.application.stage, diff)) {
         this.viewportTarget = null;
         validInput = true;
       }
@@ -411,7 +411,7 @@ export class Camera {
     } else if (code === KEYS.VK_HOME) {
       this.viewportTarget = null;
       this.centerViewport(
-        this.ui.gameDisplay.stage,
+        this.ui.application.stage,
         this.ui.gameCanvasContainer.clientWidth,
         this.ui.gameCanvasContainer.clientHeight
       );
@@ -423,10 +423,10 @@ export class Camera {
   private handlePointerDrag = (g: TinyGesture) => {
     this.showSidebarTimer = this.showSidebarDelayMs;
     this.setSideMenuVisible(false);
-    this.ui.gameDisplay.stage.pivot.x -=
-      g.velocityX / this.ui.gameDisplay.stage.scale.x;
-    this.ui.gameDisplay.stage.pivot.y -=
-      g.velocityY / this.ui.gameDisplay.stage.scale.x;
+    this.ui.application.stage.pivot.x -=
+      g.velocityX / this.ui.application.stage.scale.x;
+    this.ui.application.stage.pivot.y -=
+      g.velocityY / this.ui.application.stage.scale.x;
     this.resetMomentum();
   };
 
@@ -457,9 +457,9 @@ export class Camera {
   };
 
   public screenToTilePos(x: number, y: number): Point {
-    let stageScale = this.ui.gameDisplay.stage.scale.x;
+    let stageScale = this.ui.application.stage.scale.x;
     let centerTile = this.viewport.center;
-    let pivotPoint = this.ui.gameDisplay.stage.pivot;
+    let pivotPoint = this.ui.application.stage.pivot;
     let screenCenterX = this.ui.gameCanvasContainer.clientWidth / 2;
     let screenCenterY = this.ui.gameCanvasContainer.clientHeight / 2;
     // offset from click to center of screen, represented in tiles.
@@ -515,8 +515,8 @@ export class Camera {
     this.momentum.x = lerp(this.momentum.x, 0, percent);
     this.momentum.y = lerp(this.momentum.y, 0, percent);
 
-    this.ui.gameDisplay.stage.pivot.x -= this.momentum.x;
-    this.ui.gameDisplay.stage.pivot.y -= this.momentum.y;
+    this.ui.application.stage.pivot.x -= this.momentum.x;
+    this.ui.application.stage.pivot.y -= this.momentum.y;
 
     if (this.momentumTimer <= 0) {
       // stop momentum
@@ -536,10 +536,10 @@ export class Camera {
   };
 
   private snapCameraToTile() {
-    this.ui.gameDisplay.stage.pivot.x =
-      Math.ceil(this.ui.gameDisplay.stage.pivot.x / Tile.size) * Tile.size;
-    this.ui.gameDisplay.stage.pivot.y =
-      Math.ceil(this.ui.gameDisplay.stage.pivot.y / Tile.size) * Tile.size;
+    this.ui.application.stage.pivot.x =
+      Math.ceil(this.ui.application.stage.pivot.x / Tile.size) * Tile.size;
+    this.ui.application.stage.pivot.y =
+      Math.ceil(this.ui.application.stage.pivot.y / Tile.size) * Tile.size;
   }
 
   private roundToNearestTile(x: number, y: number): Point {
@@ -553,9 +553,9 @@ export class Camera {
     const maxScaleSpeed = 0.2; // < 1 to take effect
     const scaleSpeed = 0.2;
 
-    let pivotX = this.ui.gameDisplay.stage.pivot.x;
-    let pivotY = this.ui.gameDisplay.stage.pivot.y;
-    let scale = this.ui.gameDisplay.stage.scale.x;
+    let pivotX = this.ui.application.stage.pivot.x;
+    let pivotY = this.ui.application.stage.pivot.y;
+    let scale = this.ui.application.stage.scale.x;
     let scaleDelta = scale - g.scale;
     scaleDelta = Math.max(-maxScaleSpeed, Math.min(maxScaleSpeed, scaleDelta));
 
@@ -583,9 +583,9 @@ export class Camera {
     //   pivotY
     // );
 
-    this.ui.gameDisplay.stage.setTransform(
-      this.game.userInterface.gameDisplay.stage.position.x,
-      this.game.userInterface.gameDisplay.stage.position.y,
+    this.ui.application.stage.setTransform(
+      this.game.userInterface.application.stage.position.x,
+      this.game.userInterface.application.stage.position.y,
       scale, // scale
       scale,
       null, // rotation
@@ -601,11 +601,11 @@ export class Camera {
 
   private handleDoubleTap = (g: TinyGesture) => {
     const zoomInAmount = 1.75;
-    let scale = this.ui.gameDisplay.stage.scale.x * zoomInAmount;
+    let scale = this.ui.application.stage.scale.x * zoomInAmount;
 
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
 
-    this.ui.gameDisplay.stage.scale.set(scale);
+    this.ui.application.stage.scale.set(scale);
     if (GameSettings.options.toggles.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
@@ -620,9 +620,9 @@ export class Camera {
     const scaleSpeed = 0.1;
     const maxScaleSpeed = 0.35;
 
-    let pivotX = this.ui.gameDisplay.stage.pivot.x;
-    let pivotY = this.ui.gameDisplay.stage.pivot.y;
-    let scale = this.ui.gameDisplay.stage.scale.x;
+    let pivotX = this.ui.application.stage.pivot.x;
+    let pivotY = this.ui.application.stage.pivot.y;
+    let scale = this.ui.application.stage.scale.x;
 
     let scrollDelta = Math.max(-1, Math.min(1, e.deltaY));
     scrollDelta = Math.max(
@@ -646,7 +646,7 @@ export class Camera {
     // console.log("pivotX, pivotY", pivotX, pivotY);
 
     // update the scale and position of the stage
-    this.ui.gameDisplay.stage.scale.set(scale);
+    this.ui.application.stage.scale.set(scale);
     // this.ui.gameDisplay.stage.setTransform(
     //   this.game.userInterface.gameDisplay.stage.position.x,
     //   this.game.userInterface.gameDisplay.stage.position.y,
@@ -711,12 +711,12 @@ export class Camera {
     }
     if (
       this.lastZoom !== this.currentZoom ||
-      this.lastPivot.x !== this.ui.gameDisplay.stage.pivot.x ||
-      this.lastPivot.y !== this.ui.gameDisplay.stage.pivot.y
+      this.lastPivot.x !== this.ui.application.stage.pivot.x ||
+      this.lastPivot.y !== this.ui.application.stage.pivot.y
     ) {
       this.lastZoom = this.currentZoom;
-      this.lastPivot.x = this.ui.gameDisplay.stage.pivot.x;
-      this.lastPivot.y = this.ui.gameDisplay.stage.pivot.y;
+      this.lastPivot.x = this.ui.application.stage.pivot.x;
+      this.lastPivot.y = this.ui.application.stage.pivot.y;
       this.updateViewport();
     }
   }
@@ -737,23 +737,23 @@ export class Camera {
       let newPivotX;
       let newPivotY;
       if (
-        Math.abs(this.ui.gameDisplay.stage.pivot.x - targetPos.x) > 0.1 &&
-        Math.abs(this.ui.gameDisplay.stage.pivot.y - targetPos.y) > 0.1
+        Math.abs(this.ui.application.stage.pivot.x - targetPos.x) > 0.1 &&
+        Math.abs(this.ui.application.stage.pivot.y - targetPos.y) > 0.1
       ) {
         newPivotX = lerp(
           deltaTime / 1000,
-          this.ui.gameDisplay.stage.pivot.x,
+          this.ui.application.stage.pivot.x,
           targetPos.x
         );
         newPivotY = lerp(
           deltaTime / 1000,
-          this.ui.gameDisplay.stage.pivot.y,
+          this.ui.application.stage.pivot.y,
           targetPos.y
         );
 
         newPivotX = this.roundStagevalue(newPivotX);
         newPivotY = this.roundStagevalue(newPivotY);
-        this.ui.gameDisplay.stage.pivot.set(newPivotX, newPivotY);
+        this.ui.application.stage.pivot.set(newPivotX, newPivotY);
         // newPivotX =
         //   Math.ceil(this.ui.gameDisplay.stage.pivot.x / Tile.size) * Tile.size;
         // this.ui.gameDisplay.stage.pivot.x = this.lerp(
@@ -771,14 +771,14 @@ export class Camera {
         // this.ui.gameDisplay.stage.pivot.y =
         //   Math.ceil(this.ui.gameDisplay.stage.pivot.y / Tile.size) * Tile.size;
       } else {
-        this.ui.gameDisplay.stage.pivot.set(targetPos.x, targetPos.y);
+        this.ui.application.stage.pivot.set(targetPos.x, targetPos.y);
         this.viewportTarget = null;
       }
     }
   }
 
   public getNormalizedZoom(): number {
-    return this.ui.gameDisplay.stage.scale.x / (this.maxZoom - this.minZoom);
+    return this.ui.application.stage.scale.x / (this.maxZoom - this.minZoom);
   }
 
   // private handleZoom = (e: WheelEvent) => {

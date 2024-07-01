@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js";
 import { Tile, TileType, BaseTileKey } from "./tile";
 import { Season } from "./time-manager";
 import { Biome, BiomeId, Biomes } from "./biomes";
+import { TreeSpecies } from "./entities/tree/tree-species";
 
 export interface CachedTexture {
   url: string;
@@ -98,6 +99,7 @@ export async function InitAssets() {
 
   await Assets.backgroundLoadBundle(allBundles);
   ProcessTilesetsIntoTiles();
+  TreeSpecies.processTreeSpecies();
 }
 
 export function initPixiOptions(): void {

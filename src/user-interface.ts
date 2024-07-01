@@ -1,7 +1,6 @@
 import { Display, KEYS } from "rot-js/lib/index";
 import { Point } from "./point";
 import { Game } from "./game";
-import { StatusLine } from "./status-line";
 import { MessageLog } from "./message-log";
 import { InputUtility } from "./input-utility";
 import { InitAssets } from "./assets";
@@ -16,10 +15,8 @@ import { Stages } from "./game-state";
 import { GameSettings } from "./game-settings";
 
 export class UserInterface {
-  public gameDisplay: PIXI.Application<PIXI.ICanvas>;
+  public application: PIXI.Application<PIXI.ICanvas>;
   public camera: Camera;
-  public textDisplay: Display;
-  public statusLine: StatusLine;
   public messageLog: MessageLog;
   public gameCanvasContainer: HTMLElement;
 
@@ -28,66 +25,35 @@ export class UserInterface {
   private keyMap: { [key: number]: number };
 
   public components: ManagerWebComponents;
-
-  // TODO: move text log to web tech
-  private textCanvasContainer: HTMLElement;
-  private textCanvas: HTMLCanvasElement;
-  private statusLinePosition: Point;
-  private actionLogPosition: Point;
-  private maximumBoxes = 10;
-  private fontSize = 20;
   private sprites: { [key: string]: string };
 
   constructor(private game: Game) {
     this.sprites = {
       selectionBox: "ui_tile_select",
     };
-    this.statusLinePosition = new Point(0, 0);
-    this.actionLogPosition = new Point(0, 3);
     this.components = new ManagerWebComponents(game, this);
 
     this.gameContainer = document.getElementById("gameContainer");
     this.gameCanvasContainer = document.getElementById("canvasContainer");
-    this.textCanvasContainer = document.getElementById("textContainer");
 
     this.gameDisplayOptions = {
-      resizeTo: this.gameContainer,
+      resizeTo: window,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
       antialias: false,
     };
 
-    this.gameDisplay = new PIXI.Application(this.gameDisplayOptions);
-    this.gameDisplay.stage.sortableChildren = true;
-    this.textDisplay = new Display({
-      width: GameSettings.options.gameSize.width * 2,
-      height: 10,
-      fontSize: this.fontSize,
-    });
+    this.application = new PIXI.Application(this.gameDisplayOptions);
+    this.application.stage.sortableChildren = true;
 
-    // this.gameCanvasContainer.appendChild(this.gameDisplay.getContainer());
-    // this.gameCanvas = this.gameDisplay.getContainer().querySelector("canvas");
+    // let colorMatrix = new PIXI.ColorMatrixFilter();
+    // colorMatrix.night(0.2, false);
+    // this.application.stage.filters = [colorMatrix];
 
     this.gameCanvasContainer.appendChild(
-      this.gameDisplay.view as HTMLCanvasElement
+      this.application.view as HTMLCanvasElement
     );
-
-    // this.textCanvasContainer.appendChild(this.textDisplay.getContainer());
-    this.textCanvas = this.textDisplay.getContainer().querySelector("canvas");
-
-    this.statusLine = new StatusLine(
-      this,
-      this.statusLinePosition,
-      GameSettings.options.gameSize.width * 3,
-      { maxBoxes: this.maximumBoxes }
-    );
-    this.messageLog = new MessageLog(
-      this,
-      this.actionLogPosition,
-      GameSettings.options.gameSize.width * 3,
-      6
-    );
-
+    this.messageLog = new MessageLog(this.game);
     this.camera = new Camera(this.game, this);
     this.initEventListeners();
   }
@@ -108,7 +74,7 @@ export class UserInterface {
   }
 
   public async init() {
-    this.game.renderer.addLayersToStage(this.gameDisplay.stage);
+    this.game.renderer.addLayersToStage(this.application.stage);
     await this.initializeBuildTools();
   }
 
@@ -140,10 +106,6 @@ export class UserInterface {
     for (let index = helpMessage.length - 1; index >= 0; --index) {
       this.messageLog.appendText(helpMessage[index]);
     }
-  }
-
-  drawText(position: Point, text: string, maxWidth?: number): void {
-    this.textDisplay.drawText(position.x, position.y, text, maxWidth);
   }
 
   HandleInputConfirm(event: KeyboardEvent): boolean {
@@ -185,10 +147,5 @@ export class UserInterface {
         );
       }
     }
-  }
-
-  resetStatusLine(): void {
-    this.statusLine.reset();
-    this.statusLine.maxBoxes = GameSettings.options.plants.shrubCount;
   }
 }
