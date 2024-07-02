@@ -18,12 +18,14 @@ import { PointerTarget } from "../camera";
 import { Animator } from "../components/animator";
 import { generateId } from "../misc-utility";
 import { GameSettings } from "../game-settings";
+import { TreeSpecies, TreeSpeciesEnum } from "./tree/tree-species";
 
 export class Mushroom implements Actor {
   id: number;
   name: string;
   tile: Tile;
   type: TileType;
+  static subType: TileSubType = TileSubType.Animal;
   subType: TileSubType;
   action: Action;
   goal: Action;
@@ -35,7 +37,7 @@ export class Mushroom implements Actor {
 
   constructor(private game: Game, public position: Point) {
     this.id = generateId();
-    this.subType = TileSubType.Animal;
+    this.subType = Mushroom.subType;
     this.name = this.game.nameGenerator.generate(this.subType);
     console.log(
       `${(this as {}).constructor.name} ${this.name} created at ${
@@ -59,10 +61,13 @@ export class Mushroom implements Actor {
   }
 
   private planGoal(): Action {
-    const plantTarget = this.game.getRandomPlantPositions(TileType.Plant, 1)[0];
-    if (plantTarget) {
+    const treeTarget = this.game.actorManager.getRandomTreePositions(
+      TreeSpeciesEnum.BIRCH,
+      1
+    )[0];
+    if (treeTarget) {
       // check if reachable
-      return new HarvestAction(this.game, this, plantTarget);
+      return new HarvestAction(this.game, this, treeTarget);
     }
     return new WaitAction(this.game, this, this.position);
   }
@@ -110,7 +115,7 @@ export class Mushroom implements Actor {
       : false;
     let hasPath = this.path?.length > 0;
     const isOccupied = hasPath
-      ? this.game.isOccupiedByEntity(this.path[0].x, this.path[0].y)
+      ? this.game.isOccupiedByActor(this.path[0].x, this.path[0].y)
       : false;
 
     if (!hasGoal) {

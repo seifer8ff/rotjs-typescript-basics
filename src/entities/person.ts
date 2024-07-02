@@ -57,7 +57,10 @@ export class Person implements Actor {
   }
 
   private planGoal(): Action {
-    const plantTarget = this.game.getRandomPlantPositions(TileType.Plant, 1)[0];
+    const plantTarget = this.game.actorManager.getRandomActorPositions(
+      TileSubType.Tree,
+      1
+    )[0];
     if (plantTarget) {
       // check if reachable
       return new HarvestAction(this.game, this, plantTarget);
@@ -108,7 +111,7 @@ export class Person implements Actor {
       : false;
     let hasPath = this.path?.length > 0;
     const isOccupied = hasPath
-      ? this.game.isOccupiedByEntity(this.path[0].x, this.path[0].y)
+      ? this.game.isOccupiedByActor(this.path[0].x, this.path[0].y)
       : false;
 
     if (!hasGoal) {

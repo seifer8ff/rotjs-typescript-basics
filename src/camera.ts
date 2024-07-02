@@ -194,13 +194,12 @@ export class Camera {
     // check if plant at tile pos
     // if so, select it
     let tile: Tile;
+    let actors: Actor[];
     let actor: Actor;
 
-    actor = this.game.getEntityAt(x, y);
-    if (!actor) {
-      actor = this.game.getPlantAt(x, y);
-    }
-    if (actor) {
+    actors = this.game.actorManager.getActorsAt(x, y);
+    if (actors?.length) {
+      actor = actors[0];
       this.setPointerTarget(actor.position, actor, viewportTarget);
       return this.pointerTarget;
     }

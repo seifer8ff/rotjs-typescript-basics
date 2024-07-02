@@ -22,9 +22,12 @@ export const enum TileType {
 }
 
 // combined enum of specific types of TileTypes
+// can be used for pathing, z index, etc
 export enum TileSubType {
   Human = "Human",
-  Animal = "Animal",
+  Animal = "Animal", // land dweller
+  Fish = "Fish", // water dweller
+  Bird = "Bird", // air dweller
   Shrub = "Shrub",
   Tree = "Tree",
 }

@@ -15,6 +15,7 @@ import { CompositeTilemap } from "@pixi/tilemap";
 import { Viewport } from "./camera";
 import { settings } from "@pixi/tilemap";
 import { GameSettings } from "./game-settings";
+import { positionToIndex } from "./misc-utility";
 
 export type Renderable =
   | PIXI.Sprite
@@ -147,7 +148,7 @@ export class Renderer {
 
       for (let x = left; x < right; x++) {
         for (let y = top; y < bottom; y++) {
-          let index: number = this.game.positionToIndex(x, y, layer);
+          let index: number = positionToIndex(x, y, layer);
           if (index < 0) {
             // invalid index returned
             continue;
@@ -291,7 +292,7 @@ export class Renderer {
       (displayObj as PIXI.Sprite).tint = initialTint || "0xFFFFFF";
     }
 
-    let index = this.game.positionToIndex(position.x, position.y, layer);
+    let index = positionToIndex(position.x, position.y, layer);
     this.spriteCache[index] = displayObj;
   }
 
@@ -340,8 +341,8 @@ export class Renderer {
 
   // update a sprites position in the cache, to be rendered on the next render pass
   updateSpriteCachePosition(oldPos: Point, newPos: Point, layer: Layer): void {
-    const newIndex = this.game.positionToIndex(newPos.x, newPos.y, layer);
-    const oldIndex = this.game.positionToIndex(oldPos.x, oldPos.y, layer);
+    const newIndex = positionToIndex(newPos.x, newPos.y, layer);
+    const oldIndex = positionToIndex(oldPos.x, oldPos.y, layer);
     this.spriteCache[newIndex] = this.spriteCache[oldIndex];
     this.spriteCache[oldIndex] = null;
   }
@@ -380,8 +381,7 @@ export class Renderer {
   removeFromCache(tilePos: Point, layer: Layer): void {
     // set to null rather than removing the index
     // to prevent shifting all of the indexes
-    this.spriteCache[this.game.positionToIndex(tilePos.x, tilePos.y, layer)] =
-      null;
+    this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)] = null;
   }
 
   clearCache(layer?: Layer): void {
@@ -453,7 +453,7 @@ export class Renderer {
   ): void {
     const tilePos = MapWorld.keyToPoint(tileKey);
     const sprite =
-      this.spriteCache[this.game.positionToIndex(tilePos.x, tilePos.y, layer)];
+      this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)];
     if (sprite && typeof sprite !== "string") {
       sprite.transform.position.x = x;
       sprite.transform.position.y = y;
@@ -462,7 +462,7 @@ export class Renderer {
 
   getSpriteTransformPosition(tilePos: Point, layer: Layer): Point {
     const sprite =
-      this.spriteCache[this.game.positionToIndex(tilePos.x, tilePos.y, layer)];
+      this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)];
     if (sprite && typeof sprite !== "string") {
       return new Point(
         sprite.transform.position.x,
@@ -473,8 +473,6 @@ export class Renderer {
   }
 
   getFromCache(tilePos: Point, layer: Layer): Renderable {
-    return this.spriteCache[
-      this.game.positionToIndex(tilePos.x, tilePos.y, layer)
-    ];
+    return this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)];
   }
 }

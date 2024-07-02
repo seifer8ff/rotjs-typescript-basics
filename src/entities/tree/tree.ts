@@ -53,6 +53,7 @@ export class Tree implements Actor {
   id: number;
   name?: string;
   tile: Tile;
+  static subType: TileSubType = TileSubType.Tree;
   subType: TileSubType;
   type: TileType;
   goal: Action;
@@ -90,7 +91,7 @@ export class Tree implements Actor {
     this.id = generateId();
     this.tile = Tile.tree;
     this.type = this.tile.type;
-    this.subType = TileSubType.Tree;
+    this.subType = Tree.subType;
     this.name = `${this.subType} - ${this.species.name}`;
     this.growLeaves = true;
 
@@ -659,7 +660,7 @@ export class Tree implements Actor {
         leafSprite.tint = tint;
       }
       leafSprite.rotation = leafRotation;
-      leafSprite.alpha = this.leafAlpha;
+      // leafSprite.alpha = this.leafAlpha;
       leafSprite.width = this.leafSize;
       leafSprite.height = this.leafSize;
       leafSprite.zIndex = branch.order + 1;

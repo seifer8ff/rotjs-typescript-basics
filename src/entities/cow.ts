@@ -31,6 +31,7 @@ export class Cow implements Actor {
   name: string;
   tile: Tile;
   type: TileType;
+  static subType: TileSubType = TileSubType.Animal;
   subType: TileSubType;
   action: Action;
   goal: Action;
@@ -42,7 +43,7 @@ export class Cow implements Actor {
 
   constructor(private game: Game, public position: Point) {
     this.id = generateId();
-    this.subType = TileSubType.Animal;
+    this.subType = Cow.subType;
     this.name = this.game.nameGenerator.generate(this.subType);
     console.log(
       `Cow ${this.name} created at ${this.position.x}, ${this.position.y}`
@@ -66,10 +67,25 @@ export class Cow implements Actor {
   }
 
   private planGoal(): Action {
-    const plantTarget = this.game.getRandomPlantPositions(TileType.Plant, 1)[0];
-    if (plantTarget) {
+    // const plantTarget = this.game.getRandomPlantPositions(TileType.Plant, 1)[0];
+    for (let i = 0; i < 25; i++) {
+      const plantTarget = this.game.actorManager.getRandomActorPositions(
+        TileSubType.Tree,
+        1
+      )[0];
+      if (plantTarget) {
+        // check if reachable
+        return new HarvestAction(this.game, this, plantTarget);
+      }
+    }
+    const shrubTarget = this.game.actorManager.getRandomActorPositions(
+      TileSubType.Shrub,
+      1
+    )[0];
+    if (shrubTarget) {
+      console.log("------ shrub target", shrubTarget, this.name, this.position);
       // check if reachable
-      return new HarvestAction(this.game, this, plantTarget);
+      return new HarvestAction(this.game, this, shrubTarget);
     }
     return new WaitAction(this.game, this, this.position);
   }
@@ -117,7 +133,7 @@ export class Cow implements Actor {
       : false;
     let hasPath = this.path?.length > 0;
     const isOccupied = hasPath
-      ? this.game.isOccupiedByEntity(this.path[0].x, this.path[0].y)
+      ? this.game.isOccupiedByActor(this.path[0].x, this.path[0].y)
       : false;
 
     if (!hasGoal) {

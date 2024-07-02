@@ -32,6 +32,7 @@ export class SharkBlue implements Actor {
   name: string;
   tile: Tile;
   type: TileType;
+  static subType: TileSubType = TileSubType.Fish;
   subType: TileSubType;
   action: Action;
   goal: Action;
@@ -43,7 +44,7 @@ export class SharkBlue implements Actor {
 
   constructor(private game: Game, public position: Point) {
     this.id = generateId();
-    this.subType = TileSubType.Animal;
+    this.subType = SharkBlue.subType;
     this.name = this.game.nameGenerator.generate(this.subType);
     console.log(
       `Shark ${this.name} created at ${this.position.x}, ${this.position.y}`
@@ -66,7 +67,10 @@ export class SharkBlue implements Actor {
   }
 
   private planGoal(): Action {
-    const plantTarget = this.game.getRandomPlantPositions(TileType.Plant, 1)[0];
+    const plantTarget = this.game.actorManager.getRandomActorPositions(
+      TileSubType.Human,
+      1
+    )[0];
     if (plantTarget) {
       // check if reachable
       return new HarvestAction(this.game, this, plantTarget);
@@ -117,7 +121,7 @@ export class SharkBlue implements Actor {
       : false;
     let hasPath = this.path?.length > 0;
     const isOccupied = hasPath
-      ? this.game.isOccupiedByEntity(this.path[0].x, this.path[0].y)
+      ? this.game.isOccupiedByActor(this.path[0].x, this.path[0].y)
       : false;
 
     if (!hasGoal) {
@@ -169,7 +173,7 @@ export class SharkBlue implements Actor {
       (biome?.id === Biomes.Biomes.ocean.id ||
         biome?.id === Biomes.Biomes.oceandeep.id);
     const isBlocked =
-      this.game.isOccupiedByEntity(x, y) || this.game.isOccupiedByPlant(x, y);
+      this.game.isOccupiedByActor(x, y) || this.game.isOccupiedByTree(x, y);
     return (
       inRange &&
       isOcean &&

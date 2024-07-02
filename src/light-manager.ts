@@ -134,7 +134,7 @@ export class LightManager {
       return false;
     }
 
-    if (this.game.isOccupiedByPlant(x, y)) {
+    if (this.game.isOccupiedByTree(x, y)) {
       return false;
     }
 
@@ -202,22 +202,22 @@ export class LightManager {
   }
 
   public clearAllDynamicLights() {
-    for (let entity of this.game.entities) {
-      if (this.lightEmitterById[entity.id]) {
-        const [x, y] = this.lightEmitterById[entity.id];
+    for (let actor of this.game.actorManager.actors) {
+      if (this.lightEmitterById[actor.id]) {
+        const [x, y] = this.lightEmitterById[actor.id];
         this.lightEmitters.setLight(x, y, null);
-        this.lightEmitterById[entity.id] = null;
+        this.lightEmitterById[actor.id] = null;
       }
     }
   }
 
   public clearChangedDynamicLights() {
-    for (let entity of this.game.entities) {
-      if (this.lightEmitterById[entity.id]) {
-        const [x, y] = this.lightEmitterById[entity.id];
-        if (entity.position.x != x || entity.position.y != y) {
+    for (let actor of this.game.actorManager.actors) {
+      if (this.lightEmitterById[actor.id]) {
+        const [x, y] = this.lightEmitterById[actor.id];
+        if (actor.position.x != x || actor.position.y != y) {
           this.lightEmitters.setLight(x, y, null);
-          this.lightEmitterById[entity.id] = null;
+          this.lightEmitterById[actor.id] = null;
         }
       }
     }
@@ -225,26 +225,26 @@ export class LightManager {
 
   public updateDynamicLighting() {
     if (this.game.timeManager.isNighttime) {
-      for (let entity of this.game.entities) {
+      for (let actor of this.game.actorManager.actors) {
         let updateLight = false;
-        if (!this.lightEmitterById[entity.id]) {
+        if (!this.lightEmitterById[actor.id]) {
           updateLight = true;
         }
-        if (this.lightEmitterById[entity.id]) {
-          const [x, y] = this.lightEmitterById[entity.id];
-          if (entity.position.x != x || entity.position.y != y) {
+        if (this.lightEmitterById[actor.id]) {
+          const [x, y] = this.lightEmitterById[actor.id];
+          if (actor.position.x != x || actor.position.y != y) {
             updateLight = true;
           }
         }
 
         if (updateLight) {
-          this.lightEmitterById[entity.id] = [
-            entity.position.x,
-            entity.position.y,
+          this.lightEmitterById[actor.id] = [
+            actor.position.x,
+            actor.position.y,
           ];
           this.lightEmitters.setLight(
-            entity.position.x,
-            entity.position.y,
+            actor.position.x,
+            actor.position.y,
             this.lightDefaults.torchBright
           );
         }

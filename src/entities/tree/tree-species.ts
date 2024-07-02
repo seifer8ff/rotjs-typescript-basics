@@ -90,9 +90,18 @@ export interface PlantGrowthOptions {
   };
 }
 
+export type TreeSpeciesID = "pine" | "birch" | "maple" | "cottoncandy";
+
+export enum TreeSpeciesEnum {
+  PINE = "pine",
+  BIRCH = "birch",
+  MAPLE = "maple",
+  COTTONCANDY = "cottoncandy",
+}
+
 export class TreeSpecies {
   static treeSpecies: {
-    [id: string]: TreeSpecies;
+    [key in TreeSpeciesID as string]: TreeSpecies;
   } = {};
   public id: string;
   public name: string;
