@@ -110,6 +110,7 @@ export class ManagerWebComponents {
               GameSettings.options.toggles[toggle] =
                 serializedData[toggle] === "true";
             }
+            this.game.settings.loadSettings();
             this.game.gameState.changeStage(Stages.Play);
             this.game.generateWorld();
           } catch (error) {

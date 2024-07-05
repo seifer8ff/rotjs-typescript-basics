@@ -15,7 +15,7 @@ import { ManagerAnimation } from "./manager-animation";
 import { Ticker } from "pixi.js";
 import * as MainLoop from "mainloop.js";
 import GameStats from "gamestats.js";
-import * as PIXI from "pixi.js";
+
 import { InitAssets } from "./assets";
 import { GameSettings } from "./game-settings";
 import { ManagerActors } from "./manager-actors";
@@ -33,7 +33,6 @@ export class Game {
   public timeManager: TimeManager;
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
-  public stats: GameStats;
 
   public scheduler: {
     postTask: (
@@ -46,7 +45,7 @@ export class Game {
   private turnAnimDelay: number = 0; // how long to delay the game loop for (like when animations are playing)
 
   constructor() {
-    this.settings = new GameSettings();
+    this.settings = new GameSettings(this);
     if ((window as any).scheduler) {
       this.scheduler = (window as any).scheduler;
     }
@@ -68,30 +67,6 @@ export class Game {
     this.nameGenerator = new GeneratorNames(this);
     this.renderer = new Renderer(this);
     this.actorManager = new ManagerActors(this);
-    this.stats = new GameStats();
-    this.initGameStatsMonitor();
-  }
-
-  public initGameStatsMonitor(): void {
-    this.stats.dom.style.top = "40vh";
-    this.stats.dom.style.left = "unset";
-    this.stats.dom.style.right = "15px";
-    this.stats.dom.style.zIndex = "5000";
-
-    document.body.appendChild(this.stats.dom);
-
-    // OR addtionally with options
-    const options = {
-      targetFPS: 60,
-      // maxMemorySize: 350, // GPU VRAM limit ( the max of the texture memory graph )
-      COLOR_MEM_TEXTURE: "#8ddcff", // the display color of the texture memory size in the graph
-      COLOR_MEM_BUFFER: "#ffd34d", // the display color of buffer memory size in the graph
-    };
-    this.stats.enableExtension("pixi", [
-      PIXI,
-      this.userInterface.application,
-      options,
-    ]);
   }
 
   public async Init(): Promise<boolean> {
@@ -184,12 +159,16 @@ export class Game {
 
   private async startLoop() {
     // console.log("start loop");
-    this.stats?.begin("game loop");
+    if (GameSettings.options.toggles.enableStats) {
+      this.settings.stats?.begin("main loop");
+    }
   }
 
   private async endLoop() {
     // console.log("end loop");
-    this.stats?.end("game loop");
+    if (GameSettings.options.toggles.enableStats) {
+      this.settings.stats?.end("main loop");
+    }
   }
 
   private mainLoop(deltaTime: number) {
@@ -283,7 +262,9 @@ export class Game {
   }
 
   private renderLoop(interpPercent: number) {
-    this.stats?.begin();
+    if (GameSettings.options.toggles.enableStats) {
+      this.settings.stats?.begin();
+    }
 
     this.map.draw();
 
@@ -365,7 +346,9 @@ export class Game {
       // );
     }
 
-    this.stats?.end();
+    if (GameSettings.options.toggles.enableStats) {
+      this.settings.stats?.end();
+    }
   }
 
   private async uiLoop(deltaTime: number) {

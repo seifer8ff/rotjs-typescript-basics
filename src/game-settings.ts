@@ -1,3 +1,7 @@
+import GameStats from "gamestats.js";
+import * as PIXI from "pixi.js";
+import { Game } from "./game";
+
 export class GameSettings {
   static options = {
     toggles: {
@@ -7,6 +11,7 @@ export class GameSettings {
       enableCloudLayer: false,
       enableShadows: false,
       enableAnimations: true,
+      enableStats: true,
       dayStart: true,
     },
     plants: {
@@ -82,5 +87,36 @@ export class GameSettings {
     },
   ];
 
-  constructor() {}
+  public stats: GameStats;
+
+  constructor(private game: Game) {}
+
+  public loadSettings(): void {
+    if (GameSettings.options.toggles.enableStats) {
+      this.initGameStatsMonitor();
+    }
+  }
+
+  public initGameStatsMonitor(): void {
+    this.stats = new GameStats();
+    this.stats.dom.style.top = "40vh";
+    this.stats.dom.style.left = "unset";
+    this.stats.dom.style.right = "15px";
+    this.stats.dom.style.zIndex = "5000";
+
+    document.body.appendChild(this.stats.dom);
+
+    // OR addtionally with options
+    const options = {
+      targetFPS: 60,
+      // maxMemorySize: 350, // GPU VRAM limit ( the max of the texture memory graph )
+      COLOR_MEM_TEXTURE: "#8ddcff", // the display color of the texture memory size in the graph
+      COLOR_MEM_BUFFER: "#ffd34d", // the display color of buffer memory size in the graph
+    };
+    this.stats.enableExtension("pixi", [
+      PIXI,
+      this.game.userInterface.application,
+      options,
+    ]);
+  }
 }
