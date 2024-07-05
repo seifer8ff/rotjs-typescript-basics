@@ -54,7 +54,7 @@ export class TitleMenu extends HTMLElement {
     this.handle.style.fontSize = "28px";
     // this.handle.style.backgroundColor = "rgba(0, 0, 0, .8)";
     this.handle.style.backgroundColor = "rgba(45, 45, 45, .8)";
-    this.handle.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
+    // this.handle.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
     this.handle.style["backdropFilter"] = "blur(15px)";
     this.handle.style.padding = "0";
     this.handle.style.borderTopRightRadius = "10px";

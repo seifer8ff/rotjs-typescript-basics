@@ -340,9 +340,16 @@ export class Game {
     );
 
     if (this.gameState.stage === Stages.Play) {
-      const viewportInTiles = this.userInterface.camera.viewportUnpadded;
+      let viewportInTiles = this.userInterface.camera.viewportPadded;
       this.renderer.renderChunkedLayers(
-        [Layer.TERRAIN, Layer.ENTITY, Layer.PLANT, Layer.UI],
+        [Layer.TERRAIN],
+        viewportInTiles.width,
+        viewportInTiles.height,
+        viewportInTiles.center
+      );
+      viewportInTiles = this.userInterface.camera.viewportUnpadded;
+      this.renderer.renderChunkedLayers(
+        [Layer.UI, Layer.PLANT, Layer.ENTITY],
         viewportInTiles.width,
         viewportInTiles.height,
         viewportInTiles.center

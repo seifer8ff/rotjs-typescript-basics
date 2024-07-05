@@ -43,11 +43,11 @@ export class Renderer {
       const tileScale = Math.ceil(Tile.size / Tile.terrainTilePixelSize);
       layer.scale.set(tileScale); // scale up from 16px to Tile.size (32px)
     });
-    this.groundFXLayer.zIndex = 10;
-    this.plantLayer.zIndex = 25;
+    this.groundFXLayer.zIndex = 20;
+    this.plantLayer.zIndex = 35;
     this.plantLayer.sortableChildren = true;
-    this.entityLayer.zIndex = 15;
-    this.uiLayer.zIndex = 100;
+    this.entityLayer.zIndex = 55;
+    this.uiLayer.zIndex = 10;
     this.spriteCache = [];
   }
 
@@ -91,7 +91,10 @@ export class Renderer {
           (i + centerChunk) * chunkCountPerSide + (j + centerChunk);
 
         // clear just this chunk of terrain layer (BUT NO OTHER LAYERS)
-        this.clearLayer(Layer.TERRAIN, false, chunkIndex);
+        if (layers.includes(Layer.TERRAIN)) {
+          this.clearLayer(Layer.TERRAIN, false, chunkIndex);
+        }
+
         this.renderLayers(
           layers,
           chunkWidthTiles,

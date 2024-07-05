@@ -8,7 +8,7 @@ import { InputUtility } from "./input-utility";
 import TinyGesture from "tinygesture";
 import { Actor, isActor } from "./entities/actor";
 import { Layer } from "./renderer";
-import { lerp } from "./misc-utility";
+import { lerp, lerpEaseInOut } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { TileStats } from "./web-components/tile-info";
 import { Stages } from "./game-state";
@@ -27,9 +27,9 @@ export interface PointerTarget {
 }
 
 export class Camera {
-  public viewport: Viewport;
+  public viewportPadded: Viewport;
   public viewportUnpadded: Viewport;
-  public viewportTiles: string[];
+  public viewportTilesPadded: string[];
   public viewportTilesUnpadded: string[];
   public viewportTarget: Point | Actor;
   public pointerTarget: PointerTarget;
@@ -46,12 +46,11 @@ export class Camera {
     y: number;
     handlerRef: number;
     decay: number;
-    durationMs: number;
   };
   private lastZoom: number;
   private lastPivot: Point;
+  private panning: boolean;
 
-  private momentumTimer: number; // how many ms until momentum finishes
   private showSidebarTimer: number; // how many ms until sidebar is unhidden
 
   constructor(private game: Game, private ui: UserInterface) {
@@ -60,9 +59,8 @@ export class Camera {
     this.minZoom = 0.15;
     this.maxZoom = 7;
     this.moveSpeed = 0.3;
-    this.showSidebarDelayMs = 500;
+    this.showSidebarDelayMs = 100;
     this.maxMomentumTimeMs = 1000;
-    this.momentumTimer = 0;
     this.showSidebarTimer = 0;
     this.keyMap = {};
     this.keyMap[KEYS.VK_W] = 0; // up
@@ -71,15 +69,14 @@ export class Camera {
     this.keyMap[KEYS.VK_A] = 6; // left
     this.lastPivot = new Point(0, 0);
     this.lastZoom = this.currentZoom;
-    this.viewportTiles = [];
+    this.viewportTilesPadded = [];
     this.viewportTilesUnpadded = [];
 
     this.momentum = {
       x: 0,
       y: 0,
       handlerRef: null,
-      decay: 0.8,
-      durationMs: 750,
+      decay: 0.89,
     };
 
     this.centerViewport(
@@ -116,7 +113,7 @@ export class Camera {
   }
 
   public inViewport(x: number, y: number, unpadded: boolean = true): boolean {
-    let viewport = unpadded ? this.viewportUnpadded : this.viewport;
+    let viewport = unpadded ? this.viewportUnpadded : this.viewportPadded;
     return (
       x >= 0 &&
       y >= 0 &&
@@ -258,6 +255,12 @@ export class Camera {
       }
       this.handlePointerDrag(gesture);
     });
+    gesture.on("longpress", (gesture) => {
+      if (this.game.gameState.stage !== Stages.Play) {
+        return;
+      }
+      this.handleLongPress();
+    });
     gesture.on("panend", (event) => {
       if (this.game.gameState.stage !== Stages.Play) {
         return;
@@ -315,7 +318,7 @@ export class Camera {
 
   private getViewportTiles(pad: boolean = false): string[] {
     const { width, height, center } = pad
-      ? this.viewport
+      ? this.viewportPadded
       : this.viewportUnpadded;
     const tiles = [];
     const halfWidth = Math.ceil(width / 2); // include any partial tiles
@@ -340,10 +343,8 @@ export class Camera {
     const unpaddedHeightTiles =
       this.ui.gameCanvasContainer.clientHeight /
       (Tile.size * this.ui.application.stage.scale.x);
-    const paddedWidthTiles =
-      unpaddedWidthTiles + Math.max(10, 0.1 * unpaddedWidthTiles);
-    const paddedHeightTiles =
-      unpaddedHeightTiles + Math.max(10, 0.1 * unpaddedHeightTiles);
+    const paddedWidthTiles = unpaddedWidthTiles + 15;
+    const paddedHeightTiles = unpaddedHeightTiles + 15;
     return {
       unpadded: {
         width: Math.ceil(unpaddedWidthTiles) + 1,
@@ -420,7 +421,7 @@ export class Camera {
   }
 
   private handlePointerDrag = (g: TinyGesture) => {
-    this.showSidebarTimer = this.showSidebarDelayMs;
+    this.panning = true;
     this.setSideMenuVisible(false);
     this.ui.application.stage.pivot.x -=
       g.velocityX / this.ui.application.stage.scale.x;
@@ -429,8 +430,12 @@ export class Camera {
     this.resetMomentum();
   };
 
+  private handleLongPress = () => {
+    this.setSideMenuVisible(false);
+    this.panning = true;
+  };
+
   private resetMomentum() {
-    this.momentumTimer = 0;
     this.momentum.x = 0;
     this.momentum.y = 0;
   }
@@ -446,7 +451,6 @@ export class Camera {
       y = g.touchStartY;
     }
     const tilePos = this.screenToTilePos(x, y);
-    console.log("----- tilePos", tilePos);
     if (this.game.map.isPointInMap(tilePos)) {
       // if (tilePos) {
       this.selectTileAt(tilePos.x, tilePos.y);
@@ -457,7 +461,7 @@ export class Camera {
 
   public screenToTilePos(x: number, y: number): Point {
     let stageScale = this.ui.application.stage.scale.x;
-    let centerTile = this.viewport.center;
+    let centerTile = this.viewportPadded.center;
     let pivotPoint = this.ui.application.stage.pivot;
     let screenCenterX = this.ui.gameCanvasContainer.clientWidth / 2;
     let screenCenterY = this.ui.gameCanvasContainer.clientHeight / 2;
@@ -486,19 +490,7 @@ export class Camera {
   }
 
   private handlePanStart = (g: TinyGesture) => {
-    // console.log("pan start", g.velocityX, g.velocityY);
-    // console.log(
-    //   "pan info",
-    //   g.touchMoveX,
-    //   g.touchMoveY,
-    //   g.touchStartX,
-    //   g.touchStartY,
-    //   g.touchEndX,
-    //   g.touchEndY
-    // );
     this.viewportTarget = null;
-    this.showSidebarTimer = this.showSidebarDelayMs;
-    this.setSideMenuVisible(false);
   };
 
   private setSideMenuVisible(visible: boolean) {
@@ -509,44 +501,35 @@ export class Camera {
   }
 
   private handleMomentum() {
-    const percent = this.momentumTimer / this.maxMomentumTimeMs;
-
-    this.momentum.x = lerp(this.momentum.x, 0, percent);
-    this.momentum.y = lerp(this.momentum.y, 0, percent);
+    this.momentum.x *= this.momentum.decay;
+    this.momentum.y *= this.momentum.decay;
+    if (Math.abs(this.momentum.x) < 0.2 && Math.abs(this.momentum.y) < 0.2) {
+      this.resetMomentum();
+      if (!this.panning && this.showSidebarTimer === 0) {
+        // start time for showing sidebar again
+        this.showSidebarTimer = this.showSidebarDelayMs;
+      }
+    }
 
     this.ui.application.stage.pivot.x -= this.momentum.x;
     this.ui.application.stage.pivot.y -= this.momentum.y;
-
-    if (this.momentumTimer <= 0) {
-      // stop momentum
-      this.resetMomentum();
-      // start time for showing sidebar again
-      this.showSidebarTimer = this.showSidebarDelayMs;
-    }
   }
 
   private handlePanEnd = (g: TinyGesture) => {
+    // decrease sensitivity of momentum before thresholding
+    g.touchMoveX *= 1.4;
+    g.touchMoveY *= 1.4;
     // check if user actually panned/moved the pointer
-    if (g.touchMoveX || g.touchMoveY) {
-      this.momentum.x = g.velocityX;
-      this.momentum.y = g.velocityY;
-      this.momentumTimer = this.maxMomentumTimeMs;
+    const overThreshold =
+      Math.abs(g.touchMoveX) > 5 || Math.abs(g.touchMoveY) > 5;
+    if (overThreshold) {
+      this.momentum.x = g.velocityX * 1.3;
+      this.momentum.y = g.velocityY * 1.3;
+    } else {
+      this.showSidebarTimer = this.showSidebarDelayMs;
     }
+    this.panning = false;
   };
-
-  private snapCameraToTile() {
-    this.ui.application.stage.pivot.x =
-      Math.ceil(this.ui.application.stage.pivot.x / Tile.size) * Tile.size;
-    this.ui.application.stage.pivot.y =
-      Math.ceil(this.ui.application.stage.pivot.y / Tile.size) * Tile.size;
-  }
-
-  private roundToNearestTile(x: number, y: number): Point {
-    return new Point(
-      Math.ceil(x / Tile.size) * Tile.size,
-      Math.ceil(y / Tile.size) * Tile.size
-    );
-  }
 
   private handlePinchZoom = (g: TinyGesture) => {
     const maxScaleSpeed = 0.2; // < 1 to take effect
@@ -562,8 +545,6 @@ export class Camera {
     scale += -1 * scaleDelta * scaleSpeed * scale;
     // clamp to reasonable values
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
-
-    const roundedPivot = this.roundToNearestTile(pivotX, pivotY);
 
     // scale = Math.round(scale * 100) / 100;
     // scale = this.roundStagevalue(scale);
@@ -636,7 +617,7 @@ export class Camera {
     // scale = this.roundStagevalue(scale);
 
     this.currentZoom = scale;
-    console.log("-------- current scale", scale);
+    // console.log("-------- current scale", scale);
 
     // const roundedPivot = this.roundToNearestTile(pivotX, pivotY);
 
@@ -663,11 +644,11 @@ export class Camera {
   };
 
   private updateViewport() {
-    const oldTiles = new Set(this.viewportTiles);
+    const oldTiles = new Set(this.viewportTilesPadded);
     const viewport = this.getViewport();
-    this.viewport = viewport.padded;
+    this.viewportPadded = viewport.padded;
     this.viewportUnpadded = viewport.unpadded;
-    this.viewportTiles = this.getViewportTiles(true);
+    this.viewportTilesPadded = this.getViewportTiles(true);
     this.viewportTilesUnpadded = this.getViewportTiles(false);
 
     const enteredTiles: Point[] = [];
@@ -687,16 +668,16 @@ export class Camera {
     // console.log("deltaTime", deltaTime);
     if (this.game.gameState.stage === Stages.Play) {
       if (this.showSidebarTimer > 0) {
-        this.showSidebarTimer -= deltaTime * 1000;
+        this.showSidebarTimer -= deltaTime;
       } else if (this.showSidebarTimer < 0) {
         this.showSidebarTimer = 0;
         this.setSideMenuVisible(true);
       }
 
-      if (this.momentumTimer > 0) {
-        this.momentumTimer -= deltaTime;
+      if (Math.abs(this.momentum.x) > 0.2 || Math.abs(this.momentum.y) > 0.2) {
         this.handleMomentum();
       }
+
       this.moveTowardsTarget(deltaTime);
     }
   }
@@ -705,7 +686,7 @@ export class Camera {
     // only update viewport if:
     // zoom/scale change
     // pivot change
-    if (!this.viewport) {
+    if (!this.viewportPadded) {
       this.updateViewport();
     }
     if (
@@ -739,36 +720,17 @@ export class Camera {
         Math.abs(this.ui.application.stage.pivot.x - targetPos.x) > 0.1 &&
         Math.abs(this.ui.application.stage.pivot.y - targetPos.y) > 0.1
       ) {
-        newPivotX = lerp(
-          deltaTime / 1000,
+        newPivotX = lerpEaseInOut(
+          deltaTime / 75,
           this.ui.application.stage.pivot.x,
           targetPos.x
         );
-        newPivotY = lerp(
-          deltaTime / 1000,
+        newPivotY = lerpEaseInOut(
+          deltaTime / 75,
           this.ui.application.stage.pivot.y,
           targetPos.y
         );
-
-        newPivotX = this.roundStagevalue(newPivotX);
-        newPivotY = this.roundStagevalue(newPivotY);
         this.ui.application.stage.pivot.set(newPivotX, newPivotY);
-        // newPivotX =
-        //   Math.ceil(this.ui.gameDisplay.stage.pivot.x / Tile.size) * Tile.size;
-        // this.ui.gameDisplay.stage.pivot.x = this.lerp(
-        //   this.ui.gameDisplay.stage.pivot.x,
-        //   targetPos.x,
-        //   deltaTime
-        // );
-        // this.ui.gameDisplay.stage.pivot.y = this.lerp(
-        //   this.ui.gameDisplay.stage.pivot.y,
-        //   targetPos.y,
-        //   deltaTime
-        // );
-        // this.ui.gameDisplay.stage.pivot.x =
-        //   Math.ceil(this.ui.gameDisplay.stage.pivot.x / Tile.size) * Tile.size;
-        // this.ui.gameDisplay.stage.pivot.y =
-        //   Math.ceil(this.ui.gameDisplay.stage.pivot.y / Tile.size) * Tile.size;
       } else {
         this.ui.application.stage.pivot.set(targetPos.x, targetPos.y);
         this.viewportTarget = null;
