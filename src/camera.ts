@@ -523,8 +523,8 @@ export class Camera {
     const overThreshold =
       Math.abs(g.touchMoveX) > 5 || Math.abs(g.touchMoveY) > 5;
     if (overThreshold) {
-      this.momentum.x = g.velocityX * 1.3;
-      this.momentum.y = g.velocityY * 1.3;
+      this.momentum.x = g.velocityX * 1.4;
+      this.momentum.y = g.velocityY * 1.4;
     } else {
       this.showSidebarTimer = this.showSidebarDelayMs;
     }
@@ -532,48 +532,16 @@ export class Camera {
   };
 
   private handlePinchZoom = (g: TinyGesture) => {
-    const maxScaleSpeed = 0.2; // < 1 to take effect
-    const scaleSpeed = 0.2;
+    const scaleSpeed = 0.6;
 
-    let pivotX = this.ui.application.stage.pivot.x;
-    let pivotY = this.ui.application.stage.pivot.y;
     let scale = this.ui.application.stage.scale.x;
     let scaleDelta = scale - g.scale;
-    scaleDelta = Math.max(-maxScaleSpeed, Math.min(maxScaleSpeed, scaleDelta));
-
     // modify the maps scale based on how much the user pinched
     scale += -1 * scaleDelta * scaleSpeed * scale;
     // clamp to reasonable values
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
-
-    // scale = Math.round(scale * 100) / 100;
-    // scale = this.roundStagevalue(scale);
-
     this.currentZoom = scale;
-    // update the scale and position of the stage
-    // this.ui.gameDisplay.stage.setTransform(
-    //   this.game.userInterface.gameDisplay.stage.position.x,
-    //   this.game.userInterface.gameDisplay.stage.position.y,
-    //   scale, // scale
-    //   scale,
-    //   null, // rotation
-    //   null, // skew
-    //   null,
-    //   pivotX,
-    //   pivotY
-    // );
-
-    this.ui.application.stage.setTransform(
-      this.game.userInterface.application.stage.position.x,
-      this.game.userInterface.application.stage.position.y,
-      scale, // scale
-      scale,
-      null, // rotation
-      null, // skew
-      null,
-      pivotX,
-      pivotY
-    );
+    this.ui.application.stage.scale.set(scale);
     if (GameSettings.options.toggles.enableCloudLayer) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
@@ -590,10 +558,6 @@ export class Camera {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
-
-  private roundStagevalue(value: number, scaleValue = 100): number {
-    return Math.ceil(value * scaleValue) / scaleValue;
-  }
 
   private handleMouseZoom = (e: WheelEvent) => {
     e.preventDefault();
