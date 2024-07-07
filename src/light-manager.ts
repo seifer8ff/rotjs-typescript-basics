@@ -5,10 +5,12 @@ import { MapWorld } from "./map-world";
 import { Color as ColorType } from "rot-js/lib/color";
 import { Tile } from "./tile";
 import { Viewport } from "./camera";
-import { multiColorLerp } from "./misc-utility";
+import { multiColorLerp, positionToIndex } from "./misc-utility";
 import { Autotile } from "./autotile";
 import { BiomeId } from "./biomes";
 import { LightPhase } from "./map-shadows";
+import { GameSettings } from "./game-settings";
+import { Layer } from "./renderer";
 
 export const ImpassibleLightBorder: BiomeId[] = [
   "hillslow",
@@ -16,8 +18,10 @@ export const ImpassibleLightBorder: BiomeId[] = [
   "hillshigh",
 ];
 
+export type RGBAColor = [number, number, number, number]; // r,g,b,a [255, 255, 255, 1]
+
 export class LightManager {
-  public lightMap: { [key: string]: ColorType }; // x,y -> rgba color string
+  public lightMap: ColorType[]; // x,y -> rgb color array
   public readonly lightDefaults: { [key: string]: ColorType };
   private lightingFov: PreciseShadowcasting;
   public lightEmitters: Lighting;
@@ -48,7 +52,7 @@ export class LightManager {
       shadowSunset: [200, 60, 40],
       shadowSunrise: [30, 30, 42], // blue
     };
-    this.lightMap = {};
+    this.lightMap = [];
     this.lightEmitterById = {};
     this.interpolateAmbientLight(false); // initial
     this.interpolateAmbientLight(true); // target
@@ -64,10 +68,14 @@ export class LightManager {
     this.lightEmitters.setFOV(this.lightingFov);
 
     this.lightEmitters.compute(this.lightingCallback.bind(this));
+    this.ambientLight = this.lightDefaults.ambientDaylight;
     console.log("lightMap", this.lightMap);
   }
 
   public interpolateAmbientLight(calculateTarget = true) {
+    if (!GameSettings.options.toggles.enableGlobalLights) {
+      return;
+    }
     // Set the target light state instead of the current light state
     let ambientLightToUpdate = this.targetAmbientLight;
     const isDaytime = this.game.timeManager.isDayTime;
@@ -142,7 +150,7 @@ export class LightManager {
   }
 
   public clearLightMap() {
-    this.lightMap = {};
+    this.lightMap = [];
   }
 
   public reflectivity(x: number, y: number) {
@@ -177,11 +185,14 @@ export class LightManager {
 
   public lightingCallback(x: number, y: number, color: ColorType) {
     if (this.game.userInterface.camera.inViewport(x, y)) {
-      this.lightMap[MapWorld.coordsToKey(x, y)] = color;
+      this.lightMap[positionToIndex(x, y, Layer.TERRAIN)] = color;
     }
   }
 
   public interpolateLightState() {
+    if (!GameSettings.options.toggles.enableGlobalLights) {
+      return;
+    }
     const progress = this.game.timeManager.turnAnimTimePercent;
     // Interpolate between the current light state and the target light state based on
     // the progress from start to this.game.options.maxTurnDelay
@@ -198,6 +209,9 @@ export class LightManager {
   }
 
   public recalculateDynamicLighting() {
+    if (!GameSettings.options.toggles.enableDynamicLights) {
+      return;
+    }
     this.lightEmitters.compute(this.lightingCallback.bind(this));
   }
 
@@ -212,6 +226,9 @@ export class LightManager {
   }
 
   public clearChangedDynamicLights() {
+    if (!GameSettings.options.toggles.enableDynamicLights) {
+      return;
+    }
     for (let actor of this.game.actorManager.actors) {
       if (this.lightEmitterById[actor.id]) {
         const [x, y] = this.lightEmitterById[actor.id];
@@ -224,6 +241,9 @@ export class LightManager {
   }
 
   public updateDynamicLighting() {
+    if (!GameSettings.options.toggles.enableDynamicLights) {
+      return;
+    }
     if (this.game.timeManager.isNighttime) {
       for (let actor of this.game.actorManager.actors) {
         let updateLight = false;
@@ -255,13 +275,13 @@ export class LightManager {
   public getLightColorFor(
     x: number,
     y: number,
-    lightMap: { [pos: string]: ColorType } = null, // x,y -> color based on light sources
-    shadowMap: { [pos: string]: number } = null, // x,y -> number based on sun position
-    occlusionMap: { [pos: string]: number } = null, // x,y -> number based on occlusion
-    cloudMap: { [pos: string]: number } = null, // x,y -> number based on cloud cover
+    lightMap: ColorType[] = null, // x,y -> color based on light sources
+    shadowMap: number[] = null, // x,y -> number based on sun position
+    occlusionMap: number[] = null, // x,y -> number based on occlusion
+    cloudMap: number[] = null, // x,y -> number based on cloud cover
     highlight: boolean = false
   ): ColorType {
-    const key = MapWorld.coordsToKey(x, y);
+    const posIndex = positionToIndex(x, y, Layer.TERRAIN);
     const ambientLight = this.ambientLight;
     const isDaytime = this.game.timeManager.isDayTime;
     const phase = this.game.timeManager.lightPhase;
@@ -271,13 +291,13 @@ export class LightManager {
       ? this.lightDefaults.shadowSunset
       : this.lightDefaults.shadowSunrise;
     let ambientOccShadow = this.lightDefaults.ambientOcc;
-    const shadowLevel = shadowMap[key];
-    const occlusionLevel = occlusionMap[key];
+    const shadowLevel = shadowMap[posIndex];
+    const occlusionLevel = occlusionMap[posIndex];
     const isShadowed =
       Math.abs(shadowLevel - this.game.map.shadowMap.ambientLightStrength) >
       0.01;
     const isOccluded = occlusionLevel !== 1;
-    const cloudLevel = cloudMap[key];
+    const cloudLevel = cloudMap[posIndex];
     const isClouded = cloudLevel > this.map.cloudMap.cloudMinLevel;
     const isCloudClear = cloudLevel < this.map.cloudMap.sunbeamMaxLevel;
 
@@ -310,10 +330,11 @@ export class LightManager {
     }
 
     let light = ambientLight;
+    let lightMapValue = lightMap[posIndex];
 
-    if (key in lightMap && lightMap[key] != null) {
+    if (lightMapValue != undefined) {
       // override shadows light if there is a light source
-      light = Color.add(light, lightMap[key]);
+      light = Color.add(light, lightMapValue);
     } else {
       if (isOccluded) {
         light = Color.interpolate(

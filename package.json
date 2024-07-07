@@ -49,15 +49,17 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
-    "@pixi/tilemap": "^4.1.0",
     "@shoelace-style/shoelace": "^2.14.0",
     "console-extras": "github:unconed/console-extras.js",
     "gamestats.js": "^1.0.7",
     "lindenmayer": "^1.5.4",
     "lodash": "^4.17.21",
     "mainloop.js": "^1.0.4",
-    "pixi.js": "^7.4.0",
+    "pixi.js": "7.4.0",
     "scheduler-polyfill": "^1.2.1",
     "tinygesture": "^3.0.0"
+  },
+  "localDependencies": {
+    "@pixi/tilemap": "../tilemap-with-tint"
   }
 }

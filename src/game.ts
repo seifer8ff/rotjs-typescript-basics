@@ -243,10 +243,6 @@ export class Game {
   private drawPlants(): void {
     this.renderer.clearLayer(Layer.PLANT, true);
     for (let tree of this.actorManager.trees) {
-      // for (let plant of this.plants) {
-      // instead of having the userinterface add the plant to the scene,
-      // let each plant add itself, including branches and leaves
-      // this simplifies multitile entities
       tree.draw();
     }
     for (let shrub of this.actorManager.shrubs) {
@@ -282,7 +278,7 @@ export class Game {
         );
       }
 
-      if (GameSettings.options.toggles.enableCloudLayer) {
+      if (GameSettings.options.toggles.enableClouds) {
         this.scheduler.postTask(
           () => this.map.cloudMap.renderUpdate(interpPercent),
           {
@@ -299,10 +295,6 @@ export class Game {
           }
         );
       }
-
-      // this.map.shadowMap.renderUpdate(deltaTime);
-      // this.map.cloudMap.renderUpdate(deltaTime);
-      // this.map.lightManager.renderUpdate(deltaTime);
 
       this.drawPlants();
 

@@ -8,7 +8,9 @@ export class GameSettings {
       enableAutotile: true,
       enableRendering: true,
       enableGlobalLights: false,
-      enableCloudLayer: false,
+      enableDynamicLights: false,
+      enableClouds: false,
+      enableCloudMask: false,
       enableShadows: false,
       enableAnimations: true,
       enableStats: true,
@@ -118,5 +120,14 @@ export class GameSettings {
       this.game.userInterface.application,
       options,
     ]);
+  }
+
+  public static shouldTint(): boolean {
+    return (
+      GameSettings.options.toggles.enableGlobalLights ||
+      GameSettings.options.toggles.enableDynamicLights ||
+      GameSettings.options.toggles.enableShadows ||
+      GameSettings.options.toggles.enableClouds
+    );
   }
 }

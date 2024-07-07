@@ -542,7 +542,7 @@ export class Camera {
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
     this.currentZoom = scale;
     this.ui.application.stage.scale.set(scale);
-    if (GameSettings.options.toggles.enableCloudLayer) {
+    if (GameSettings.options.toggles.enableCloudMask) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
@@ -554,7 +554,7 @@ export class Camera {
     scale = Math.max(this.minZoom, Math.min(this.maxZoom, scale));
 
     this.ui.application.stage.scale.set(scale);
-    if (GameSettings.options.toggles.enableCloudLayer) {
+    if (GameSettings.options.toggles.enableCloudMask) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };
@@ -602,7 +602,7 @@ export class Camera {
     //   pivotX,
     //   pivotY
     // );
-    if (GameSettings.options.toggles.enableCloudLayer) {
+    if (GameSettings.options.toggles.enableCloudMask) {
       this.ui.components.skyMask.setSkyMaskVisibility(this.getNormalizedZoom());
     }
   };

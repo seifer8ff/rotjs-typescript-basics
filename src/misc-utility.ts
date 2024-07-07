@@ -142,6 +142,11 @@ export function getItemFromRange<T>(
   return arr[index];
 }
 
+export function keyToIndex(key: string, layer: Layer): number {
+  const [x, y] = key.split(",");
+  return positionToIndex(parseInt(x), parseInt(y), layer);
+}
+
 // convert and x,y position to an index in the spriteCache (and other) array
 export function positionToIndex(x: number, y: number, layer: Layer): number {
   let index = -1;

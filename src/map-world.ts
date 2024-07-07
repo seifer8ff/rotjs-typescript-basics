@@ -291,9 +291,17 @@ export class MapWorld {
     this.regenerateAdjacencyMap("biome");
     this.regenerateAdjacencyMap("height");
     this.regenerateAdjacencyMap("heightLayer");
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
-        this.cloudMap.generateCloudLevel(x, y, width, height, this.game.noise);
+    if (GameSettings.options.toggles.enableClouds) {
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          this.cloudMap.generateCloudLevel(
+            x,
+            y,
+            width,
+            height,
+            this.game.noise
+          );
+        }
       }
     }
     console.log("cloudMap", this.cloudMap.cloudMap);
@@ -1108,22 +1116,24 @@ export class MapWorld {
   }
 
   getTotalLight(x: number, y: number): number {
-    const key = MapWorld.coordsToKey(x, y);
-    const lightFromShadows = this.shadowMap.shadowMap[key];
-    const lightFromOcc = this.shadowMap.occlusionMap[key];
-    const cloudLevel = this.cloudMap.cloudMap[key];
+    const posIndex = positionToIndex(x, y, Layer.TERRAIN);
+    const lightFromShadows = this.shadowMap.shadowMap[posIndex];
+    const lightFromOcc = this.shadowMap.occlusionMap[posIndex];
+    const cloudLevel = this.cloudMap.cloudMap[posIndex];
     let lightFromClouds = 1;
     if (cloudLevel > this.cloudMap.cloudMinLevel) {
       // reduce the light by the amount of cloud cover
       lightFromClouds =
-        1 - (this.cloudMap.cloudMap[key] - this.cloudMap.cloudMinLevel);
+        1 - (this.cloudMap.cloudMap[posIndex] - this.cloudMap.cloudMinLevel);
     } else if (cloudLevel < this.cloudMap.sunbeamMaxLevel) {
       // increase light by how much sunbeam there is
-      lightFromClouds = 1 + this.cloudMap.cloudMap[key];
+      lightFromClouds = 1 + this.cloudMap.cloudMap[posIndex];
     }
     // console.throttle(250).log("lightFromClouds", lightFromClouds, cloudLevel);
-
-    const ambientLight = this.game.timeManager.remainingPhasePercent;
+    let ambientLight = 1;
+    if (GameSettings.options.toggles.enableGlobalLights) {
+      ambientLight = this.game.timeManager.remainingPhasePercent;
+    }
     let finalLight =
       lightFromShadows * ambientLight * lightFromOcc * lightFromClouds;
     // can go over 1 due to lightening effect from sunbeams/clouds

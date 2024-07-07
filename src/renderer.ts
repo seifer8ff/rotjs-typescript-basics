@@ -16,6 +16,7 @@ import { Viewport } from "./camera";
 import { settings } from "@pixi/tilemap";
 import { GameSettings } from "./game-settings";
 import { positionToIndex } from "./misc-utility";
+import { RGBAColor } from "./light-manager";
 
 export type Renderable =
   | PIXI.Sprite
@@ -123,7 +124,8 @@ export class Renderer {
     let viewportCenterX = centerX;
     let viewportCenterY = centerY;
     let displayObj: Renderable;
-    const globalLighting = GameSettings.options.toggles.enableGlobalLights;
+    let tint: RGBAColor;
+    const shouldTint = GameSettings.shouldTint();
 
     for (let layer of layers) {
       if (layer === Layer.PLANT) {
@@ -160,7 +162,10 @@ export class Renderer {
 
           switch (layer) {
             case Layer.TERRAIN: {
-              // this.tintObjectWithChildren(displayObj, new Point(x, y));
+              if (shouldTint) {
+                tint = this.getRGBATintForPosition(new Point(x, y), false);
+              }
+
               this.terrainLayer[chunkIndex].tile(
                 displayObj as string,
                 Math.floor(
@@ -170,8 +175,8 @@ export class Renderer {
                 Math.floor(
                   y * (Tile.size / this.terrainLayer[chunkIndex].scale.y) -
                     Tile.size / this.terrainLayer[chunkIndex].scale.x / 2
-                )
-                // { alpha: 0.1 }
+                ),
+                { alpha: 1, tint }
               );
               break;
             }
@@ -187,7 +192,7 @@ export class Renderer {
               if (!displayObj) {
                 continue;
               }
-              if (globalLighting) {
+              if (shouldTint) {
                 const terrainPoint = Tile.translatePoint(
                   new Point(x, y),
                   Layer.PLANT,
@@ -204,7 +209,7 @@ export class Renderer {
               if (!displayObj) {
                 continue;
               }
-              if (globalLighting) {
+              if (shouldTint) {
                 this.tintObjectWithChildren(displayObj, new Point(x, y), true);
               }
               this.entityLayer.addChild(displayObj as PIXI.DisplayObject);
@@ -299,7 +304,7 @@ export class Renderer {
     this.spriteCache[index] = displayObj;
   }
 
-  public getTintForPosition(position: Point, hightlight: boolean = false) {
+  public getTintForPosition(position: Point, highlight: boolean = false) {
     const lightMap = this.game.map.lightManager.lightMap;
     const sunMap = this.game.map.shadowMap.shadowMap;
     const occlusionMap = this.game.map.shadowMap.occlusionMap;
@@ -313,9 +318,29 @@ export class Renderer {
         sunMap,
         occlusionMap,
         cloudMap,
-        hightlight
+        highlight
       )
     );
+  }
+
+  public getRGBATintForPosition(
+    position: Point,
+    highlight: boolean = false
+  ): RGBAColor {
+    const lightMap = this.game.map.lightManager.lightMap;
+    const sunMap = this.game.map.shadowMap.shadowMap;
+    const occlusionMap = this.game.map.shadowMap.occlusionMap;
+    const cloudMap = this.game.map.cloudMap.cloudMap;
+    const color = this.game.map.lightManager.getLightColorFor(
+      position.x,
+      position.y,
+      lightMap,
+      sunMap,
+      occlusionMap,
+      cloudMap,
+      highlight
+    );
+    return [color[0], color[1], color[2], 1] as RGBAColor;
   }
 
   private tintObjectWithChildren(

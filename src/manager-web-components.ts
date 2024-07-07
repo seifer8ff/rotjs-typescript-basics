@@ -358,12 +358,12 @@ export class ManagerWebComponents {
       () => this.game.map.heightMap
     );
 
-    this.overlay.generateOverlay(
-      GameSettings.options.gameSize.width,
-      GameSettings.options.gameSize.height,
-      "Sunlight",
-      () => this.game.map.shadowMap.shadowMap
-    );
+    // this.overlay.generateOverlay(
+    //   GameSettings.options.gameSize.width,
+    //   GameSettings.options.gameSize.height,
+    //   "Sunlight",
+    //   () => this.game.map.shadowMap.shadowMap
+    // );
 
     this.overlay.generateBiomeOverlay(
       GameSettings.options.gameSize.width,
@@ -372,11 +372,11 @@ export class ManagerWebComponents {
       () => this.game.map.biomeMap
     );
 
-    this.overlay.generateOverlay(
-      GameSettings.options.gameSize.width,
-      GameSettings.options.gameSize.height,
-      "Clouds",
-      () => this.game.map.cloudMap.targetCloudMap
-    );
+    // this.overlay.generateOverlay(
+    //   GameSettings.options.gameSize.width,
+    //   GameSettings.options.gameSize.height,
+    //   "Clouds",
+    //   () => this.game.map.cloudMap.targetCloudMap
+    // );
   }
 }

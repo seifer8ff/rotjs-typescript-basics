@@ -12,6 +12,16 @@ After cloning the repository:
   npm ci
   ```
 
+- You may need to manually install the shader code:
+  https://github.com/seifer8ff/tilemap-with-tint/tree/v4.x
+  After install, in this repo, run:
+
+  ```powershell
+  npx install-local --save ../tilemap-with-tint
+  ```
+
+  This will install the local shader code into the project properly.
+
 - To build the assets, run:
 
   ```powershell

@@ -509,7 +509,7 @@ export class Tree implements Actor {
     let tint;
     let growSuccess: boolean = false;
 
-    if (GameSettings.options.toggles.enableGlobalLights) {
+    if (GameSettings.shouldTint()) {
       tint = this.game.renderer.getTintForPosition(terrainPoint);
     }
 
