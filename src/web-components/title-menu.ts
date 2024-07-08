@@ -25,7 +25,9 @@ export interface GameSettingsNumericInputOption {
 }
 
 export class TitleMenu extends HTMLElement {
-  public container: HTMLDivElement;
+  public titleContainer: HTMLDivElement;
+  public titleText: HTMLHeadingElement;
+  public sideContainer: HTMLDivElement;
   public settingsContainer: HTMLDivElement;
   public handle: SlIconButton;
   public startBtn: SlButton;
@@ -35,6 +37,7 @@ export class TitleMenu extends HTMLElement {
   public isVisible: boolean;
   public isCollapsed: boolean;
   private formId: string = "game-settings-form";
+  private mediaQuery: MediaQueryList = window.matchMedia("(max-width: 1080px)");
 
   constructor() {
     super();
@@ -42,23 +45,45 @@ export class TitleMenu extends HTMLElement {
     const shadow = this.attachShadow({ mode: "open" });
     this.isVisible = true;
 
-    this.container = document.createElement("div");
-    this.container.style.pointerEvents = "auto";
-    this.container.style.position = "absolute";
-    this.container.style.top = "120px";
-    this.container.style.left = "0";
-    this.container.style.bottom = "20px";
-    this.container.style.width = "200px";
-    this.container.style.padding = "10px 20px";
-    this.container.style.display = "flex";
-    this.container.style.flexDirection = "column";
-    this.container.style.overflow = "hidden";
+    this.titleContainer = document.createElement("div");
+    this.titleContainer.style.pointerEvents = "auto";
+    this.titleContainer.style.position = "fixed";
+    this.titleContainer.style.display = "flex";
+    this.titleContainer.style.justifyContent = "center";
+    this.titleContainer.style.alignItems = "center";
+    this.titleContainer.style.backgroundColor = "rgba(45, 45, 45, .8)";
+    this.titleContainer.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
+    this.titleContainer.style["backdropFilter"] = "blur(15px)";
+    this.titleContainer.style.transform = "translateX(-50%)";
+
+    this.titleText = document.createElement("h1");
+    this.titleText.textContent = "Sim World";
+    this.titleText.style.color = "var(--sl-color-neutral-700)";
+    this.titleText.style.fontSize = "var(--sl-font-size-2x-large)";
+    this.titleText.style.fontWeight = "var(--sl-font-weight-light)";
+    this.titleText.style.letterSpacing = "var(--sl-letter-spacing-normal)";
+    this.titleText.style.textTransform = "uppercase";
+    this.titleContainer.appendChild(this.titleText);
+
+    shadow.appendChild(this.titleContainer);
+
+    this.sideContainer = document.createElement("div");
+    this.sideContainer.style.pointerEvents = "auto";
+    this.sideContainer.style.position = "absolute";
+    this.sideContainer.style.top = "120px";
+    this.sideContainer.style.left = "0";
+    this.sideContainer.style.bottom = "20px";
+    this.sideContainer.style.width = "300px";
+    this.sideContainer.style.padding = "10px 20px";
+    this.sideContainer.style.display = "flex";
+    this.sideContainer.style.flexDirection = "column";
+    this.sideContainer.style.overflow = "hidden";
     // this.container.style.backgroundColor = "rgba(0, 0, 0, .8)";
-    this.container.style.backgroundColor = "rgba(45, 45, 45, .8)";
-    this.container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
-    this.container.style["backdropFilter"] = "blur(15px)";
-    this.container.style.borderBottomRightRadius = "10px";
-    this.container.style.transition = "transform 0.3s ease-in-out";
+    this.sideContainer.style.backgroundColor = "rgba(45, 45, 45, .8)";
+    this.sideContainer.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
+    this.sideContainer.style["backdropFilter"] = "blur(15px)";
+    this.sideContainer.style.borderBottomRightRadius = "10px";
+    this.sideContainer.style.transition = "transform 0.3s ease-in-out";
 
     this.handle = document.createElement("sl-icon-button");
     this.handle.setAttribute("src", HandleIcon);
@@ -74,7 +99,7 @@ export class TitleMenu extends HTMLElement {
     this.handle.style.top = "0";
     this.handle.style.right = "-44px";
     this.handle.style.cursor = "pointer";
-    this.container.appendChild(this.handle);
+    this.sideContainer.appendChild(this.handle);
 
     this.startBtn = document.createElement("sl-button");
     this.startBtn.setAttribute("form", this.formId);
@@ -83,7 +108,7 @@ export class TitleMenu extends HTMLElement {
     this.startBtn.style.fontSize = "20px";
     this.startBtn.style.width = "100%";
     this.startBtn.textContent = "START GAME";
-    this.container.appendChild(this.startBtn);
+    this.sideContainer.appendChild(this.startBtn);
     const info = document.createElement("p");
     info.style.color = "var(--sl-color-neutral-600)";
     info.style.marginTop = "var(--sl-spacing-medium)";
@@ -97,8 +122,8 @@ export class TitleMenu extends HTMLElement {
     info2.style.marginLeft = "var(--sl-spacing-2x-small)";
     info2.style.fontSize = "var(--sl-font-size-small)";
     info2.textContent = "Warning: may take some time to generate.";
-    this.container.appendChild(info2);
-    this.container.appendChild(info);
+    this.sideContainer.appendChild(info2);
+    this.sideContainer.appendChild(info);
 
     this.settingsLbl = document.createElement("h1");
     this.settingsLbl.style.width = "100%";
@@ -109,7 +134,7 @@ export class TitleMenu extends HTMLElement {
     this.settingsLbl.style.fontSize = "var(--sl-font-size-large)";
     this.settingsLbl.style.fontWeight = "var(--sl-font-weight-light)";
     this.settingsLbl.style.letterSpacing = "var(--sl-letter-spacing-normal)";
-    this.container.appendChild(this.settingsLbl);
+    this.sideContainer.appendChild(this.settingsLbl);
 
     this.settingsContainer = document.createElement("div");
     this.settingsContainer.style.overflowX = "hidden";
@@ -117,12 +142,41 @@ export class TitleMenu extends HTMLElement {
     this.settingsContainer.style.height = "100%";
     this.settingsContainer.style.display = "flex";
     this.settingsContainer.style.flexDirection = "column";
-    this.container.appendChild(this.settingsContainer);
+    this.sideContainer.appendChild(this.settingsContainer);
 
     this.initForm();
 
-    shadow.appendChild(this.container);
+    this.mediaQuery.addEventListener("change", this.handleResize);
+    this.handleResize(this.mediaQuery);
+
+    shadow.appendChild(this.sideContainer);
   }
+
+  private handleResize = (e: MediaQueryListEvent | MediaQueryList) => {
+    if (e.matches) {
+      this.titleContainer.style.top = "0";
+      this.titleContainer.style.left = "50%";
+      this.titleContainer.style.width = "90%";
+      this.titleContainer.style.minWidth = "300px";
+      this.titleContainer.style.maxWidth = "500px";
+      this.titleContainer.style.height = "120px";
+      this.titleContainer.style.borderTopRightRadius = "0";
+      this.titleContainer.style.borderTopLeftRadius = "0";
+      this.titleContainer.style.borderBottomRightRadius = "10px";
+      this.titleContainer.style.borderBottomLeftRadius = "10px";
+      this.sideContainer.style.top = "25%";
+      this.sideContainer.style.width = "260px";
+    } else {
+      this.titleContainer.style.top = "5%";
+      this.titleContainer.style.left = "60%";
+      this.titleContainer.style.width = "475px";
+      this.titleContainer.style.height = "150px";
+      this.titleContainer.style.borderRadius = "10px";
+      this.sideContainer.style.top = "120px";
+      this.sideContainer.style.width = "300px";
+    }
+    this.titleContainer.style.transition = "transform 0.3s ease-in-out";
+  };
 
   private initForm(): void {
     this.form = document.createElement("form");
@@ -161,15 +215,19 @@ export class TitleMenu extends HTMLElement {
     }
     if (this.isCollapsed) {
       if (!visible) {
-        this.container.style.transform = "translateX(-100%)";
+        this.sideContainer.style.transform = "translateX(-100%)";
+        this.titleContainer.style.transform = "translate(-50%, -150%)";
         this.isVisible = false;
       }
       return;
     }
     this.isVisible = visible;
-    this.container.style.transform = this.isVisible
+    this.sideContainer.style.transform = this.isVisible
       ? "translateX(0)"
       : "translateX(-100%)";
+    this.titleContainer.style.transform = this.isVisible
+      ? "translate(-50%, 0)"
+      : "translate(-50%, -150%)";
   }
 
   public setCollapsed(collapsed: boolean): void {
