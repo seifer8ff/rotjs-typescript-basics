@@ -71,7 +71,7 @@ export class Game {
 
   public async Init(): Promise<boolean> {
     await InitAssets();
-    await this.initializeGame();
+    this.gameState.reset();
     await this.userInterface.init();
 
     return true;
@@ -142,9 +142,14 @@ export class Game {
     };
   }
 
-  private async initializeGame(): Promise<boolean> {
+  public resetGame(): void {
+    this.map.cloudMap.init();
+    this.map.polesMap.init();
+    this.map.tempMap.init();
+    this.map.moistureMap.init();
+    this.map.shadowMap.init();
+    this.map.lightManager.init();
     this.gameState.reset();
-    return true;
   }
 
   public async generateWorld(): Promise<boolean> {
@@ -270,30 +275,33 @@ export class Game {
       this.timeManager.renderUpdate(this.turnAnimDelay);
 
       if (GameSettings.options.toggles.enableShadows) {
-        this.scheduler.postTask(
-          () => this.map.shadowMap.renderUpdate(interpPercent),
-          {
-            priority: "user-blocking",
-          }
-        );
+        this.map.shadowMap.renderUpdate(interpPercent);
+        // this.scheduler.postTask(
+        //   () => this.map.shadowMap.renderUpdate(interpPercent),
+        //   {
+        //     priority: "user-blocking",
+        //   }
+        // );
       }
 
       if (GameSettings.options.toggles.enableClouds) {
-        this.scheduler.postTask(
-          () => this.map.cloudMap.renderUpdate(interpPercent),
-          {
-            priority: "user-blocking",
-          }
-        );
+        this.map.cloudMap.renderUpdate(interpPercent);
+        // this.scheduler.postTask(
+        //   () => this.map.cloudMap.renderUpdate(interpPercent),
+        //   {
+        //     priority: "user-blocking",
+        //   }
+        // );
       }
 
       if (GameSettings.options.toggles.enableGlobalLights) {
-        this.scheduler.postTask(
-          () => this.map.lightManager.renderUpdate(interpPercent),
-          {
-            priority: "user-blocking",
-          }
-        );
+        this.map.lightManager.renderUpdate(interpPercent);
+        // this.scheduler.postTask(
+        //   () => this.map.lightManager.renderUpdate(interpPercent),
+        //   {
+        //     priority: "user-blocking",
+        //   }
+        // );
       }
 
       this.drawPlants();

@@ -54,6 +54,11 @@ export class LightManager {
     };
     this.lightMap = [];
     this.lightEmitterById = {};
+  }
+
+  public init() {
+    this.lightMap = [];
+    this.lightEmitterById = {};
     this.interpolateAmbientLight(false); // initial
     this.interpolateAmbientLight(true); // target
 

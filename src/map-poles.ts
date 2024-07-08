@@ -18,6 +18,9 @@ export class MapPoles {
   constructor(private game: Game, private map: MapWorld) {
     this.magnetismMap = {};
     this.scale = 1.2;
+  }
+
+  public init() {
     this.tileHeight = GameSettings.options.gameSize.height / 3;
     this.tileWidth = GameSettings.options.gameSize.width / 1.5;
     const poleYOffset = GameSettings.options.gameSize.width / 10;

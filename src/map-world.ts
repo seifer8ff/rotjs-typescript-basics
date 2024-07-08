@@ -96,6 +96,7 @@ export class MapWorld {
     this.shadowMap = new MapShadows(this.game, this);
     this.polesMap = new MapPoles(this.game, this);
     this.cloudMap = new MapClouds(this.game, this);
+    this.lightManager = new LightManager(this.game, this);
     this.terrainMap = {};
     this.seaLevel = Biomes.Biomes.ocean.generationOptions.height.max;
     this.heightAdjacencyD1Map = [];
@@ -292,17 +293,7 @@ export class MapWorld {
     this.regenerateAdjacencyMap("height");
     this.regenerateAdjacencyMap("heightLayer");
     if (GameSettings.options.toggles.enableClouds) {
-      for (let x = 0; x < width; x++) {
-        for (let y = 0; y < height; y++) {
-          this.cloudMap.generateCloudLevel(
-            x,
-            y,
-            width,
-            height,
-            this.game.noise
-          );
-        }
-      }
+      this.cloudMap.generateCloudMap();
     }
     console.log("cloudMap", this.cloudMap.cloudMap);
     console.log("moistureMap", this.moistureMap.moistureMap);
@@ -324,8 +315,6 @@ export class MapWorld {
         this.dirtyTiles.push(tileIndex); // all tiles need to be rendered
       }
     }
-
-    this.lightManager = new LightManager(this.game, this);
   }
 
   public getHeightLayer(x: number, y: number): HeightLayer {

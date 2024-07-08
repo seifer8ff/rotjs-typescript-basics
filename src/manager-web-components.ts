@@ -84,6 +84,15 @@ export class ManagerWebComponents {
         });
       }
       this.titleMenu.generateGameOptions(optionToggles);
+      let optionInputs: GameSettingsToggleOption[] = [];
+      for (let input in GameSettings.options.spawn.inputs) {
+        optionInputs.push({
+          key: input,
+          label: `${input.replace("Count", "")} spawn count: `,
+          defaultValue: GameSettings.options.spawn.inputs[input],
+        });
+      }
+      this.titleMenu.generateGameInputs(optionInputs);
       this.titleMenu.worldSizeInput.addEventListener(
         "sl-change",
         (e: CustomEvent) => {
@@ -92,7 +101,8 @@ export class ManagerWebComponents {
             updatedSize = JSON.parse(
               this.titleMenu.worldSizeInput.value as string
             );
-            GameSettings.options.gameSize = updatedSize;
+            GameSettings.options.gameSize.width = updatedSize.width;
+            GameSettings.options.gameSize.height = updatedSize.height;
           } catch (error) {
             console.log("Error: parsing world size. Invalid input?", e, error);
           }
@@ -106,10 +116,21 @@ export class ManagerWebComponents {
             const serializedData: Record<string, string> = serialize(
               this.titleMenu.form
             ) as any;
+            console.log("data", serializedData);
             for (let toggle in GameSettings.options.toggles) {
               GameSettings.options.toggles[toggle] =
                 serializedData[toggle] === "true";
             }
+            for (let input in GameSettings.options.spawn.inputs) {
+              GameSettings.options.spawn.inputs[input] = parseInt(
+                serializedData[input],
+                10
+              );
+            }
+            console.log(
+              "-------- ----- ---- --- updated settings",
+              GameSettings.options
+            );
             this.game.settings.loadSettings();
             this.game.gameState.changeStage(Stages.Play);
             this.game.generateWorld();

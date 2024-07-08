@@ -56,10 +56,11 @@ export class ManagerAnimation {
         }
         this.animations.pop();
       } else {
-        const runAnimationWithArgs = () => this.boundRunAnimation(anim);
-        this.game.scheduler.postTask(runAnimationWithArgs, {
-          priority: "user-visible",
-        });
+        this.runAnimation(anim);
+        // const runAnimationWithArgs = () => this.boundRunAnimation(anim);
+        // this.game.scheduler.postTask(runAnimationWithArgs, {
+        //   priority: "user-visible",
+        // });
       }
     }
   }

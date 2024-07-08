@@ -7,7 +7,7 @@ import SlOption from "@shoelace-style/shoelace/dist/components/option/option.js"
 import SlSelect from "@shoelace-style/shoelace/dist/components/select/select.js";
 import SlSwitch from "@shoelace-style/shoelace/dist/components/switch/switch.js";
 import HandleIcon from "../shoelace/assets/icons/grip-vertical.svg";
-import { SlIconButton } from "@shoelace-style/shoelace";
+import { SlIconButton, SlInput } from "@shoelace-style/shoelace";
 import { GameSettings } from "../game-settings";
 
 export interface GameSettingsToggleOption {
@@ -17,8 +17,16 @@ export interface GameSettingsToggleOption {
   desc?: string;
 }
 
+export interface GameSettingsNumericInputOption {
+  key: string;
+  label: string;
+  defaultValue: boolean;
+  desc?: string;
+}
+
 export class TitleMenu extends HTMLElement {
   public container: HTMLDivElement;
+  public settingsContainer: HTMLDivElement;
   public handle: SlIconButton;
   public startBtn: SlButton;
   public form: HTMLFormElement;
@@ -42,6 +50,9 @@ export class TitleMenu extends HTMLElement {
     this.container.style.bottom = "20px";
     this.container.style.width = "200px";
     this.container.style.padding = "10px 20px";
+    this.container.style.display = "flex";
+    this.container.style.flexDirection = "column";
+    this.container.style.overflow = "hidden";
     // this.container.style.backgroundColor = "rgba(0, 0, 0, .8)";
     this.container.style.backgroundColor = "rgba(45, 45, 45, .8)";
     this.container.style.boxShadow = "0 0 10px 1px rgba(0, 0, 0, 0.25)";
@@ -91,15 +102,22 @@ export class TitleMenu extends HTMLElement {
 
     this.settingsLbl = document.createElement("h1");
     this.settingsLbl.style.width = "100%";
-
     this.settingsLbl.textContent = "Settings";
     this.settingsLbl.style.color = "var(--sl-color-neutral-700)";
-    this.settingsLbl.style.marginTop = "var(--sl-spacing-large)";
+    this.settingsLbl.style.marginTop = "var(--sl-spacing-2x-small)";
     this.settingsLbl.style.marginLeft = "var(--sl-spacing-2x-small)";
     this.settingsLbl.style.fontSize = "var(--sl-font-size-large)";
     this.settingsLbl.style.fontWeight = "var(--sl-font-weight-light)";
     this.settingsLbl.style.letterSpacing = "var(--sl-letter-spacing-normal)";
     this.container.appendChild(this.settingsLbl);
+
+    this.settingsContainer = document.createElement("div");
+    this.settingsContainer.style.overflowX = "hidden";
+    this.settingsContainer.style.overflowY = "auto";
+    this.settingsContainer.style.height = "100%";
+    this.settingsContainer.style.display = "flex";
+    this.settingsContainer.style.flexDirection = "column";
+    this.container.appendChild(this.settingsContainer);
 
     this.initForm();
 
@@ -109,13 +127,13 @@ export class TitleMenu extends HTMLElement {
   private initForm(): void {
     this.form = document.createElement("form");
     this.form.setAttribute("id", this.formId);
-    this.form.style.marginTop = "var(--sl-spacing-medium)";
+    this.form.style.marginTop = "var(--sl-spacing-2x-small)";
     this.form.style.marginLeft = "var(--sl-spacing-2x-small)";
     this.form.style.width = "100%";
     this.form.style.display = "flex";
     this.form.style.flexDirection = "column";
     this.form.style.gap = "var(--sl-spacing-medium)";
-    this.container.appendChild(this.form);
+    this.settingsContainer.appendChild(this.form);
 
     this.worldSizeInput = document.createElement("sl-select");
     this.worldSizeInput.setAttribute("label", "World Size");
@@ -181,6 +199,31 @@ export class TitleMenu extends HTMLElement {
     });
     toggles.forEach((toggle) => {
       this.form.appendChild(toggle);
+    });
+  }
+
+  public generateGameInputs(inputs: GameSettingsNumericInputOption[]): void {
+    const inputEls = inputs.map((input) => {
+      const inputEl: SlInput = document.createElement("sl-input");
+      inputEl.setAttribute("type", "number");
+      inputEl.setAttribute("size", "small");
+      inputEl.setAttribute("name", input.key);
+      inputEl.setAttribute("placeholder", input.label);
+      inputEl.setAttribute("value", input.defaultValue.toString());
+      inputEl.setAttribute("label", input.label);
+      inputEl.setAttribute("min", "0");
+      inputEl.style.textTransform = "capitalize";
+      if (input.desc) {
+        inputEl.setAttribute("help-text", input.desc);
+      }
+      inputEl.addEventListener("input", (e) => {
+        inputEl.value = e.target["value"];
+      });
+
+      return inputEl;
+    });
+    inputEls.forEach((input) => {
+      this.form.appendChild(input);
     });
   }
 }

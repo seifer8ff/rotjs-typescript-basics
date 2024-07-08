@@ -1,17 +1,8 @@
 import { Game } from "./game";
-import { Tile, TileType } from "./tile";
-import Simplex from "rot-js/lib/noise/simplex";
 import { LightManager } from "./light-manager";
-import {
-  inverseLerp,
-  keyToIndex,
-  lerp,
-  normalizeNoise,
-  positionToIndex,
-} from "./misc-utility";
+import { keyToIndex, lerp, positionToIndex } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { Point } from "./point";
-import { Biome } from "./biomes";
 import { GameSettings } from "./game-settings";
 import { Layer } from "./renderer";
 
@@ -97,18 +88,6 @@ export class MapShadows {
     this.occlusionMap = [];
     this.targetOcclusionMap = [];
 
-    // let key: string;
-    let index = 0;
-    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
-      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
-        index = positionToIndex(i, j, Layer.TERRAIN);
-        this.shadowMap[index] = 1;
-        this.targetShadowMap[index] = 1;
-        this.occlusionMap[index] = 1;
-        this.targetOcclusionMap[index] = 1;
-      }
-    }
-
     this.shadowStrength = 1;
     this.ambientOcclusionShadowStrength = 1;
     this.minShadowLength = 0;
@@ -131,6 +110,23 @@ export class MapShadows {
     }
   }
 
+  public init() {
+    this.shadowMap = [];
+    this.targetShadowMap = [];
+    this.occlusionMap = [];
+    this.targetOcclusionMap = [];
+    let index: number;
+    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
+      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
+        index = positionToIndex(i, j, Layer.TERRAIN);
+        this.shadowMap[index] = 1;
+        this.targetShadowMap[index] = 1;
+        this.occlusionMap[index] = 1;
+        this.targetOcclusionMap[index] = 1;
+      }
+    }
+  }
+
   public generateShadowMaps() {
     // at each step/update
     // orient the tiles according to angle * time of day
@@ -145,6 +141,12 @@ export class MapShadows {
     this.sunupOffsetMap = this.calcSunupMap();
     this.sundownOffsetMap = this.calcSundownMap();
     this.generateDropoffMaps();
+    console.log(
+      "about to update occlusion map, size",
+      GameSettings.options.gameSize,
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height
+    );
     this.updateOcclusionShadowMap(false);
     this.updateOcclusionShadowMap(true);
     this.updateShadowMap(false, "sunup");

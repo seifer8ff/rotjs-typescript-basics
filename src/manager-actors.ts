@@ -106,16 +106,16 @@ export class ManagerActors {
   }
 
   private addAnimals(): void {
-    for (let i = 0; i < GameSettings.options.entities.cowCount; i++) {
+    for (let i = 0; i < GameSettings.options.spawn.inputs.cowCount; i++) {
       this.spawnActor(Cow);
     }
-    for (let i = 0; i < GameSettings.options.entities.sharkCount; i++) {
+    for (let i = 0; i < GameSettings.options.spawn.inputs.sharkCount; i++) {
       this.spawnActor(SharkBlue);
     }
-    for (let i = 0; i < GameSettings.options.entities.seagullCount; i++) {
+    for (let i = 0; i < GameSettings.options.spawn.inputs.seagullCount; i++) {
       this.spawnActor(Seagull);
     }
-    for (let i = 0; i < GameSettings.options.entities.mushroomCount; i++) {
+    for (let i = 0; i < GameSettings.options.spawn.inputs.mushroomCount; i++) {
       this.spawnActor(Mushroom);
     }
 
@@ -135,8 +135,8 @@ export class ManagerActors {
   }
 
   private addPlants(): void {
-    const quarter = Math.floor(GameSettings.options.plants.treeCount / 4);
-    for (let i = 0; i < GameSettings.options.plants.treeCount; i++) {
+    const quarter = Math.floor(GameSettings.options.spawn.inputs.treeCount / 4);
+    for (let i = 0; i < GameSettings.options.spawn.inputs.treeCount; i++) {
       let type: TreeSpeciesID;
       type =
         i < quarter
@@ -148,7 +148,7 @@ export class ManagerActors {
           : TreeSpeciesEnum.MAPLE;
       this.spawnTree(Tree, TreeSpecies.treeSpecies[type]);
     }
-    for (let i = 0; i < GameSettings.options.plants.shrubCount; i++) {
+    for (let i = 0; i < GameSettings.options.spawn.inputs.shrubCount; i++) {
       this.spawnShrub(Shrub);
     }
   }

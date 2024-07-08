@@ -3,7 +3,6 @@ import {
   getScaledNoise,
   keyToIndex,
   lerp,
-  normalizeNoise,
   positionToIndex,
 } from "./misc-utility";
 import { MapWorld } from "./map-world";
@@ -38,7 +37,11 @@ export class MapClouds {
     this.baseWindSpeed = 0.5 / 100;
     this.baseCloudNoise = 35;
     this.cloudOffset = new Point(0, 0);
+  }
 
+  public init() {
+    this.cloudMap = [];
+    this.targetCloudMap = [];
     let posIndex: number;
     for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
       for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
@@ -47,6 +50,28 @@ export class MapClouds {
         this.targetCloudMap[posIndex] = 0;
       }
     }
+  }
+
+  public generateCloudMap(): void {
+    const width = GameSettings.options.gameSize.width;
+    const height = GameSettings.options.gameSize.height;
+    this.updateCloudOffset();
+    this.updateWindSpeed();
+
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        const posIndex = positionToIndex(x, y, Layer.TERRAIN);
+        this.cloudMap[posIndex] = this.generateCloudLevel(
+          x,
+          y,
+          width,
+          height,
+          this.game.noise
+        );
+        this.targetCloudMap[posIndex] = this.cloudMap[posIndex];
+      }
+    }
+    this.interpolateStrength();
   }
 
   public generateCloudLevel(
@@ -198,9 +223,6 @@ export class MapClouds {
         MapWorld.keyToPoint(key)
       );
     }
-    // this.game.userInterface.camera.viewportTilesUnpadded.forEach((key) => {
-    //   this.targetCloudMap[key] = this.calcCloudsFor(MapWorld.keyToPoint(key));
-    // });
     this.interpolateStrength();
   }
 

@@ -1,5 +1,4 @@
 import { Game } from "./game";
-import { Tile, TileType } from "./tile";
 import Simplex from "rot-js/lib/noise/simplex";
 import { LightManager } from "./light-manager";
 import { lerp, normalizeNoise } from "./misc-utility";
@@ -46,13 +45,16 @@ export const TempMap = {
 export class MapTemperature {
   public lightManager: LightManager;
   public tempMap: { [key: string]: number };
-  public terrainTileMap: { [key: string]: Tile };
   public temperatureScale: number;
   private tempNoise: Simplex;
 
   constructor(private game: Game, private map: MapWorld) {
     this.tempMap = {};
     this.temperatureScale = 1.5;
+  }
+
+  public init() {
+    this.tempMap = {};
   }
 
   public generateInitialTemp(
@@ -102,14 +104,6 @@ export class MapTemperature {
 
   setTemp(x: number, y: number, temp: number): void {
     this.tempMap[MapWorld.coordsToKey(x, y)] = temp;
-  }
-
-  getTile(x: number, y: number): Tile {
-    return this.terrainTileMap[MapWorld.coordsToKey(x, y)];
-  }
-
-  getTileType(x: number, y: number): TileType {
-    return this.terrainTileMap[MapWorld.coordsToKey(x, y)].type;
   }
 
   getCurrentClimate(x: number, y: number): Climates {

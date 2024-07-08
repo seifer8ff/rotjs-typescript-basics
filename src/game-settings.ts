@@ -7,25 +7,24 @@ export class GameSettings {
     toggles: {
       enableAutotile: true,
       enableRendering: true,
-      enableGlobalLights: false,
-      enableDynamicLights: false,
-      enableClouds: false,
+      enableGlobalLights: true,
+      enableDynamicLights: true,
+      enableClouds: true,
       enableCloudMask: false,
-      enableShadows: false,
+      enableShadows: true,
       enableAnimations: true,
       enableStats: true,
       dayStart: true,
     },
-    plants: {
-      treeCount: 50,
-      shrubCount: 250,
-    },
-    entities: {
-      mushroomCount: 10,
-      cowCount: 20,
-      seagullCount: 25,
-      sharkCount: 15,
-      entityCount: 50,
+    spawn: {
+      inputs: {
+        treeCount: 50,
+        shrubCount: 250,
+        mushroomCount: 10,
+        cowCount: 20,
+        seagullCount: 25,
+        sharkCount: 15,
+      },
     },
     gameSize: {
       width: 200,
@@ -97,6 +96,7 @@ export class GameSettings {
     if (GameSettings.options.toggles.enableStats) {
       this.initGameStatsMonitor();
     }
+    this.game.resetGame();
   }
 
   public initGameStatsMonitor(): void {

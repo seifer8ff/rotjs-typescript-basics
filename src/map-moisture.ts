@@ -45,6 +45,10 @@ export class MapMoisture {
     this.scale = 1;
   }
 
+  public init() {
+    this.moistureMap = {};
+  }
+
   public generateMoistureFor(
     x: number,
     y: number,
