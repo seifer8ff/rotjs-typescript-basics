@@ -5,16 +5,18 @@ import { Game } from "./game";
 import { Layer } from "./renderer";
 import {
   generateId,
+  indexToPosition,
   lerp,
   lerpEaseIn,
   lerpEaseInOut,
   lerpEaseOut,
+  positionToIndex,
 } from "./misc-utility";
 import { Point } from "./point";
 import { GameSettings } from "./game-settings";
 import { BiomeId, Biomes } from "./biomes";
 import { Cow } from "./entities/cow";
-import { TileSubType, TileType } from "./tile";
+import { Tile, TileSubType, TileType } from "./tile";
 import { SharkBlue } from "./entities/shark-blue";
 import { Seagull } from "./entities/seagull";
 import { Mushroom } from "./entities/mushroom";
@@ -27,10 +29,10 @@ import {
 import { Shrub } from "./entities/shrub";
 
 export class ManagerActors {
-  public allActors: Actor[]; // all actors, including actor, trees, shrubs, etc
+  public allActors: Actor[]; // all actors, including actor, trees, and anything else not tilemap based
   public actors: Actor[];
   public trees: Tree[];
-  public shrubs: Shrub[]; // not sure if I should consider shrubs actors or what
+  public shrubs: Shrub[]; // not considered an actor as tilemap based
   private landBiomes: BiomeId[];
   private waterBiomes: BiomeId[];
   private airBiomes: BiomeId[];
@@ -56,10 +58,9 @@ export class ManagerActors {
 
   public start() {}
 
-  public async addInitialActors(): Promise<boolean> {
+  public addInitialActors(): void {
     this.addAnimals();
     this.addPlants();
-    return true;
   }
 
   getRandomActorPositions(subtype: TileSubType, quantity: number = 1): Point[] {
@@ -168,7 +169,7 @@ export class ManagerActors {
         pos = this.game.map.getRandomTilePositions(
           this.waterBiomes,
           1,
-          true
+          false
         )[0];
         break;
       case TileSubType.Bird:
@@ -242,7 +243,6 @@ export class ManagerActors {
     if (pos) {
       actor = new classType(this.game, pos);
       this.shrubs.push(actor);
-      this.allActors.push(actor);
       actor.draw();
     }
     return actor;

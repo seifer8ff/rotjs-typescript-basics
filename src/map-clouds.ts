@@ -1,7 +1,8 @@
 import { Game } from "./game";
 import {
   getScaledNoise,
-  keyToIndex,
+  indexToPosition,
+  indexToXY,
   lerp,
   positionToIndex,
 } from "./misc-utility";
@@ -198,10 +199,10 @@ export class MapClouds {
     windSpeed.y = Math.min(windSpeedMax, Math.max(windSpeedMin, windSpeed.y));
   }
 
-  public calcCloudsFor(pos: Point): number {
+  public calcCloudsFor(x: number, y: number): number {
     return this.generateCloudLevel(
-      pos.x,
-      pos.y,
+      x,
+      y,
       GameSettings.options.gameSize.width,
       GameSettings.options.gameSize.height,
       this.game.noise
@@ -215,13 +216,13 @@ export class MapClouds {
     }
     this.updateWindSpeed();
     this.updateCloudOffset();
-    const tileIDs = this.game.userInterface.camera.viewportTilesUnpadded;
-    for (let i = 0; i < tileIDs.length; i++) {
-      const key = tileIDs[i];
-      const posIndex = keyToIndex(key, Layer.TERRAIN);
-      this.targetCloudMap[posIndex] = this.calcCloudsFor(
-        MapWorld.keyToPoint(key)
-      );
+    const tileIndexes = this.game.userInterface.camera.viewportTilesUnpadded;
+    let posIndex: number;
+    let posXY: [number, number];
+    for (let i = 0; i < tileIndexes.length; i++) {
+      posIndex = tileIndexes[i];
+      posXY = indexToXY(posIndex, Layer.TERRAIN);
+      this.targetCloudMap[posIndex] = this.calcCloudsFor(posXY[0], posXY[1]);
     }
     this.interpolateStrength();
   }
@@ -278,10 +279,9 @@ export class MapClouds {
     let key: string;
     let posIndex: number;
     // only iterate through tiles in the viewport
-    const tileIDs = this.game.userInterface.camera.viewportTilesUnpadded;
-    for (let i = 0; i < tileIDs.length; i++) {
-      key = tileIDs[i];
-      posIndex = keyToIndex(key, Layer.TERRAIN);
+    const tileIndexes = this.game.userInterface.camera.viewportTilesUnpadded;
+    for (let i = 0; i < tileIndexes.length; i++) {
+      posIndex = tileIndexes[i];
       val = lerp(
         this.game.timeManager.turnAnimTimePercent,
         this.cloudMap[posIndex],
@@ -289,15 +289,6 @@ export class MapClouds {
       );
       this.cloudMap[posIndex] = val;
     }
-
-    // this.game.userInterface.camera.viewportTilesUnpadded.forEach((key) => {
-    //   val = lerp(
-    //     this.game.timeManager.turnAnimTimePercent,
-    //     this.cloudMap[key],
-    //     this.targetCloudMap[key]
-    //   );
-    //   this.cloudMap[key] = val;
-    // });
   }
 
   setCloudLevel(x: number, y: number, cloudLevel: number): void {
@@ -316,7 +307,7 @@ export class MapClouds {
     let cloudVal: number;
     positions.forEach((pos) => {
       posIndex = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
-      cloudVal = this.calcCloudsFor(pos);
+      cloudVal = this.calcCloudsFor(pos.x, pos.y);
       this.cloudMap[posIndex] = cloudVal;
       this.targetCloudMap[posIndex] = cloudVal;
     });

@@ -1140,7 +1140,7 @@ export class MapWorld {
       const tilePos = indexToPosition(tileIndex, Layer.TERRAIN);
       const tile = this.tileMap[tileIndex];
       this.game.renderer.removeFromScene(tileIndex, Layer.TERRAIN);
-      this.game.renderer.addToScene(tilePos, Layer.TERRAIN, tile.spritePath);
+      this.game.renderer.addTileIdToScene(tilePos, Layer.TERRAIN, tile.id);
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];
@@ -1149,6 +1149,8 @@ export class MapWorld {
   onTileEnterViewport(positions: Point[]): void {
     this.shadowMap.onEnter(positions);
     this.cloudMap.onEnter(positions);
+    // TODO: add a step to render tile
+    // this will fix shadows not updating immediately when panning
   }
 
   isPointInMap(point: Point): boolean {

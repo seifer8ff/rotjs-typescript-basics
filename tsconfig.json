@@ -1,11 +1,13 @@
 {
     "compilerOptions": {
+        
         "target": "es6",
         "module": "es6",
         "esModuleInterop": true,
         "moduleResolution": "Node",
         "resolveJsonModule": true,
         "allowJs": true,
+        "strict": false,
         "lib": [
             "dom",
             "es2015"

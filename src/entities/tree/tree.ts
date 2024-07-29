@@ -15,7 +15,6 @@ import { PointerTarget } from "../../camera";
 import { TreeSpecies } from "./tree-species";
 import { RNG } from "rot-js";
 import { generateId, getItemFromRange } from "../../misc-utility";
-import { last } from "lodash";
 import { GameSettings } from "../../game-settings";
 
 export interface Segment {
@@ -94,16 +93,10 @@ export class Tree implements Actor {
     this.subType = Tree.subType;
     this.name = `${this.subType} - ${this.species.name}`;
     this.growLeaves = true;
-
-    const worldPoint = Tile.translatePoint(
-      this.position,
-      Layer.PLANT,
-      Layer.TERRAIN
-    );
     const screenPos = this.game.userInterface.camera.TileToScreenCoords(
-      worldPoint.x,
-      worldPoint.y,
-      Layer.TERRAIN
+      this.position.x,
+      this.position.y,
+      Layer.TREE
     );
     this.initTree(screenPos.x, screenPos.y);
     this.renderTree(1);
@@ -474,11 +467,8 @@ export class Tree implements Actor {
       sprite.anchor.set(0.5);
       sprite.width = segment.width;
       sprite.height = segment.length * 1.2; // hide gaps between segments
+      sprite.position.set(segment.position.x, segment.position.y);
 
-      sprite.position.set(
-        segment.position.x - this.sprite.position.x,
-        segment.position.y - this.sprite.position.y
-      );
       sprite.angle = -segment.curve + 90;
       if (tint) {
         sprite.tint = tint;
@@ -503,15 +493,11 @@ export class Tree implements Actor {
     const leafRot = RNG.getUniform() * 360;
     const terrainPoint = Tile.translatePoint(
       this.position,
-      Layer.PLANT,
+      Layer.TREE,
       Layer.TERRAIN
     );
     let tint;
     let growSuccess: boolean = false;
-
-    if (GameSettings.shouldTint()) {
-      tint = this.game.renderer.getTintForPosition(terrainPoint);
-    }
 
     if (firstGrowth) {
       this.sprite = new ParticleContainer(1000, {
@@ -519,7 +505,7 @@ export class Tree implements Actor {
         position: true,
         rotation: true,
         scale: true,
-        tint: tint == undefined ? false : true,
+        tint: GameSettings.shouldTint(),
       });
     }
 
@@ -566,7 +552,7 @@ export class Tree implements Actor {
 
   draw(): void {
     if (this.sprite) {
-      this.game.renderer.addToScene(this.position, Layer.PLANT, this.sprite);
+      this.game.renderer.addToScene(this.position, Layer.TREE, this.sprite);
     }
   }
 
@@ -652,10 +638,7 @@ export class Tree implements Actor {
       );
       this.sprite.addChild(leafSprite);
       leafSprite.anchor.set(0.5);
-      leafSprite.position.set(
-        leafX - this.sprite.position.x,
-        leafY - this.sprite.position.y
-      );
+      leafSprite.position.set(leafX, leafY);
       if (tint) {
         leafSprite.tint = tint;
       }

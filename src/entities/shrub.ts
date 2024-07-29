@@ -46,7 +46,11 @@ export class Shrub implements Actor {
   }
 
   draw(): void {
-    this.game.renderer.addToScene(this.position, Layer.PLANT, this.sprite);
+    this.game.renderer.addTileIdToScene(
+      this.position,
+      Layer.PLANT,
+      this.tile.id
+    );
   }
 
   public plan(): void {

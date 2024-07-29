@@ -147,43 +147,53 @@ export function keyToIndex(key: string, layer: Layer): number {
   return positionToIndex(parseInt(x), parseInt(y), layer);
 }
 
-// convert and x,y position to an index in the spriteCache (and other) array
 export function positionToIndex(x: number, y: number, layer: Layer): number {
-  let index = -1;
-  let ratio = 1;
-  if (layer === Layer.PLANT) {
-    ratio = Tile.size / Tile.plantSize;
-  }
-  index =
-    layer *
-      GameSettings.options.gameSize.width *
-      GameSettings.options.gameSize.height +
-    Math.floor(y / ratio) * GameSettings.options.gameSize.width +
-    Math.floor(x / ratio);
+  const widthInTiles = GameSettings.options.gameSize.width;
+  const heightInTiles = GameSettings.options.gameSize.height;
+  const denseWidthInTiles = widthInTiles * Tile.tileDensityRatio;
+  const denseHeightInTiles = heightInTiles * Tile.tileDensityRatio;
+  // Calculate the total number of tiles for each layer
+  const totalLayerTiles = widthInTiles * heightInTiles;
+  const totalDenseLayerTiles = denseWidthInTiles * denseHeightInTiles;
 
-  // each layer is a 2d array of width x height x ratio
-  // each layer has a ratio representing its tile size relative to Tile.size (default tile size)
-  if (
-    index < 0 ||
-    index >=
-      GameSettings.options.gameSize.width *
-        GameSettings.options.gameSize.height *
-        (layer + 1) *
-        ratio
-  ) {
-    index = -1;
-  }
-  return index;
+  // Define base offsets for each layer
+  const layerOffset = (layer - 1) * totalDenseLayerTiles;
+  //
+  return layerOffset + (y * denseWidthInTiles + x);
 }
 
 export function indexToPosition(index: number, layer: Layer): Point {
-  let x = 0;
-  let y = 0;
-  let ratio = 1;
-  if (layer === Layer.PLANT) {
-    ratio = Tile.size / Tile.plantSize;
-  }
-  y = Math.floor(index / (GameSettings.options.gameSize.width * ratio));
-  x = index % (GameSettings.options.gameSize.width * ratio);
+  const widthInTiles = GameSettings.options.gameSize.width;
+  const heightInTiles = GameSettings.options.gameSize.height;
+  const denseWidthInTiles = widthInTiles * Tile.tileDensityRatio;
+  const denseHeightInTiles = heightInTiles * Tile.tileDensityRatio;
+  // Calculate the total number of tiles for each layer
+  const totalLayerTiles = widthInTiles * heightInTiles;
+  const totalDenseLayerTiles = denseWidthInTiles * denseHeightInTiles;
+
+  // Define base offsets for each layer
+  const layerOffset = (layer - 1) * totalDenseLayerTiles;
+
+  index -= layerOffset;
+  const x = index % denseWidthInTiles;
+  const y = Math.floor(index / denseWidthInTiles);
   return new Point(x, y);
+}
+
+export function indexToXY(index: number, layer: Layer): [number, number] {
+  const widthInTiles = GameSettings.options.gameSize.width;
+  const heightInTiles = GameSettings.options.gameSize.height;
+  const denseWidthInTiles = widthInTiles * Tile.tileDensityRatio;
+  const denseHeightInTiles = heightInTiles * Tile.tileDensityRatio;
+  // Calculate the total number of tiles for each layer
+  const totalLayerTiles = widthInTiles * heightInTiles;
+  const totalDenseLayerTiles = denseWidthInTiles * denseHeightInTiles;
+
+  // Define base offsets for each layer
+  const layerOffset = (layer - 1) * totalDenseLayerTiles;
+
+  index -= layerOffset;
+  const x = index % denseWidthInTiles;
+  const y = Math.floor(index / denseWidthInTiles);
+  return [x, y];
 }

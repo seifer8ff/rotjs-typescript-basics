@@ -5,14 +5,14 @@ import { Tile } from "./tile";
 import { Color } from "rot-js";
 import { MapWorld } from "./map-world";
 export enum Layer {
-  TERRAIN,
+  TERRAIN = 1,
   GROUNDFX,
-  PLANT,
   ENTITY,
+  PLANT,
+  TREE,
   UI,
 }
 import { CompositeTilemap } from "@pixi/tilemap";
-import { Viewport } from "./camera";
 import { settings } from "@pixi/tilemap";
 import { GameSettings } from "./game-settings";
 import { positionToIndex } from "./misc-utility";
@@ -21,17 +21,25 @@ import { RGBAColor } from "./light-manager";
 export type Renderable =
   | PIXI.Sprite
   | PIXI.AnimatedSprite
-  | PIXI.ParticleContainer
-  | string;
+  | PIXI.ParticleContainer;
 
 export class Renderer {
+  public chunkCountPerSide = 3; // must be ODD number
   // 3x3 grid of tilemaps to render the terrain
-  public terrainLayer = Array.from({ length: 9 }, () => new CompositeTilemap());
+  public terrainLayer = Array.from(
+    { length: this.chunkCountPerSide * this.chunkCountPerSide },
+    () => new CompositeTilemap()
+  );
   public groundFXLayer = new PIXI.Container();
-  public plantLayer = new PIXI.Container();
+  public plantLayer = Array.from(
+    { length: this.chunkCountPerSide * this.chunkCountPerSide },
+    () => new CompositeTilemap()
+  );
+  public treeLayer = new PIXI.Container();
   public entityLayer = new PIXI.Container();
   public uiLayer = new PIXI.Container();
-  private spriteCache: Renderable[];
+  private spriteCache: (Renderable | undefined)[] = [];
+  private spriteIndexCache: Int32Array = new Int32Array(0);
 
   constructor(private game: Game) {
     PIXI.settings.ROUND_PIXELS = true;
@@ -45,25 +53,38 @@ export class Renderer {
       layer.scale.set(tileScale); // scale up from 16px to Tile.size (32px)
     });
     this.groundFXLayer.zIndex = 20;
-    this.plantLayer.zIndex = 35;
-    this.plantLayer.sortableChildren = true;
+    this.plantLayer.forEach((layer) => {
+      layer.zIndex = 35;
+    });
+    this.treeLayer.zIndex = 45;
+    this.treeLayer.sortableChildren = true;
     this.entityLayer.zIndex = 55;
     this.uiLayer.zIndex = 10;
+  }
+
+  public init(): void {
+    this.clearScene();
+    this.clearCache();
     this.spriteCache = [];
+    const layerCount = Layer.UI + 1;
+    let layerSize =
+      GameSettings.options.gameSize.width *
+      Tile.tileDensityRatio *
+      GameSettings.options.gameSize.height *
+      Tile.tileDensityRatio; // account for dense grid, like for plants
+    layerSize *= layerCount; // account for each layer
+    this.spriteIndexCache = new Int32Array(layerSize).fill(-1);
   }
 
   addLayersToStage(stage: PIXI.Container): void {
-    let colorMatrix = new PIXI.ColorMatrixFilter();
-    colorMatrix.night(3, true);
     this.terrainLayer.forEach((layer, index) => {
-      // if (index % 2) {
-      // layer.filters = [colorMatrix];
-      // }
-
       stage.addChild(layer as PIXI.DisplayObject);
     });
     stage.addChild(this.groundFXLayer as PIXI.DisplayObject);
-    stage.addChild(this.plantLayer as PIXI.DisplayObject);
+    this.plantLayer.forEach((layer, index) => {
+      stage.addChild(layer as PIXI.DisplayObject);
+    });
+    stage.addChild(this.treeLayer as PIXI.DisplayObject);
     stage.addChild(this.entityLayer as PIXI.DisplayObject);
     stage.addChild(this.uiLayer as PIXI.DisplayObject);
   }
@@ -74,26 +95,39 @@ export class Renderer {
     height: number,
     viewportCenterTile: Point
   ) {
-    const chunkCountPerSide = 3;
-    const chunkWidthTiles = Math.ceil(width / chunkCountPerSide);
-    const chunkHeightTiles = Math.ceil(height / chunkCountPerSide);
+    const chunkWidthTiles = Math.ceil(width / this.chunkCountPerSide);
+    const chunkHeightTiles = Math.ceil(height / this.chunkCountPerSide);
+    let clearTerrainLayer = false;
+    let clearPlantLayer = false;
 
-    layers.forEach((layer) => {
-      if (layer !== Layer.ENTITY && layer !== Layer.TERRAIN) {
-        this.clearLayer(layer, false);
+    for (let layer of layers) {
+      switch (layer) {
+        case Layer.TERRAIN:
+          clearTerrainLayer = true;
+          break;
+        case Layer.PLANT:
+          clearPlantLayer = true;
+          break;
+        default:
+          this.clearSceneLayer(layer);
+          break;
       }
-    });
+    }
 
-    const centerChunk = Math.floor(chunkCountPerSide / 2);
+    const centerChunk = Math.floor(this.chunkCountPerSide / 2);
     for (let i = -centerChunk; i <= centerChunk; i++) {
       for (let j = -centerChunk; j <= centerChunk; j++) {
         // calculate chunkIndex where [-1,-1] is 0 and [2,2] is 9
         const chunkIndex =
-          (i + centerChunk) * chunkCountPerSide + (j + centerChunk);
+          (i + centerChunk) * this.chunkCountPerSide + (j + centerChunk);
 
         // clear just this chunk of terrain layer (BUT NO OTHER LAYERS)
-        if (layers.includes(Layer.TERRAIN)) {
-          this.clearLayer(Layer.TERRAIN, false, chunkIndex);
+        if (clearTerrainLayer) {
+          this.clearSceneLayer(Layer.TERRAIN, chunkIndex);
+        }
+
+        if (clearPlantLayer) {
+          this.clearSceneLayer(Layer.PLANT, chunkIndex);
         }
 
         this.renderLayers(
@@ -108,6 +142,100 @@ export class Renderer {
     }
   }
 
+  renderLayer(
+    layer: Layer,
+    tileX: number,
+    tileY: number,
+    chunkIndex: number = -1,
+    tint: RGBAColor | string | undefined = undefined
+  ) {
+    let index = positionToIndex(tileX, tileY, layer);
+    if (index < 0) {
+      // invalid index returned
+      return;
+    }
+    let tileID: number;
+    let tile: Tile;
+    let displayObj: Renderable;
+
+    switch (layer) {
+      case Layer.TERRAIN: {
+        tileID = this.spriteIndexCache[index];
+        tile = Tile.tiles[tileID];
+
+        this.terrainLayer[chunkIndex].tile(
+          tile.spritePath,
+          Math.floor(
+            tileX * (Tile.size / this.terrainLayer[chunkIndex].scale.x) -
+              Tile.size / this.terrainLayer[chunkIndex].scale.x / 2
+          ), // half size as layer is scaled up by 2
+          Math.floor(
+            tileY * (Tile.size / this.terrainLayer[chunkIndex].scale.y) -
+              Tile.size / this.terrainLayer[chunkIndex].scale.x / 2
+          ),
+          { alpha: 1, tint: tint as RGBAColor }
+        );
+        break;
+      }
+      case Layer.GROUNDFX: {
+        displayObj = this.spriteCache[index];
+        if (!displayObj) {
+          return;
+        }
+        // this.tintObjectWithChildren(displayObj, new Point(x, y));
+        this.groundFXLayer.addChild(displayObj as PIXI.DisplayObject);
+        break;
+      }
+      case Layer.PLANT: {
+        tileID = this.spriteIndexCache[index];
+        if (tileID === -1) {
+          return;
+        }
+        tile = Tile.tiles[tileID];
+
+        if (!tile) {
+          return;
+        }
+        this.plantLayer[chunkIndex].tile(
+          tile.spritePath,
+          Math.floor(tileX * Tile.denseSize - Tile.size / 2), // half size as layer is scaled up by 2
+          Math.floor(tileY * Tile.denseSize - Tile.size / 2),
+          {
+            alpha: 1,
+            tint: tint as RGBAColor,
+          }
+        );
+        break;
+      }
+      case Layer.TREE: {
+        displayObj = this.spriteCache[index];
+        if (!displayObj) {
+          return;
+        }
+
+        // displayObj.zIndex = GameSettings.options.gameSize.height * ratio - y;
+        this.treeLayer.addChild(displayObj as PIXI.DisplayObject);
+        break;
+      }
+      case Layer.ENTITY: {
+        displayObj = this.spriteCache[index];
+        if (!displayObj) {
+          return;
+        }
+        this.entityLayer.addChild(displayObj as PIXI.DisplayObject);
+        break;
+      }
+      case Layer.UI: {
+        displayObj = this.spriteCache[index];
+        if (!displayObj) {
+          return;
+        }
+        this.uiLayer.addChild(displayObj as PIXI.DisplayObject);
+        break;
+      }
+    }
+  }
+
   renderLayers(
     layers: Layer[],
     width: number,
@@ -116,120 +244,58 @@ export class Renderer {
     centerY: number,
     chunkIndex: number
   ): void {
+    const shouldTint = GameSettings.shouldTint();
     let right: number;
     let bottom: number;
     let left: number;
     let top: number;
-    let ratio: number = 1; // most layers are the default Tile.size
-    let viewportCenterX = centerX;
-    let viewportCenterY = centerY;
-    let displayObj: Renderable;
-    let tint: RGBAColor;
-    const shouldTint = GameSettings.shouldTint();
+    let tint: RGBAColor | string | undefined = undefined;
+    let gameWidth: number = GameSettings.options.gameSize.width;
+    let gameHeight: number = GameSettings.options.gameSize.height;
+    let tileX: number;
+    let tileY: number;
 
-    for (let layer of layers) {
-      if (layer === Layer.PLANT) {
-        ratio = Tile.size / Tile.plantSize;
-        viewportCenterX = Tile.translate(centerX, Layer.TERRAIN, Layer.PLANT);
-        viewportCenterY = Tile.translate(centerY, Layer.TERRAIN, Layer.PLANT);
-      } else {
-        ratio = 1;
-        viewportCenterX = centerX;
-        viewportCenterY = centerY;
-      }
+    right = Math.ceil(centerX + width / 2);
+    bottom = Math.ceil(centerY + height / 2);
+    left = Math.ceil(centerX - width / 2);
+    top = Math.ceil(centerY - height / 2);
 
-      right = Math.ceil(viewportCenterX + (width / 2) * ratio);
-      bottom = Math.ceil(viewportCenterY + (height / 2) * ratio);
-      left = Math.ceil(viewportCenterX - (width / 2) * ratio);
-      top = Math.ceil(viewportCenterY - (height / 2) * ratio);
-
-      const gameWidth = GameSettings.options.gameSize.width * ratio;
-      const gameHeight = GameSettings.options.gameSize.height * ratio;
-
-      right = Math.min(gameWidth, right);
-      bottom = Math.min(gameHeight, bottom);
-      left = Math.max(0, left);
-      top = Math.max(0, top);
-
-      for (let x = left; x < right; x++) {
-        for (let y = top; y < bottom; y++) {
-          let index: number = positionToIndex(x, y, layer);
-          if (index < 0) {
-            // invalid index returned
-            continue;
+    right = Math.max(Math.min(gameWidth, right), 0);
+    bottom = Math.max(Math.min(gameHeight, bottom), 0);
+    left = Math.min(right, Math.max(0, left));
+    top = Math.min(bottom, Math.max(0, top));
+    for (let x = left; x < right; x += 1) {
+      for (let y = top; y < bottom; y += 1) {
+        for (let layer of layers) {
+          if (shouldTint) {
+            if (layer === Layer.TERRAIN || layer === Layer.PLANT) {
+              // other layers are tinted in a separate step during the game loop
+              // for perf reasons
+              tint = this.game.map.lightManager.getRGBALightFor(x, y, false);
+            }
           }
-          displayObj = this.spriteCache[index];
 
-          switch (layer) {
-            case Layer.TERRAIN: {
-              if (shouldTint) {
-                tint = this.getRGBATintForPosition(new Point(x, y), false);
+          tileX = x;
+          tileY = y;
+          if (layer === Layer.PLANT || layer === Layer.TREE) {
+            tileX = Tile.translate(x, Layer.TERRAIN, Layer.PLANT);
+            tileY = Tile.translate(y, Layer.TERRAIN, Layer.PLANT);
+            for (let i = 0; i < Tile.tileDensityRatio / 2; i++) {
+              for (let j = 0; j < Tile.tileDensityRatio / 2; j++) {
+                tileX = tileX + i;
+                tileY = tileY + j;
+                this.renderLayer(layer, tileX, tileY, chunkIndex, tint);
               }
-
-              this.terrainLayer[chunkIndex].tile(
-                displayObj as string,
-                Math.floor(
-                  x * (Tile.size / this.terrainLayer[chunkIndex].scale.x) -
-                    Tile.size / this.terrainLayer[chunkIndex].scale.x / 2
-                ), // half size as layer is scaled up by 2
-                Math.floor(
-                  y * (Tile.size / this.terrainLayer[chunkIndex].scale.y) -
-                    Tile.size / this.terrainLayer[chunkIndex].scale.x / 2
-                ),
-                { alpha: 1, tint }
-              );
-              break;
             }
-            case Layer.GROUNDFX: {
-              if (!displayObj) {
-                continue;
-              }
-              // this.tintObjectWithChildren(displayObj, new Point(x, y));
-              this.groundFXLayer.addChild(displayObj as PIXI.DisplayObject);
-              break;
-            }
-            case Layer.PLANT: {
-              if (!displayObj) {
-                continue;
-              }
-              if (shouldTint) {
-                const terrainPoint = Tile.translatePoint(
-                  new Point(x, y),
-                  Layer.PLANT,
-                  Layer.TERRAIN
-                );
-                this.tintObjectWithChildren(displayObj, terrainPoint);
-              }
-
-              // displayObj.zIndex = GameSettings.options.gameSize.height * ratio - y;
-              this.plantLayer.addChild(displayObj as PIXI.DisplayObject);
-              break;
-            }
-            case Layer.ENTITY: {
-              if (!displayObj) {
-                continue;
-              }
-              if (shouldTint) {
-                this.tintObjectWithChildren(displayObj, new Point(x, y), true);
-              }
-              this.entityLayer.addChild(displayObj as PIXI.DisplayObject);
-              break;
-            }
-            case Layer.UI: {
-              if (!displayObj) {
-                continue;
-              }
-              this.uiLayer.addChild(displayObj as PIXI.DisplayObject);
-              break;
-            }
+          } else {
+            this.renderLayer(layer, tileX, tileY, chunkIndex, tint);
           }
         }
       }
     }
   }
 
-  // add the sprite to the cache, to be rendered on the next render pass
-  // TODO: don't create the sprite here, just take a sprite or animated sprite and add it to the cache
+  // add the sprite/particle container, etc to the cache, to be rendered on the next render pass
   addToScene(
     position: Point,
     layer: Layer,
@@ -256,25 +322,16 @@ export class Renderer {
       displayObj instanceof PIXI.AnimatedSprite;
 
     switch (layer) {
-      case Layer.PLANT: {
-        if (isSprite) {
-          (displayObj as PIXI.Sprite).anchor.set(0.5);
-        }
-        if (isSprite) {
-          (displayObj as PIXI.Sprite).position.x = position.x * Tile.plantSize;
-          (displayObj as PIXI.Sprite).position.y = position.y * Tile.plantSize;
-        }
+      case Layer.TREE:
+      case Layer.PLANT:
+      case Layer.TERRAIN:
         break;
-      }
-      case Layer.TERRAIN: {
-        break;
-      }
       case Layer.GROUNDFX: {
         if (isSprite) {
           (displayObj as PIXI.Sprite).anchor.set(0.5);
         }
-        (displayObj as PIXI.Sprite).position.x = position.x * Tile.plantSize;
-        (displayObj as PIXI.Sprite).position.y = position.y * Tile.plantSize;
+        (displayObj as PIXI.Sprite).position.x = position.x * Tile.denseSize;
+        (displayObj as PIXI.Sprite).position.y = position.y * Tile.denseSize;
         break;
       }
       case Layer.UI: {
@@ -304,67 +361,24 @@ export class Renderer {
     this.spriteCache[index] = displayObj;
   }
 
-  public getTintForPosition(position: Point, highlight: boolean = false) {
-    const lightMap = this.game.map.lightManager.lightMap;
-    const sunMap = this.game.map.shadowMap.shadowMap;
-    const occlusionMap = this.game.map.shadowMap.occlusionMap;
-    const cloudMap = this.game.map.cloudMap.cloudMap;
-
-    return Color.toHex(
-      this.game.map.lightManager.getLightColorFor(
-        position.x,
-        position.y,
-        lightMap,
-        sunMap,
-        occlusionMap,
-        cloudMap,
-        highlight
-      )
-    );
+  addTileIdToScene(position: Point, layer: Layer, tileId: number): void {
+    let index = positionToIndex(position.x, position.y, layer);
+    this.spriteIndexCache[index] = tileId;
   }
 
-  public getRGBATintForPosition(
-    position: Point,
-    highlight: boolean = false
-  ): RGBAColor {
-    const lightMap = this.game.map.lightManager.lightMap;
-    const sunMap = this.game.map.shadowMap.shadowMap;
-    const occlusionMap = this.game.map.shadowMap.occlusionMap;
-    const cloudMap = this.game.map.cloudMap.cloudMap;
-    const color = this.game.map.lightManager.getLightColorFor(
-      position.x,
-      position.y,
-      lightMap,
-      sunMap,
-      occlusionMap,
-      cloudMap,
-      highlight
-    );
-    return [color[0], color[1], color[2], 1] as RGBAColor;
-  }
+  public tintObjectWithChildren(obj: Renderable, tint: string) {
+    if (!("tint" in obj)) return;
+    if (obj["tint"] === tint) return;
 
-  private tintObjectWithChildren(
-    obj: Renderable,
-    position: Point,
-    highlight: boolean = false
-  ) {
-    let tint: string;
-    tint = this.getTintForPosition(position, highlight);
-    if (typeof obj === "string") {
-      return;
-    }
-
-    if ("tint" in obj && !(obj instanceof PIXI.ParticleContainer)) {
-      // double tinting particle container and particles leads to dark sprites
-      obj["tint"] = tint;
-    }
     if ("children" in obj) {
-      (obj["children"] as Renderable[]).forEach((child) => {
-        if (typeof child !== "string" && "tint" in child) {
-          child["tint"] = tint;
-        }
-      });
+      (obj["children"] as Renderable[]).forEach((child) =>
+        this.tintObjectWithChildren(child, tint)
+      );
     }
+
+    if (obj instanceof PIXI.ParticleContainer) return;
+
+    obj["tint"] = tint;
   }
 
   // update a sprites position in the cache, to be rendered on the next render pass
@@ -385,16 +399,11 @@ export class Renderer {
       return;
     }
     switch (layer) {
-      case Layer.TERRAIN: {
-        // this.terrainLayer.removeChild(cachedObj);
+      case Layer.PLANT:
+      case Layer.TERRAIN:
         break;
-      }
       case Layer.GROUNDFX: {
         this.groundFXLayer.removeChild(cachedObj as PIXI.DisplayObject);
-        break;
-      }
-      case Layer.PLANT: {
-        this.plantLayer.removeChild(cachedObj as PIXI.DisplayObject);
         break;
       }
       case Layer.ENTITY: {
@@ -412,41 +421,179 @@ export class Renderer {
     this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)] = null;
   }
 
+  //
+  // NEXT PERF IMPROVEMENT:
+  // spriteCache is too large of an array on large worlds
+  // same with spriteIndexCache
+  // need to somehow reduce this- maybe an array per layer?
+  // maybe auto chunking when index is over a certain size?
+  //
+
+  // old:
+  // MOVE TO KEEPING A LIST OF SPARSE LAYERS AND JUST CLEARING THOSE INDICES
+  // THIS WILL DRASTICALLY IMPROVE PERF
   clearCache(layer?: Layer): void {
     if (layer) {
-      // iterate through all indexes of spriteCache layer and set to null
-      const layerCount =
-        GameSettings.options.gameSize.width *
-        GameSettings.options.gameSize.height;
-      for (let i = layer * layerCount; i < (layer + 1) * layerCount; i++) {
-        this.spriteCache[i] = null;
+      const width = GameSettings.options.gameSize.width;
+      const height = GameSettings.options.gameSize.height;
+      const widthInTiles = width * Tile.tileDensityRatio;
+      const heightInTiles = height * Tile.tileDensityRatio;
+      const totalTiles = widthInTiles * heightInTiles;
+      const start = (layer - 1) * totalTiles;
+      const end = layer * totalTiles;
+      if (layer === Layer.TERRAIN || layer === Layer.PLANT) {
+        // only clear the spriteIndexCache for tileMap layers
+        this.spriteIndexCache.fill(-1, start, end);
+      } else {
+        this.spriteCache.fill(null, start, end);
+        // // Start at the minimum of 'start' or the first defined index if 'start' is out of bounds
+        // const effectiveStart = Math.max(start, 0);
+        // // End at the minimum of 'end' or the last index of the array
+        // const effectiveEnd = Math.min(end, this.spriteCache.length - 1);
+
+        // // TODO: just switch the sprite cache to a simple list, with position and sprite or something.
+        // // that prevents needing to iterate through entire array every frame
+
+        // for (let i = effectiveStart; i <= effectiveEnd; i++) {
+        //   if (this.spriteCache[i] !== undefined) {
+        //     this.spriteCache[i] = null;
+        //   }
+        // }
       }
-    } else {
-      this.spriteCache = [];
+    } else if (!layer) {
+      this.clearCache(Layer.PLANT);
+      this.clearCache(Layer.TREE);
+      this.clearCache(Layer.UI);
     }
   }
 
-  clearScene(clearCache = false): void {
-    this.clearLayer(Layer.TERRAIN, clearCache);
-    this.clearLayer(Layer.GROUNDFX, clearCache);
-    this.clearLayer(Layer.PLANT, clearCache);
-    this.clearLayer(Layer.ENTITY, clearCache);
-    this.clearLayer(Layer.UI, clearCache);
+  // clearCache(layer?: Layer): void {
+  //   if (layer) {
+  //     const width = GameSettings.options.gameSize.width;
+  //     const height = GameSettings.options.gameSize.height;
+  //     const widthInTiles = width * Tile.tileDensityRatio;
+  //     const heightInTiles = height * Tile.tileDensityRatio;
+  //     const totalTiles = widthInTiles * heightInTiles;
+  //     const start = (layer - 1) * totalTiles;
+  //     const end = layer * totalTiles;
+  //     this.spriteIndexCache.fill(-1, start, end);
+
+  //     // special method of copying and clearing the array
+  //     // this is faster than any other method of clearing the array so far
+  //     for (let i = start; i < length - totalTiles; i++) {
+  //       this.spriteCache[i] = this.spriteCache[i + totalTiles];
+  //     }
+  //     // Adjust the length of the array to remove the duplicate elements at the end
+  //     if (this.spriteCache.length > totalTiles) {
+  //       this.spriteCache.length -= totalTiles;
+  //     }
+  //   } else if (!layer) {
+  //     this.clearCache(Layer.PLANT);
+  //     this.clearCache(Layer.TREE);
+  //     this.clearCache(Layer.UI);
+  //   }
+  // }
+
+  clearCacheViewport(
+    width: number,
+    height: number,
+    viewportCenterTile: Point,
+    layer?: Layer
+  ): void {
+    if (layer) {
+      // if (layer === Layer.TERRAIN || layer === Layer.PLANT) {
+      //   return;
+      // }
+
+      let right: number;
+      let bottom: number;
+      let left: number;
+      let top: number;
+      let ratio: number = 1; // most layers are the default Tile.size
+      let viewportCenterX = viewportCenterTile.x;
+      let viewportCenterY = viewportCenterTile.y;
+      let index = -1;
+      let gameWidth = GameSettings.options.gameSize.width;
+      let gameHeight = GameSettings.options.gameSize.height;
+
+      if (layer === Layer.PLANT || layer === Layer.TREE) {
+        ratio = Tile.tileDensityRatio;
+        viewportCenterX = Tile.translate(
+          viewportCenterX,
+          Layer.TERRAIN,
+          Layer.PLANT
+        );
+        viewportCenterY = Tile.translate(
+          viewportCenterY,
+          Layer.TERRAIN,
+          Layer.PLANT
+        );
+      } else {
+        ratio = 1;
+        viewportCenterX = viewportCenterX;
+        viewportCenterY = viewportCenterY;
+      }
+
+      gameWidth = GameSettings.options.gameSize.width * ratio;
+      gameHeight = GameSettings.options.gameSize.height * ratio;
+
+      right = Math.ceil(viewportCenterX + (width / 2) * ratio);
+      bottom = Math.ceil(viewportCenterY + (height / 2) * ratio);
+      left = Math.ceil(viewportCenterX - (width / 2) * ratio);
+      top = Math.ceil(viewportCenterY - (height / 2) * ratio);
+
+      right = Math.max(Math.min(gameWidth, right), 0);
+      bottom = Math.max(Math.min(gameHeight, bottom), 0);
+      left = Math.min(right, Math.max(0, left));
+      top = Math.min(bottom, Math.max(0, top));
+
+      // console.log(
+      //   "clearing viewport",
+      //   left - right,
+      //   (left - right) * (top - bottom)
+      // );
+
+      for (let x = left; x < right; x++) {
+        for (let y = top; y < bottom; y++) {
+          index = positionToIndex(x, y, layer);
+          // if (index < 0) {
+          //   // invalid index returned
+          //   continue;
+          // }
+          // if (layer !== Layer.TERRAIN && layer !== Layer.PLANT) {
+          this.spriteCache[index] = null;
+          // this.spriteCache[index] = this.spriteCache.length - 1;
+          // this.spriteCache.length -= 1;
+          this.spriteIndexCache[index] = -1;
+          // }
+        }
+      }
+    } else if (!layer) {
+    }
   }
 
-  clearLayers(layers: Layer[], clearCache = false): void {
+  clearScene(): void {
+    this.clearSceneLayer(Layer.TERRAIN);
+    this.clearSceneLayer(Layer.GROUNDFX);
+    this.clearSceneLayer(Layer.PLANT);
+    this.clearSceneLayer(Layer.TREE);
+    this.clearSceneLayer(Layer.ENTITY);
+    this.clearSceneLayer(Layer.UI);
+  }
+
+  clearSceneLayers(layers: Layer[]): void {
     for (let layer of layers) {
-      this.clearLayer(layer, clearCache);
+      this.clearSceneLayer(layer);
     }
   }
 
-  clearLayer(layer: Layer, clearCache = false, chunkIndex?: number): void {
-    if (clearCache) {
-      this.clearCache(layer);
+  clearSceneLayer(layer: Layer, chunkIndex?: number): void {
+    if (!this.spriteCache?.length || !this.spriteIndexCache?.length) {
+      return;
     }
     switch (layer) {
       case Layer.TERRAIN: {
-        if (chunkIndex !== undefined) {
+        if (chunkIndex >= 0) {
           this.terrainLayer[chunkIndex].clear();
         } else {
           this.terrainLayer.forEach((layer) => {
@@ -460,7 +607,17 @@ export class Renderer {
         break;
       }
       case Layer.PLANT: {
-        this.plantLayer.removeChildren();
+        if (chunkIndex >= 0) {
+          this.plantLayer[chunkIndex].clear();
+        } else {
+          this.plantLayer.forEach((layer) => {
+            layer.clear();
+          });
+        }
+        break;
+      }
+      case Layer.TREE: {
+        this.treeLayer.removeChildren();
         break;
       }
       case Layer.ENTITY: {

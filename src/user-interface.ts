@@ -1,9 +1,6 @@
-import { Display, KEYS } from "rot-js/lib/index";
-import { Point } from "./point";
+import { KEYS } from "rot-js/lib/index";
 import { Game } from "./game";
 import { MessageLog } from "./message-log";
-import { InputUtility } from "./input-utility";
-import { InitAssets } from "./assets";
 import * as PIXI from "pixi.js";
 import { Layer } from "./renderer";
 import { Camera } from "./camera";
@@ -11,8 +8,6 @@ import { Camera } from "./camera";
 import { ManagerWebComponents } from "./manager-web-components";
 import { isActor } from "./entities/actor";
 import { BiomeId } from "./biomes";
-import { Stages } from "./game-state";
-import { GameSettings } from "./game-settings";
 
 export class UserInterface {
   public application: PIXI.Application<PIXI.ICanvas>;
@@ -118,21 +113,9 @@ export class UserInterface {
     return code === KEYS.VK_RIGHT;
   }
 
-  renderUpdate(): void {
-    // this.textDisplay.clear();
-
-    // this.statusLine.draw();
-    // this.messageLog.draw();
-    this.components.updateTimeControl();
-    // const viewportInTiles = this.camera.viewportUnpadded;
-    // update
-
+  updateSelectionBox(): void {
     // TODO: refactor to selection box to lerp follow the target
-    // TODO: stop clearing entire UI layer and just move the selection box
-    // TODO: allow smaller indicator for smaller grid sizes (i.e. plant layer 8x8)
-    // TODO: total rework.
     if (this.camera.pointerTarget) {
-      this.game.renderer.clearLayer(Layer.UI, true); // clears cache
       if (isActor(this.camera.pointerTarget.target)) {
         this.game.renderer.addToScene(
           this.camera.pointerTarget.target.position,
@@ -147,5 +130,10 @@ export class UserInterface {
         );
       }
     }
+  }
+
+  renderUpdate(): void {
+    this.components.updateTimeControl();
+    this.updateSelectionBox();
   }
 }

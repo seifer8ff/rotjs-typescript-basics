@@ -18,12 +18,12 @@ export class GameSettings {
     },
     spawn: {
       inputs: {
-        treeCount: 50,
-        shrubCount: 250,
+        treeCount: 70,
+        shrubCount: 350,
         mushroomCount: 10,
         cowCount: 20,
-        seagullCount: 25,
-        sharkCount: 15,
+        seagullCount: 13,
+        sharkCount: 8,
       },
     },
     gameSize: {

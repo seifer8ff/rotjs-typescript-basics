@@ -12,6 +12,7 @@ export class GameState {
   // once loading is complete, it's set to false.
   loading: boolean;
   loadingPercent: number;
+  worldSetupComplete: boolean;
 
   constructor() {
     this.reset();

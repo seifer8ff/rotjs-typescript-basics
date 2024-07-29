@@ -5,29 +5,41 @@ import { MapWorld } from "./map-world";
 import { Color as ColorType } from "rot-js/lib/color";
 import { Tile } from "./tile";
 import { Viewport } from "./camera";
-import { multiColorLerp, positionToIndex } from "./misc-utility";
+import {
+  indexToPosition,
+  indexToXY,
+  multiColorLerp,
+  positionToIndex,
+} from "./misc-utility";
 import { Autotile } from "./autotile";
 import { BiomeId } from "./biomes";
 import { LightPhase } from "./map-shadows";
 import { GameSettings } from "./game-settings";
-import { Layer } from "./renderer";
+import { Layer, Renderable } from "./renderer";
+import { Point } from "./point";
+import { Actor } from "./entities/actor";
 
-export const ImpassibleLightBorder: BiomeId[] = [
+export const BlockLight: BiomeId[] = [
   "hillslow",
   "hillsmid",
   "hillshigh",
+  "grass",
 ];
+export const ReflectWaterLight: BiomeId[] = ["ocean", "oceandeep", "swamp"];
+export const ReflectDirtLight: BiomeId[] = ["sandydirt", "beach"];
+export const ShadowLight: BiomeId[] = ["grass", "valley"];
 
 export type RGBAColor = [number, number, number, number]; // r,g,b,a [255, 255, 255, 1]
 
 export class LightManager {
-  public lightMap: ColorType[]; // x,y -> rgb color array
-  public readonly lightDefaults: { [key: string]: ColorType };
+  public lightMap: ColorType[]; // final color of tile, taking into account all light sources
+  private dynamicLightMap: ColorType[]; // x,y -> rgb color array
+  private readonly lightDefaults: { [key: string]: ColorType };
   private lightingFov: PreciseShadowcasting;
-  public lightEmitters: Lighting;
+  private lightEmitters: Lighting;
   private lightEmitterById: { [id: string]: [number, number] };
-  public ambientLight: ColorType;
-  public targetAmbientLight: ColorType;
+  private ambientLight: ColorType;
+  private targetAmbientLight: ColorType;
 
   constructor(private game: Game, private map: MapWorld) {
     this.lightDefaults = {
@@ -52,17 +64,20 @@ export class LightManager {
       shadowSunset: [200, 60, 40],
       shadowSunrise: [30, 30, 42], // blue
     };
-    this.lightMap = [];
+    this.dynamicLightMap = [];
     this.lightEmitterById = {};
   }
 
   public init() {
+    this.dynamicLightMap = [];
     this.lightMap = [];
     this.lightEmitterById = {};
-    this.interpolateAmbientLight(false); // initial
-    this.interpolateAmbientLight(true); // target
 
-    this.interpolateLightState();
+    this.calculateAmbientLight(false); // calculate initial ambient light
+    this.calculateAmbientLight(true); // calculate target ambient light
+    this.interpolateAmbientLight(); // interpolate between them based on time of day
+
+    // dynamic lighting setup
     this.lightingFov = new PreciseShadowcasting(this.lightPasses.bind(this), {
       topology: 8,
     });
@@ -73,11 +88,10 @@ export class LightManager {
     this.lightEmitters.setFOV(this.lightingFov);
 
     this.lightEmitters.compute(this.lightingCallback.bind(this));
-    this.ambientLight = this.lightDefaults.ambientDaylight;
-    console.log("lightMap", this.lightMap);
+    this.clearLightMap(); // set to ambient light
   }
 
-  public interpolateAmbientLight(calculateTarget = true) {
+  public calculateAmbientLight(calculateTarget = true) {
     if (!GameSettings.options.toggles.enableGlobalLights) {
       return;
     }
@@ -154,8 +168,18 @@ export class LightManager {
     return true;
   }
 
+  public clearDynamicLightMap() {
+    this.dynamicLightMap = [];
+  }
+
   public clearLightMap() {
-    this.lightMap = [];
+    let posIndex = -1;
+    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
+      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
+        posIndex = positionToIndex(i, j, Layer.TERRAIN);
+        this.lightMap[posIndex] = this.ambientLight;
+      }
+    }
   }
 
   public reflectivity(x: number, y: number) {
@@ -164,15 +188,10 @@ export class LightManager {
     if (!biome) {
       return 0;
     }
-    const isBlocking =
-      biome.id == "hillsmid" ||
-      biome.id == "hillslow" ||
-      biome.id == "hillshigh" ||
-      biome.id == "grass";
-    const isWater =
-      biome.id == "ocean" || biome.id == "oceandeep" || biome.id == "swamp";
-    const isReflectiveDirt = biome.id == "sandydirt" || biome.id == "beach";
-    const isShadowed = biome.id == "grass" || biome.id == "valley";
+    const isBlocking = BlockLight.includes(biome.id);
+    const isWater = ReflectWaterLight.includes(biome.id);
+    const isReflectiveDirt = ReflectDirtLight.includes(biome.id);
+    const isShadowed = ShadowLight.includes(biome.id);
     if (isBlocking) {
       return 0;
     }
@@ -190,11 +209,11 @@ export class LightManager {
 
   public lightingCallback(x: number, y: number, color: ColorType) {
     if (this.game.userInterface.camera.inViewport(x, y)) {
-      this.lightMap[positionToIndex(x, y, Layer.TERRAIN)] = color;
+      this.dynamicLightMap[positionToIndex(x, y, Layer.TERRAIN)] = color;
     }
   }
 
-  public interpolateLightState() {
+  public interpolateAmbientLight() {
     if (!GameSettings.options.toggles.enableGlobalLights) {
       return;
     }
@@ -208,9 +227,43 @@ export class LightManager {
     );
   }
 
+  public turnUpdate() {
+    this.clearDynamicLightMap();
+    this.calculateAmbientLight();
+  }
+
   public renderUpdate(interpPercent: number) {
     // Interpolate the light state before computing the lighting
-    this.interpolateLightState();
+    this.interpolateAmbientLight();
+    this.calculateLightMap();
+  }
+
+  public tintActors(
+    objs: Actor[],
+    highlight: boolean = false,
+    layer: Layer = Layer.TERRAIN
+  ) {
+    if (GameSettings.shouldTint()) {
+      for (let i = 0; i < objs.length; i++) {
+        const obj = objs[i];
+        if (!obj?.sprite) {
+          console.log("no sprite to tint for obj:", obj);
+          continue;
+        }
+        let translatedX = Tile.translate(obj.position.x, layer, Layer.TERRAIN);
+        let translatedY = Tile.translate(obj.position.y, layer, Layer.TERRAIN);
+        let colorArray = this.game.map.lightManager.getLightFor(
+          translatedX,
+          translatedY,
+          highlight
+        );
+        if (colorArray) {
+          let tint = Color.toHex(colorArray);
+          // tint the obj
+          this.game.renderer.tintObjectWithChildren(obj.sprite, tint);
+        }
+      }
+    }
   }
 
   public recalculateDynamicLighting() {
@@ -277,7 +330,52 @@ export class LightManager {
     }
   }
 
-  public getLightColorFor(
+  public calculateLightMap() {
+    const lightMap = this.dynamicLightMap;
+    const sunMap = this.map.shadowMap.shadowMap;
+    const occlusionMap = this.map.shadowMap.occlusionMap;
+    const cloudMap = this.map.cloudMap.cloudMap;
+    const viewportTiles = this.game.userInterface.camera.viewportTilesPadded;
+    let pos: [number, number];
+
+    // this.finalLightMap = [];
+    viewportTiles.forEach((posIndex) => {
+      // console.throttle(500).log("posIndex", posIndex);
+      pos = indexToXY(posIndex, Layer.TERRAIN);
+      this.lightMap[posIndex] = this.calculateLightFor(
+        pos[0],
+        pos[1],
+        lightMap,
+        sunMap,
+        occlusionMap,
+        cloudMap,
+        false
+      );
+    });
+  }
+
+  public getLightFor(
+    x: number,
+    y: number,
+    highlight: boolean = false
+  ): ColorType {
+    let light = this.lightMap[positionToIndex(x, y, Layer.TERRAIN)];
+    if (light && highlight) {
+      light = Color.interpolate(light, this.lightDefaults.fullLight, 0.4);
+    }
+    return light;
+  }
+
+  public getRGBALightFor(
+    x: number,
+    y: number,
+    highlight: boolean = false
+  ): RGBAColor {
+    let light = this.getLightFor(x, y, highlight);
+    return [light[0], light[1], light[2], 1];
+  }
+
+  public calculateLightFor(
     x: number,
     y: number,
     lightMap: ColorType[] = null, // x,y -> color based on light sources

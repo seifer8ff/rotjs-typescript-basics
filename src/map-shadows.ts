@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { LightManager } from "./light-manager";
-import { keyToIndex, lerp, positionToIndex } from "./misc-utility";
+import { lerp, positionToIndex } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { Point } from "./point";
 import { GameSettings } from "./game-settings";
@@ -336,13 +336,14 @@ export class MapShadows {
     this.shadowStrength = Math.round(shadowStrength * 1000) / 1000;
   }
 
-  public interpolateShadowState(keys: string[]) {
+  public interpolateShadowState(tileIndexes: number[]) {
     // smoothly transition between shadowMap and targetShadowMap over time
     let val: number;
     const progress = this.game.timeManager.turnAnimTimePercent;
     // console.log(progress);
-    for (let i = 0; i < keys.length; i++) {
-      const index = keyToIndex(keys[i], Layer.TERRAIN);
+    let index: number;
+    for (let i = 0; i < tileIndexes.length; i++) {
+      index = tileIndexes[i];
       val = lerp(progress, this.shadowMap[index], this.targetShadowMap[index]);
       this.shadowMap[index] = val;
     }

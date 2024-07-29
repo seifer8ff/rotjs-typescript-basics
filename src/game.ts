@@ -14,7 +14,6 @@ import Noise from "rot-js/lib/noise/noise";
 import { ManagerAnimation } from "./manager-animation";
 import { Ticker } from "pixi.js";
 import * as MainLoop from "mainloop.js";
-import GameStats from "gamestats.js";
 
 import { InitAssets } from "./assets";
 import { GameSettings } from "./game-settings";
@@ -149,6 +148,7 @@ export class Game {
     this.map.moistureMap.init();
     this.map.shadowMap.init();
     this.map.lightManager.init();
+    this.renderer.init();
     this.gameState.reset();
   }
 
@@ -158,7 +158,6 @@ export class Game {
       GameSettings.options.gameSize.width,
       GameSettings.options.gameSize.height
     );
-    await this.actorManager.addInitialActors();
     return true;
   }
 
@@ -176,12 +175,26 @@ export class Game {
     }
   }
 
+  private worldSetup(): void {
+    // any initialization that requires the real game loop:
+    //    things like actors moving, tinting of tiles, etc
+    this.actorManager.addInitialActors();
+    for (let i = 0; i < 2; i++) {
+      this.gameLoop();
+    }
+    this.gameState.worldSetupComplete = true;
+  }
+
   private mainLoop(deltaTime: number) {
-    // if (!this.timeManager.isPaused) {
     this.ticker.update(performance.now());
-    // }
 
     if (this.gameState.stage === Stages.Play) {
+      if (!this.gameState.worldSetupComplete) {
+        // let a few turns pass, do any world setup needed
+        this.worldSetup();
+        return;
+      }
+
       // handle counting down wait time after a turn (like for animation)
       if (this.turnAnimDelay > 0 && !this.timeManager.isPaused) {
         this.turnAnimDelay -= deltaTime * this.timeManager.timeScale;
@@ -232,21 +245,39 @@ export class Game {
         })
       );
       // console.log("promises done");
-      this.drawEntities();
-      this.map.lightManager.clearLightMap();
-      this.map.lightManager.interpolateAmbientLight();
+      // clear cache for dynamic layers:
+      // - terrain layer's cache is handled at lower level by marking tiles as dirty
+      // - entity layer's cache is handled at lower level to allow lerp animations
+      this.renderer.clearCache(Layer.PLANT);
+      this.renderer.clearCache(Layer.TREE);
+      // this.renderer.clearCache(Layer.UI);
+
+      this.map.lightManager.turnUpdate();
       this.map.shadowMap.turnUpdate();
       this.map.cloudMap.turnUpdate();
+
       // update dynamic lights after all actors have moved
       // will get picked up in next render
       this.map.lightManager.clearChangedDynamicLights();
       this.map.lightManager.updateDynamicLighting();
       this.map.lightManager.recalculateDynamicLighting();
+
+      // update cache for entities and plants
+      this.drawEntities();
+      this.drawPlants();
+      //
+      // important that this comes last
+      // run a tint pass on all actors (entities, trees, etc)
+      this.map.lightManager.tintActors(this.actorManager.allActors, true);
+      this.map.lightManager.tintActors(
+        this.actorManager.trees,
+        false,
+        Layer.TREE
+      );
     });
   }
 
   private drawPlants(): void {
-    this.renderer.clearLayer(Layer.PLANT, true);
     for (let tree of this.actorManager.trees) {
       tree.draw();
     }
@@ -256,7 +287,7 @@ export class Game {
   }
 
   private drawEntities(): void {
-    // this.game.renderer.clearLayer(Layer.ENTITY, true);
+    // this.renderer.clearSceneLayer(Layer.ENTITY);
     for (let actor of this.actorManager.actors) {
       actor.draw();
     }
@@ -266,6 +297,7 @@ export class Game {
     if (GameSettings.options.toggles.enableStats) {
       this.settings.stats?.begin();
     }
+    this.renderer.clearCache(Layer.UI); // clear UI cache during render since it updates outside of game loop
 
     this.map.draw();
 
@@ -276,35 +308,15 @@ export class Game {
 
       if (GameSettings.options.toggles.enableShadows) {
         this.map.shadowMap.renderUpdate(interpPercent);
-        // this.scheduler.postTask(
-        //   () => this.map.shadowMap.renderUpdate(interpPercent),
-        //   {
-        //     priority: "user-blocking",
-        //   }
-        // );
       }
 
       if (GameSettings.options.toggles.enableClouds) {
         this.map.cloudMap.renderUpdate(interpPercent);
-        // this.scheduler.postTask(
-        //   () => this.map.cloudMap.renderUpdate(interpPercent),
-        //   {
-        //     priority: "user-blocking",
-        //   }
-        // );
       }
 
       if (GameSettings.options.toggles.enableGlobalLights) {
         this.map.lightManager.renderUpdate(interpPercent);
-        // this.scheduler.postTask(
-        //   () => this.map.lightManager.renderUpdate(interpPercent),
-        //   {
-        //     priority: "user-blocking",
-        //   }
-        // );
       }
-
-      this.drawPlants();
 
       if (GameSettings.options.toggles.enableAnimations) {
         this.animManager.animUpdate(); // no deltaTime needed as this uses the gameDelay timing for animation
@@ -312,13 +324,7 @@ export class Game {
     }
 
     this.userInterface.renderUpdate();
-
-    this.scheduler.postTask(
-      () => this.userInterface.components.renderUpdate(),
-      {
-        priority: "user-visible",
-      }
-    );
+    this.userInterface.components.renderUpdate();
 
     if (this.gameState.stage === Stages.Play) {
       let viewportInTiles = this.userInterface.camera.viewportPadded;
@@ -330,7 +336,7 @@ export class Game {
       );
       viewportInTiles = this.userInterface.camera.viewportUnpadded;
       this.renderer.renderChunkedLayers(
-        [Layer.UI, Layer.PLANT, Layer.ENTITY],
+        [Layer.UI, Layer.PLANT, Layer.ENTITY, Layer.TREE, Layer.UI],
         viewportInTiles.width,
         viewportInTiles.height,
         viewportInTiles.center

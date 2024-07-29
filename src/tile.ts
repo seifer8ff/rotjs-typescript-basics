@@ -43,9 +43,12 @@ export interface Tileset {
 }
 
 export class Tile {
+  private static currentId = 0;
+
   static readonly size = 32;
-  static readonly plantSize = 8;
+  static readonly denseSize = 8;
   static readonly terrainTilePixelSize = 16; // actual pixel size of each terrain tile on disk
+  static readonly tileDensityRatio = Tile.size / Tile.denseSize;
   static readonly player = new Tile(
     TileType.Player,
     "human_00",
@@ -100,7 +103,9 @@ export class Tile {
   );
 
   static Tilesets: Tileset = {};
+  static tiles: Tile[] = []; // all tiles, indexed by their unique id
   // sprite: Sprite | AnimatedSprite | Graphics;
+  public readonly id: number;
 
   constructor(
     public readonly type: TileType,
@@ -111,6 +116,7 @@ export class Tile {
     // public readonly animated: boolean = false,
     public readonly biomeId?: BiomeId
   ) {
+    this.id = Tile.currentId++;
     // if (animated) {
     //   const animations = Assets.cache.get(this.spritePath).data.frames;
     //   const animKeys = Object.keys(animations).sort();
@@ -127,15 +133,18 @@ export class Tile {
   public static translatePoint(position: Point, from: Layer, to: Layer): Point {
     if (from === to) return position;
 
-    const ratio = Tile.size / Tile.plantSize;
-    if (from === Layer.PLANT) {
+    if (from === Layer.PLANT || from === Layer.TREE) {
       return new Point(
-        Math.floor(position.x / ratio),
-        Math.floor(position.y / ratio)
+        Math.floor(position.x / Tile.tileDensityRatio),
+        Math.floor(position.y / Tile.tileDensityRatio)
       );
-    } else if (to === Layer.PLANT) {
-      return new Point(position.x * ratio, position.y * ratio);
+    } else if (to === Layer.PLANT || to === Layer.TREE) {
+      return new Point(
+        position.x * Tile.tileDensityRatio,
+        position.y * Tile.tileDensityRatio
+      );
     }
+    return position;
   }
 
   // translate x or y position from one layer to another
@@ -146,12 +155,12 @@ export class Tile {
   ): number {
     if (from === to) return positionParameter;
 
-    const ratio = Tile.size / Tile.plantSize;
-    if (from === Layer.PLANT) {
-      return positionParameter / ratio;
-    } else if (to === Layer.PLANT) {
-      return positionParameter * ratio;
+    if (from === Layer.PLANT || from === Layer.TREE) {
+      return Math.floor(positionParameter / Tile.tileDensityRatio);
+    } else if (to === Layer.PLANT || to === Layer.TREE) {
+      return Math.floor(positionParameter * Tile.tileDensityRatio);
     }
+    return Math.floor(positionParameter);
   }
 
   public static getDescription(target: PointerTarget): DescriptionBlock[] {

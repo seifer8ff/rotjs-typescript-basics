@@ -8,7 +8,12 @@ import { InputUtility } from "./input-utility";
 import TinyGesture from "tinygesture";
 import { Actor, isActor } from "./entities/actor";
 import { Layer } from "./renderer";
-import { lerp, lerpEaseInOut } from "./misc-utility";
+import {
+  indexToPosition,
+  lerp,
+  lerpEaseInOut,
+  positionToIndex,
+} from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { TileStats } from "./web-components/tile-info";
 import { Stages } from "./game-state";
@@ -29,8 +34,8 @@ export interface PointerTarget {
 export class Camera {
   public viewportPadded: Viewport;
   public viewportUnpadded: Viewport;
-  public viewportTilesPadded: string[];
-  public viewportTilesUnpadded: string[];
+  public viewportTilesPadded: number[];
+  public viewportTilesUnpadded: number[];
   public viewportTarget: Point | Actor;
   public pointerTarget: PointerTarget;
   private currentZoom: number;
@@ -213,12 +218,11 @@ export class Camera {
     y: number,
     layer: Layer = Layer.TERRAIN
   ): Point {
-    let screenPoint = new Point(x * Tile.size, y * Tile.size);
-    if (layer === Layer.PLANT) {
-      screenPoint.x = Tile.translate(x, Layer.PLANT, Layer.TERRAIN);
-      screenPoint.y = Tile.translate(y, Layer.PLANT, Layer.TERRAIN);
+    let tileSize = Tile.size;
+    if (layer === Layer.PLANT || layer === Layer.TREE) {
+      tileSize = Tile.denseSize;
     }
-    return screenPoint;
+    return new Point(x * tileSize, y * tileSize);
   }
 
   public setViewportZoom(stage: PIXI.Container, newZoom: number) {
@@ -316,16 +320,16 @@ export class Camera {
     return true;
   }
 
-  private getViewportTiles(pad: boolean = false): string[] {
+  private getViewportTiles(pad: boolean = false): number[] {
     const { width, height, center } = pad
       ? this.viewportPadded
       : this.viewportUnpadded;
-    const tiles = [];
+    const tiles: number[] = [];
     const halfWidth = Math.ceil(width / 2); // include any partial tiles
     const halfHeight = Math.ceil(height / 2);
     for (let x = center.x - halfWidth; x < center.x + halfWidth; x++) {
       for (let y = center.y - halfHeight; y < center.y + halfHeight; y++) {
-        tiles.push(`${x},${y}`);
+        tiles.push(positionToIndex(x, y, Layer.TERRAIN));
       }
     }
     return tiles;
@@ -616,9 +620,10 @@ export class Camera {
     this.viewportTilesUnpadded = this.getViewportTiles(false);
 
     const enteredTiles: Point[] = [];
-    for (const tileKey of this.viewportTilesUnpadded) {
-      if (!oldTiles.has(tileKey)) {
-        const point = MapWorld.keyToPoint(tileKey);
+    let point: Point;
+    for (const tileIndex of this.viewportTilesUnpadded) {
+      if (!oldTiles.has(tileIndex)) {
+        point = indexToPosition(tileIndex, Layer.TERRAIN);
         if (this.game.map.isPointInMap(point)) {
           enteredTiles.push(point);
         }
