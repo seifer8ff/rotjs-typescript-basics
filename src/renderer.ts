@@ -38,7 +38,7 @@ export class Renderer {
   public treeLayer = new PIXI.Container();
   public entityLayer = new PIXI.Container();
   public uiLayer = new PIXI.Container();
-  private spriteCache: (Renderable | undefined)[] = [];
+  private spriteCache: Map<number, Renderable> = new Map();
   private spriteIndexCache: Int32Array = new Int32Array(0);
 
   constructor(private game: Game) {
@@ -65,7 +65,6 @@ export class Renderer {
   public init(): void {
     this.clearScene();
     this.clearCache();
-    this.spriteCache = [];
     const layerCount = Layer.UI + 1;
     let layerSize =
       GameSettings.options.gameSize.width *
@@ -178,7 +177,7 @@ export class Renderer {
         break;
       }
       case Layer.GROUNDFX: {
-        displayObj = this.spriteCache[index];
+        displayObj = this.spriteCache.get(index);
         if (!displayObj) {
           return;
         }
@@ -208,7 +207,7 @@ export class Renderer {
         break;
       }
       case Layer.TREE: {
-        displayObj = this.spriteCache[index];
+        displayObj = this.spriteCache.get(index);
         if (!displayObj) {
           return;
         }
@@ -218,7 +217,7 @@ export class Renderer {
         break;
       }
       case Layer.ENTITY: {
-        displayObj = this.spriteCache[index];
+        displayObj = this.spriteCache.get(index);
         if (!displayObj) {
           return;
         }
@@ -226,7 +225,7 @@ export class Renderer {
         break;
       }
       case Layer.UI: {
-        displayObj = this.spriteCache[index];
+        displayObj = this.spriteCache.get(index);
         if (!displayObj) {
           return;
         }
@@ -358,7 +357,7 @@ export class Renderer {
     }
 
     let index = positionToIndex(position.x, position.y, layer);
-    this.spriteCache[index] = displayObj;
+    this.spriteCache.set(index, displayObj);
   }
 
   addTileIdToScene(position: Point, layer: Layer, tileId: number): void {
@@ -385,16 +384,15 @@ export class Renderer {
   updateSpriteCachePosition(oldPos: Point, newPos: Point, layer: Layer): void {
     const newIndex = positionToIndex(newPos.x, newPos.y, layer);
     const oldIndex = positionToIndex(oldPos.x, oldPos.y, layer);
-    this.spriteCache[newIndex] = this.spriteCache[oldIndex];
-    this.spriteCache[oldIndex] = null;
+    this.spriteCache.set(newIndex, this.spriteCache.get(oldIndex));
+    this.spriteCache.delete(oldIndex);
   }
 
   // remove the sprite from the cache and from the scene, immediately
   removeFromScene(tileIndex: number, layer: Layer): void {
     let cachedObj: Renderable;
-    cachedObj = this.spriteCache[tileIndex];
-    // remove from spriteByPos
-    this.spriteCache[tileIndex] = undefined;
+    cachedObj = this.spriteCache.get(tileIndex);
+    this.spriteCache.delete(tileIndex);
     if (typeof cachedObj === "string") {
       return;
     }
@@ -416,22 +414,9 @@ export class Renderer {
   }
 
   removeFromCache(tilePos: Point, layer: Layer): void {
-    // set to null rather than removing the index
-    // to prevent shifting all of the indexes
-    this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)] = null;
+    this.spriteCache.delete(positionToIndex(tilePos.x, tilePos.y, layer));
   }
 
-  //
-  // NEXT PERF IMPROVEMENT:
-  // spriteCache is too large of an array on large worlds
-  // same with spriteIndexCache
-  // need to somehow reduce this- maybe an array per layer?
-  // maybe auto chunking when index is over a certain size?
-  //
-
-  // old:
-  // MOVE TO KEEPING A LIST OF SPARSE LAYERS AND JUST CLEARING THOSE INDICES
-  // THIS WILL DRASTICALLY IMPROVE PERF
   clearCache(layer?: Layer): void {
     if (layer) {
       const width = GameSettings.options.gameSize.width;
@@ -442,133 +427,19 @@ export class Renderer {
       const start = (layer - 1) * totalTiles;
       const end = layer * totalTiles;
       if (layer === Layer.TERRAIN || layer === Layer.PLANT) {
-        // only clear the spriteIndexCache for tileMap layers
+        // terrain and plant layers are tilemaps and use the spriteIndexCache
         this.spriteIndexCache.fill(-1, start, end);
       } else {
-        this.spriteCache.fill(null, start, end);
-        // // Start at the minimum of 'start' or the first defined index if 'start' is out of bounds
-        // const effectiveStart = Math.max(start, 0);
-        // // End at the minimum of 'end' or the last index of the array
-        // const effectiveEnd = Math.min(end, this.spriteCache.length - 1);
-
-        // // TODO: just switch the sprite cache to a simple list, with position and sprite or something.
-        // // that prevents needing to iterate through entire array every frame
-
-        // for (let i = effectiveStart; i <= effectiveEnd; i++) {
-        //   if (this.spriteCache[i] !== undefined) {
-        //     this.spriteCache[i] = null;
-        //   }
-        // }
+        for (const [key, value] of this.spriteCache) {
+          if (key >= start && key < end) {
+            this.spriteCache.delete(key);
+          }
+        }
       }
     } else if (!layer) {
       this.clearCache(Layer.PLANT);
       this.clearCache(Layer.TREE);
       this.clearCache(Layer.UI);
-    }
-  }
-
-  // clearCache(layer?: Layer): void {
-  //   if (layer) {
-  //     const width = GameSettings.options.gameSize.width;
-  //     const height = GameSettings.options.gameSize.height;
-  //     const widthInTiles = width * Tile.tileDensityRatio;
-  //     const heightInTiles = height * Tile.tileDensityRatio;
-  //     const totalTiles = widthInTiles * heightInTiles;
-  //     const start = (layer - 1) * totalTiles;
-  //     const end = layer * totalTiles;
-  //     this.spriteIndexCache.fill(-1, start, end);
-
-  //     // special method of copying and clearing the array
-  //     // this is faster than any other method of clearing the array so far
-  //     for (let i = start; i < length - totalTiles; i++) {
-  //       this.spriteCache[i] = this.spriteCache[i + totalTiles];
-  //     }
-  //     // Adjust the length of the array to remove the duplicate elements at the end
-  //     if (this.spriteCache.length > totalTiles) {
-  //       this.spriteCache.length -= totalTiles;
-  //     }
-  //   } else if (!layer) {
-  //     this.clearCache(Layer.PLANT);
-  //     this.clearCache(Layer.TREE);
-  //     this.clearCache(Layer.UI);
-  //   }
-  // }
-
-  clearCacheViewport(
-    width: number,
-    height: number,
-    viewportCenterTile: Point,
-    layer?: Layer
-  ): void {
-    if (layer) {
-      // if (layer === Layer.TERRAIN || layer === Layer.PLANT) {
-      //   return;
-      // }
-
-      let right: number;
-      let bottom: number;
-      let left: number;
-      let top: number;
-      let ratio: number = 1; // most layers are the default Tile.size
-      let viewportCenterX = viewportCenterTile.x;
-      let viewportCenterY = viewportCenterTile.y;
-      let index = -1;
-      let gameWidth = GameSettings.options.gameSize.width;
-      let gameHeight = GameSettings.options.gameSize.height;
-
-      if (layer === Layer.PLANT || layer === Layer.TREE) {
-        ratio = Tile.tileDensityRatio;
-        viewportCenterX = Tile.translate(
-          viewportCenterX,
-          Layer.TERRAIN,
-          Layer.PLANT
-        );
-        viewportCenterY = Tile.translate(
-          viewportCenterY,
-          Layer.TERRAIN,
-          Layer.PLANT
-        );
-      } else {
-        ratio = 1;
-        viewportCenterX = viewportCenterX;
-        viewportCenterY = viewportCenterY;
-      }
-
-      gameWidth = GameSettings.options.gameSize.width * ratio;
-      gameHeight = GameSettings.options.gameSize.height * ratio;
-
-      right = Math.ceil(viewportCenterX + (width / 2) * ratio);
-      bottom = Math.ceil(viewportCenterY + (height / 2) * ratio);
-      left = Math.ceil(viewportCenterX - (width / 2) * ratio);
-      top = Math.ceil(viewportCenterY - (height / 2) * ratio);
-
-      right = Math.max(Math.min(gameWidth, right), 0);
-      bottom = Math.max(Math.min(gameHeight, bottom), 0);
-      left = Math.min(right, Math.max(0, left));
-      top = Math.min(bottom, Math.max(0, top));
-
-      // console.log(
-      //   "clearing viewport",
-      //   left - right,
-      //   (left - right) * (top - bottom)
-      // );
-
-      for (let x = left; x < right; x++) {
-        for (let y = top; y < bottom; y++) {
-          index = positionToIndex(x, y, layer);
-          // if (index < 0) {
-          //   // invalid index returned
-          //   continue;
-          // }
-          // if (layer !== Layer.TERRAIN && layer !== Layer.PLANT) {
-          this.spriteCache[index] = null;
-          // this.spriteCache[index] = this.spriteCache.length - 1;
-          // this.spriteCache.length -= 1;
-          this.spriteIndexCache[index] = -1;
-          // }
-        }
-      }
-    } else if (!layer) {
     }
   }
 
@@ -588,9 +459,6 @@ export class Renderer {
   }
 
   clearSceneLayer(layer: Layer, chunkIndex?: number): void {
-    if (!this.spriteCache?.length || !this.spriteIndexCache?.length) {
-      return;
-    }
     switch (layer) {
       case Layer.TERRAIN: {
         if (chunkIndex >= 0) {
@@ -637,8 +505,9 @@ export class Renderer {
     y: number
   ): void {
     const tilePos = MapWorld.keyToPoint(tileKey);
-    const sprite =
-      this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)];
+    const sprite = this.spriteCache.get(
+      positionToIndex(tilePos.x, tilePos.y, layer)
+    );
     if (sprite && typeof sprite !== "string") {
       sprite.transform.position.x = x;
       sprite.transform.position.y = y;
@@ -646,8 +515,9 @@ export class Renderer {
   }
 
   getSpriteTransformPosition(tilePos: Point, layer: Layer): Point {
-    const sprite =
-      this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)];
+    const sprite = this.spriteCache.get(
+      positionToIndex(tilePos.x, tilePos.y, layer)
+    );
     if (sprite && typeof sprite !== "string") {
       return new Point(
         sprite.transform.position.x,
@@ -658,6 +528,6 @@ export class Renderer {
   }
 
   getFromCache(tilePos: Point, layer: Layer): Renderable {
-    return this.spriteCache[positionToIndex(tilePos.x, tilePos.y, layer)];
+    return this.spriteCache.get(positionToIndex(tilePos.x, tilePos.y, layer));
   }
 }
