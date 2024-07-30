@@ -45,17 +45,17 @@ export const TempMap = {
 
 export class MapTemperature {
   public lightManager: LightManager;
-  public tempMap: { [key: string]: number };
+  public tempMap: Map<number, number>;
   public temperatureScale: number;
   private tempNoise: Simplex;
 
   constructor(private game: Game, private map: MapWorld) {
-    this.tempMap = {};
+    this.tempMap = new Map();
     this.temperatureScale = 1.5;
   }
 
   public init() {
-    this.tempMap = {};
+    this.tempMap = new Map();
   }
 
   public generateInitialTemp(
@@ -65,11 +65,10 @@ export class MapTemperature {
     height: number,
     noise: Noise
   ): number {
-    const key = MapWorld.coordsToKey(x, y);
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const terrainHeight = this.map.heightMap.get(index);
     const terrainAboveSeaLevel = this.map.seaLevel - terrainHeight;
-    const magnetism = this.map.polesMap.magnetismMap[key];
+    const magnetism = this.map.polesMap.getMagnetism(x, y);
     let heightModifier = terrainHeight;
     // higher terrain is colder
     if (terrainHeight > Biomes.Biomes.hillsmid.generationOptions.height.min) {
@@ -100,17 +99,27 @@ export class MapTemperature {
     // reduce temp at high magnetism
     noiseValue -= magnetism;
     noiseValue = normalizeNoise(noiseValue * this.temperatureScale);
-    this.tempMap[key] = noiseValue;
-    return this.tempMap[key];
+    this.tempMap.set(index, noiseValue);
+    return this.tempMap.get(index);
   }
 
   setTemp(x: number, y: number, temp: number): void {
-    this.tempMap[MapWorld.coordsToKey(x, y)] = temp;
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    this.tempMap.set(index, temp);
+  }
+
+  getTemp(x: number, y: number): number {
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    return this.tempMap.get(index);
+  }
+
+  getTempByIndex(index: number): number {
+    return this.tempMap.get(index);
   }
 
   getCurrentClimate(x: number, y: number): Climates {
-    const key = MapWorld.coordsToKey(x, y);
-    const temp = this.tempMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const temp = this.tempMap.get(index);
     for (let climate in TempMap) {
       const range = TempMap[climate];
       if (temp >= range.min && temp <= range.max) {

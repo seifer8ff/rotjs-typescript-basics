@@ -78,13 +78,12 @@ export class Biomes {
     x: number,
     y: number,
     maps: {
-      height: ValueMap;
-      temperature: { [key: string]: number };
-      moisture: { [key: string]: number };
+      height: Map<number, number>;
+      temperature: Map<number, number>;
+      moisture: Map<number, number>;
     },
     generationOptions: GenerationOptions
   ): boolean {
-    const key = MapWorld.coordsToKey(x, y);
     const index = positionToIndex(x, y, Layer.TERRAIN);
     // loop through values in GenerationOptions
     if (generationOptions.height) {
@@ -93,13 +92,18 @@ export class Biomes {
       }
     }
     if (generationOptions.moisture) {
-      if (!Biomes.inRangeOf(maps.moisture[key], generationOptions.moisture)) {
+      if (
+        !Biomes.inRangeOf(maps.moisture.get(index), generationOptions.moisture)
+      ) {
         return false;
       }
     }
     if (generationOptions.temperature) {
       if (
-        !Biomes.inRangeOf(maps.temperature[key], generationOptions.temperature)
+        !Biomes.inRangeOf(
+          maps.temperature.get(index),
+          generationOptions.temperature
+        )
       ) {
         return false;
       }

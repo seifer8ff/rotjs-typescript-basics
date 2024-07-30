@@ -251,10 +251,7 @@ export class MapWorld {
       for (let y = 0; y < height; y++) {
         index = positionToIndex(x, y, Layer.TERRAIN);
         if (x == 95 && y == 91) {
-          console.log(
-            "temp for 95,91",
-            this.tempMap.tempMap[MapWorld.coordsToKey(x, y)]
-          );
+          console.log("temp for 95,91", this.tempMap.getTempByIndex(index));
           console.log("height for 95,91", this.heightMap.get(index));
           console.log("biome for 95,91", this.biomeMap.get(index));
         }
@@ -478,20 +475,20 @@ export class MapWorld {
   }
 
   private shiftTemperature(x: number, y: number, newBiome: Biome) {
-    const key = MapWorld.coordsToKey(x, y);
-    const temp = this.tempMap.tempMap[key];
-    this.tempMap.tempMap[key] = Biomes.shiftToBiome(
-      temp,
-      newBiome.generationOptions.temperature
+    const temp = this.tempMap.getTemp(x, y);
+    this.tempMap.setTemp(
+      x,
+      y,
+      Biomes.shiftToBiome(temp, newBiome.generationOptions.temperature)
     );
   }
 
   private shiftMoisture(x: number, y: number, newBiome: Biome) {
-    const key = MapWorld.coordsToKey(x, y);
-    const moisture = this.moistureMap.moistureMap[key];
-    this.moistureMap.moistureMap[key] = Biomes.shiftToBiome(
-      moisture,
-      newBiome.generationOptions.moisture
+    const moisture = this.moistureMap.getMoisture(x, y);
+    this.moistureMap.setMoisture(
+      x,
+      y,
+      Biomes.shiftToBiome(moisture, newBiome.generationOptions.moisture)
     );
   }
 
@@ -546,15 +543,13 @@ export class MapWorld {
   }
 
   private addTemperatureFeatures(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const terrain = this.terrainMap.get(index);
     const height = this.heightMap.get(index);
-    const temp = this.tempMap.tempMap[key];
-    const moisture = this.moistureMap.moistureMap[key];
-    // const biome = this.biomeMap[key];
+    const temp = this.tempMap.getTempByIndex(index);
+    const moisture = this.moistureMap.getMoisture(x, y);
     const biome = this.biomeMap.get(index);
-    const adjacentBiomes = this.biomeAdjacencyD2Map[key];
+    const adjacentBiomes = this.biomeAdjacencyD2Map[index];
 
     // if (biome.id == Biomes.Biomes.snowydirt.id) {
     //   if (

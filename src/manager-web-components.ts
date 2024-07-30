@@ -372,12 +372,12 @@ export class ManagerWebComponents {
       () => this.game.map.moistureMap.moistureMap
     );
 
-    // this.overlay.generateOverlay(
-    //   GameSettings.options.gameSize.width,
-    //   GameSettings.options.gameSize.height,
-    //   "Height",
-    //   () => this.game.map.heightMap
-    // );
+    this.overlay.generateOverlay(
+      GameSettings.options.gameSize.width,
+      GameSettings.options.gameSize.height,
+      "Height",
+      () => this.game.map.heightMap
+    );
 
     // this.overlay.generateOverlay(
     //   GameSettings.options.gameSize.width,

@@ -18,6 +18,7 @@ import * as MainLoop from "mainloop.js";
 import { InitAssets } from "./assets";
 import { GameSettings } from "./game-settings";
 import { ManagerActors } from "./manager-actors";
+import { positionToIndex } from "./misc-utility";
 
 export class Game {
   public settings: GameSettings;
@@ -131,13 +132,14 @@ export class Game {
   }
 
   getTileInfoAt(x: number, y: number): TileStats {
+    const index = positionToIndex(x, y, Layer.TERRAIN);
     return {
-      height: this.map.heightMap[MapWorld.coordsToKey(x, y)],
-      magnetism: this.map.polesMap.magnetismMap[MapWorld.coordsToKey(x, y)],
-      temperaturePercent: this.map.tempMap.tempMap[MapWorld.coordsToKey(x, y)],
-      moisture: this.map.moistureMap.moistureMap[MapWorld.coordsToKey(x, y)],
+      height: this.map.heightMap.get(index),
+      magnetism: this.map.polesMap.magnetismMap.get(index),
+      temperaturePercent: this.map.tempMap.getTempByIndex(index),
+      moisture: this.map.moistureMap.getMoistureByIndex(index),
       sunlight: this.map.getTotalLight(x, y),
-      biome: this.map.biomeMap[MapWorld.coordsToKey(x, y)],
+      biome: this.map.biomeMap.get(index),
     };
   }
 

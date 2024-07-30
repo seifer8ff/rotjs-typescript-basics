@@ -1,13 +1,14 @@
 import { Game } from "./game";
 import Simplex from "rot-js/lib/noise/simplex";
-import { lerp, normalizeNoise } from "./misc-utility";
+import { lerp, normalizeNoise, positionToIndex } from "./misc-utility";
 import { MapWorld } from "./map-world";
 import { Point } from "./point";
 import Noise from "rot-js/lib/noise/noise";
 import { GameSettings } from "./game-settings";
+import { Layer } from "./renderer";
 
 export class MapPoles {
-  public magnetismMap: { [key: string]: number };
+  public magnetismMap: Map<number, number>;
   public scale: number;
   public tileWidth: number;
   public tileHeight: number;
@@ -16,7 +17,7 @@ export class MapPoles {
   public southPole: Point;
 
   constructor(private game: Game, private map: MapWorld) {
-    this.magnetismMap = {};
+    this.magnetismMap = new Map();
     this.scale = 1.2;
   }
 
@@ -41,7 +42,7 @@ export class MapPoles {
     height: number,
     noise: Noise
   ): number {
-    const key = MapWorld.coordsToKey(x, y);
+    const index = positionToIndex(x, y, Layer.TERRAIN);
 
     let noiseX = x / width - 0.5;
     let noiseY = y / height - 0.5;
@@ -76,9 +77,9 @@ export class MapPoles {
       noiseValue *= 1 - yDistanceFromPole / this.tileHeight;
     }
 
-    this.magnetismMap[key] = lerp(noiseValue * this.scale, 0, 1);
+    this.magnetismMap.set(index, lerp(noiseValue * this.scale, 0, 1));
 
-    return this.magnetismMap[key];
+    return this.magnetismMap.get(index);
   }
 
   // public generateMagnetism(
@@ -114,7 +115,7 @@ export class MapPoles {
   // }
 
   getMagnetism(x: number, y: number): number {
-    const key = MapWorld.coordsToKey(x, y);
-    return this.magnetismMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    return this.magnetismMap.get(index);
   }
 }
