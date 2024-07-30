@@ -1,4 +1,6 @@
-import { Map, ValueMap, BiomeMap, MapWorld } from "./map-world";
+import { MapType, ValueMap, BiomeMap, MapWorld } from "./map-world";
+import { positionToIndex } from "./misc-utility";
+import { Layer } from "./renderer";
 
 export const ImpassibleBorder: BiomeId[] = [
   "ocean",
@@ -77,26 +79,27 @@ export class Biomes {
     y: number,
     maps: {
       height: ValueMap;
-      temperature: ValueMap;
-      moisture: ValueMap;
+      temperature: { [key: string]: number };
+      moisture: { [key: string]: number };
     },
     generationOptions: GenerationOptions
   ): boolean {
-    const pos = MapWorld.coordsToKey(x, y);
+    const key = MapWorld.coordsToKey(x, y);
+    const index = positionToIndex(x, y, Layer.TERRAIN);
     // loop through values in GenerationOptions
     if (generationOptions.height) {
-      if (!Biomes.inRangeOf(maps.height[pos], generationOptions.height)) {
+      if (!Biomes.inRangeOf(maps.height.get(index), generationOptions.height)) {
         return false;
       }
     }
     if (generationOptions.moisture) {
-      if (!Biomes.inRangeOf(maps.moisture[pos], generationOptions.moisture)) {
+      if (!Biomes.inRangeOf(maps.moisture[key], generationOptions.moisture)) {
         return false;
       }
     }
     if (generationOptions.temperature) {
       if (
-        !Biomes.inRangeOf(maps.temperature[pos], generationOptions.temperature)
+        !Biomes.inRangeOf(maps.temperature[key], generationOptions.temperature)
       ) {
         return false;
       }

@@ -1,4 +1,6 @@
 import { Biome, BiomeId } from "./biomes";
+import { indexToPosition, positionToIndex } from "./misc-utility";
+import { Layer } from "./renderer";
 import { BaseTileKey, Tile } from "./tile";
 
 export class Autotile {
@@ -87,7 +89,7 @@ export class Autotile {
   }
 
   public static shouldAutoTile(
-    mapObject: { [pos: string]: Biome },
+    mapObject: Map<number, Biome>,
     x: number,
     y: number,
     tileBiome: Biome
@@ -111,7 +113,10 @@ export class Autotile {
     //   isMoistDirt = true;
     // }
     for (const [nx, ny] of neighborPositions) {
-      const neighborBiome = mapObject[`${nx},${ny}`];
+      // const neighborBiome = mapObject[`${nx},${ny}`];
+      const neighborBiome = mapObject.get(
+        positionToIndex(nx, ny, Layer.TERRAIN)
+      );
       if (neighborBiome == null) {
         return false;
       }
@@ -130,7 +135,7 @@ export class Autotile {
   }
 
   public static autotileLookup(
-    mapObject: { [pos: string]: Biome },
+    mapObject: Map<number, Biome>,
     x_boundary: number,
     y_boundary: number,
     x: number,
@@ -157,7 +162,8 @@ export class Autotile {
     if (
       y > 0 &&
       this.betterShouldAutotile(
-        mapObject[`${x},${y - 1}`].id,
+        // mapObject[`${x},${y - 1}`].id,
+        mapObject.get(positionToIndex(x, y - 1, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -168,7 +174,8 @@ export class Autotile {
     if (
       x > 0 &&
       this.betterShouldAutotile(
-        mapObject[`${x - 1},${y}`].id,
+        // mapObject[`${x - 1},${y}`].id,
+        mapObject.get(positionToIndex(x - 1, y, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -179,7 +186,8 @@ export class Autotile {
     if (
       x < x_boundary &&
       this.betterShouldAutotile(
-        mapObject[`${x + 1},${y}`].id,
+        // mapObject[`${x + 1},${y}`].id,
+        mapObject.get(positionToIndex(x + 1, y, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -190,7 +198,8 @@ export class Autotile {
     if (
       y < y_boundary &&
       this.betterShouldAutotile(
-        mapObject[`${x},${y + 1}`].id,
+        // mapObject[`${x},${y + 1}`].id,
+        mapObject.get(positionToIndex(x, y + 1, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -205,7 +214,8 @@ export class Autotile {
       y > 0 &&
       x > 0 &&
       this.betterShouldAutotile(
-        mapObject[`${x - 1},${y - 1}`].id,
+        // mapObject[`${x - 1},${y - 1}`].id,
+        mapObject.get(positionToIndex(x - 1, y - 1, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -217,7 +227,8 @@ export class Autotile {
       y > 0 &&
       x < x_boundary &&
       this.betterShouldAutotile(
-        mapObject[`${x + 1},${y - 1}`].id,
+        // mapObject[`${x + 1},${y - 1}`].id,
+        mapObject.get(positionToIndex(x + 1, y - 1, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -229,7 +240,8 @@ export class Autotile {
       y < y_boundary &&
       x > 0 &&
       this.betterShouldAutotile(
-        mapObject[`${x - 1},${y + 1}`].id,
+        // mapObject[`${x - 1},${y + 1}`].id,
+        mapObject.get(positionToIndex(x - 1, y + 1, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -241,7 +253,8 @@ export class Autotile {
       x < x_boundary &&
       y < y_boundary &&
       this.betterShouldAutotile(
-        mapObject[`${x + 1},${y + 1}`].id,
+        // mapObject[`${x + 1},${y + 1}`].id,
+        mapObject.get(positionToIndex(x + 1, y + 1, Layer.TERRAIN)).id,
         onlyBiomes,
         skipBiomes
       )
@@ -343,39 +356,76 @@ export class Autotile {
   //   return Autotile.BITMASK[sum];
   // }
 
-  public static autotile(mapObject: { [pos: string]: Biome }): {
-    [pos: string]: number;
-  } {
+  // public static autotile(mapObject: { [pos: string]: Biome }): {
+  //   [pos: string]: number;
+  // } {
+  //   console.log("autotile rawMapObj: ", mapObject);
+  //   const tiles = {};
+  //   const mapKeys = Object.keys(mapObject);
+  //   const [maxX, maxY] = mapKeys.reduce(
+  //     (acc, key) => {
+  //       const [x, y] = key.split(",").map(Number);
+  //       acc[0] = Math.max(acc[0], x);
+  //       acc[1] = Math.max(acc[1], y);
+  //       return acc;
+  //     },
+  //     [0, 0]
+  //   );
+
+  //   for (let y = 0; y <= maxY; y++) {
+  //     for (let x = 0; x <= maxX; x++) {
+  //       const key = `${x},${y}`;
+  //       const tileValue = mapObject[key];
+
+  //       if (!this.shouldAutoTile(mapObject, x, y, tileValue)) {
+  //         tiles[key] = 47;
+  //         continue;
+  //       }
+
+  //       tiles[key] = Autotile.autotileLookup(
+  //         mapObject,
+  //         maxX,
+  //         maxY,
+  //         x,
+  //         y,
+  //         tileValue
+  //       );
+  //     }
+  //   }
+
+  //   console.log("autotiled map: ", tiles);
+
+  //   return tiles;
+  // }
+
+  public static autotile(mapObject: Map<number, Biome>): Map<number, number> {
     console.log("autotile rawMapObj: ", mapObject);
-    const tiles = {};
-    const mapKeys = Object.keys(mapObject);
-    const [maxX, maxY] = mapKeys.reduce(
-      (acc, key) => {
-        const [x, y] = key.split(",").map(Number);
-        acc[0] = Math.max(acc[0], x);
-        acc[1] = Math.max(acc[1], y);
+    // const tiles = {};
+    const tiles = new Map<number, number>();
+    const [maxX, maxY] = Array.from(mapObject).reduce(
+      (acc, [index, biome]) => {
+        const pos = indexToPosition(index, Layer.TERRAIN);
+        acc[0] = Math.max(acc[0], pos.x);
+        acc[1] = Math.max(acc[1], pos.y);
         return acc;
       },
       [0, 0]
     );
+    let index = -1;
 
     for (let y = 0; y <= maxY; y++) {
       for (let x = 0; x <= maxX; x++) {
-        const key = `${x},${y}`;
-        const tileValue = mapObject[key];
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        const tileValue = mapObject.get(index);
 
         if (!this.shouldAutoTile(mapObject, x, y, tileValue)) {
-          tiles[key] = 47;
+          tiles.set(index, 47);
           continue;
         }
 
-        tiles[key] = Autotile.autotileLookup(
-          mapObject,
-          maxX,
-          maxY,
-          x,
-          y,
-          tileValue
+        tiles.set(
+          index,
+          Autotile.autotileLookup(mapObject, maxX, maxY, x, y, tileValue)
         );
       }
     }

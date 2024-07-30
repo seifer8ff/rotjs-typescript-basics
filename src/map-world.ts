@@ -10,6 +10,7 @@ import {
   getMapStats,
   getScaledNoise,
   indexToPosition,
+  keyToIndex,
   lerp,
   positionToIndex,
 } from "./misc-utility";
@@ -26,16 +27,9 @@ import { clamp } from "rot-js/lib/util";
 import { Assets, Sprite, Texture } from "pixi.js";
 import { GameSettings } from "./game-settings";
 
-export type Map = ValueMap | BiomeMap | TileMap;
-
-export type ValueMap = {
-  [key: string]: number;
-};
-
-export type BiomeMap = {
-  [key: string]: Biome;
-};
-
+export type MapType = ValueMap | BiomeMap | TileMap;
+export type ValueMap = Map<number, number>;
+export type BiomeMap = Map<number, Biome>;
 export type TileMap = Tile[];
 
 export enum HeightLayer {
@@ -59,8 +53,8 @@ export class MapWorld {
   public biomeMap: BiomeMap; // the final map of biomes
   public autotileMap: ValueMap; // the final map of autotile indices
   public tileMap: TileMap; // the final map of tiles to be drawn (may or may not be autotiled)
-  public heightMap: ValueMap;
-  public heightLayerMap: { [key: string]: HeightLayer };
+  public heightMap: ValueMap; // number between 0 and 1 representing height
+  public heightLayerMap: Map<number, HeightLayer>;
   public tempMap: MapTemperature;
   public moistureMap: MapMoisture;
   public shadowMap: MapShadows;
@@ -87,17 +81,17 @@ export class MapWorld {
 
   constructor(private game: Game) {
     this.tileMap = [];
-    this.biomeMap = {};
-    this.autotileMap = {};
-    this.heightMap = {};
-    this.heightLayerMap = {};
+    this.biomeMap = new Map();
+    this.autotileMap = new Map();
+    this.heightMap = new Map();
+    this.heightLayerMap = new Map();
     this.moistureMap = new MapMoisture(this.game, this);
     this.tempMap = new MapTemperature(this.game, this);
     this.shadowMap = new MapShadows(this.game, this);
     this.polesMap = new MapPoles(this.game, this);
     this.cloudMap = new MapClouds(this.game, this);
     this.lightManager = new LightManager(this.game, this);
-    this.terrainMap = {};
+    this.terrainMap = new Map();
     this.seaLevel = Biomes.Biomes.ocean.generationOptions.height.max;
     this.heightAdjacencyD1Map = [];
     this.heightAdjacencyD2Map = [];
@@ -105,8 +99,6 @@ export class MapWorld {
     this.heightLayerAdjacencyD2Map = [];
     this.terrainAdjacencyD1Map = [];
     this.terrainAdjacencyD2Map = [];
-    // this.terrainAdjacencyD1Map = {};
-    // this.terrainAdjacencyD2Map = {};
     this.biomeAdjacencyD1Map = [];
     this.biomeAdjacencyD2Map = [];
     this.dirtyTiles = [];
@@ -165,24 +157,22 @@ export class MapWorld {
 
   generateMap(width: number, height: number): void {
     this.tileMap = [];
-    this.biomeMap = {};
-    this.heightMap = {}; // between 0 and 1
-    this.terrainMap = {};
+    this.biomeMap = new Map();
+    this.heightMap = new Map();
+    this.terrainMap = new Map();
     this.dirtyTiles = [];
+    let index = -1;
 
     // first pass, generate base height and assign terrain
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
         this.polesMap.generateMagnetism(x, y, width, height, this.game.noise);
-        this.heightMap[key] = this.getHeight(
-          x,
-          y,
-          width,
-          height,
-          this.game.noise
+        this.heightMap.set(
+          index,
+          this.getHeight(x, y, width, height, this.game.noise)
         );
-        this.terrainMap[key] = this.assignTerrain(x, y);
+        this.terrainMap.set(index, this.assignTerrain(x, y));
       }
     }
     console.log("poles map", this.polesMap.magnetismMap);
@@ -193,14 +183,14 @@ export class MapWorld {
     // second pass, process terrain from first pass to smooth out issues
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
-        this.terrainMap[key] = this.processTerrain(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        this.terrainMap.set(index, this.processTerrain(x, y));
       }
     }
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
-        this.heightLayerMap[key] = this.getHeightLayer(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        this.heightLayerMap.set(index, this.getHeightLayer(x, y));
       }
     }
     // update adjacency maps again
@@ -208,7 +198,6 @@ export class MapWorld {
     // third pass, generate climate maps
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
         this.moistureMap.generateMoistureFor(
           x,
           y,
@@ -251,8 +240,8 @@ export class MapWorld {
     // assign biome map using climate maps
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
-        this.biomeMap[key] = this.assignBiome(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        this.biomeMap.set(index, this.assignBiome(x, y));
       }
     }
     // update adjacency maps again
@@ -260,9 +249,17 @@ export class MapWorld {
     // assign biome map using climate maps
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
-        this.biomeMap[key] = this.addTemperatureTerrain(x, y);
-        this.biomeMap[key] = this.addMidLayers(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        if (x == 95 && y == 91) {
+          console.log(
+            "temp for 95,91",
+            this.tempMap.tempMap[MapWorld.coordsToKey(x, y)]
+          );
+          console.log("height for 95,91", this.heightMap.get(index));
+          console.log("biome for 95,91", this.biomeMap.get(index));
+        }
+        this.biomeMap.set(index, this.addTemperatureTerrain(x, y));
+        this.biomeMap.set(index, this.addMidLayers(x, y));
       }
     }
     // update adjacency maps again
@@ -272,10 +269,9 @@ export class MapWorld {
     // add secondary features
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
-        // this.biomeMap[key] = this.addTemperatureFeatures(x, y);
-        this.biomeMap[key] = this.addUpperLayers(x, y);
-        this.biomeMap[key] = this.addLowerLayers(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        this.biomeMap.set(index, this.addUpperLayers(x, y));
+        this.biomeMap.set(index, this.addLowerLayers(x, y));
       }
     }
     this.regenerateAdjacencyMap("biome");
@@ -284,8 +280,8 @@ export class MapWorld {
     // process biomes
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
-        this.biomeMap[key] = this.smoothBiomeTransitions(x, y);
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        this.biomeMap.set(index, this.smoothBiomeTransitions(x, y));
       }
     }
     // update adjacency maps again
@@ -301,6 +297,11 @@ export class MapWorld {
       this.shadowMap.generateShadowMaps();
     }
 
+    console.log(
+      "about to gen autotilemap from biomeMap, 95,91: ",
+      this.biomeMap.get(positionToIndex(95, 91, Layer.TERRAIN))
+    );
+
     // finally, generate the tile map
     if (GameSettings.options.toggles.enableAutotile) {
       this.generateAutotileMap(this.biomeMap);
@@ -308,25 +309,24 @@ export class MapWorld {
       this.generateBasetileMap(this.biomeMap);
     }
 
-    let tileIndex = 0;
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        tileIndex = positionToIndex(x, y, Layer.TERRAIN);
-        this.dirtyTiles.push(tileIndex); // all tiles need to be rendered
+        index = positionToIndex(x, y, Layer.TERRAIN);
+        this.dirtyTiles.push(index); // all tiles need to be rendered
       }
     }
   }
 
   public getHeightLayer(x: number, y: number): HeightLayer {
-    const key = MapWorld.coordsToKey(x, y);
-    return MapWorld.biomeHeightToLayer(this.heightMap[key], this.biomeMap[key]);
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    return MapWorld.biomeHeightToLayer(
+      this.heightMap.get(index),
+      this.biomeMap.get(index)
+    );
   }
 
-  private generateBasetileMap(rawMap: { [key: string]: Biome }) {
-    for (let key in rawMap) {
-      const pos = MapWorld.keyToPoint(key);
-      const index = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
-      const biome = rawMap[key];
+  private generateBasetileMap(rawMap: Map<number, Biome>) {
+    for (const [index, biome] of rawMap) {
       const tile =
         Tile.Tilesets[biome.id][this.game.timeManager.season][BaseTileKey];
 
@@ -385,7 +385,7 @@ export class MapWorld {
   assignTerrain(x: number, y: number): Biome {
     // assign the high level terrain types
     // features will be placed within these terrain types for tiling transition purposes
-    const heightVal = this.heightMap[MapWorld.coordsToKey(x, y)];
+    const heightVal = this.heightMap.get(positionToIndex(x, y, Layer.TERRAIN));
     if (
       Biomes.inRangeOf(heightVal, Biomes.Biomes.ocean.generationOptions.height)
     ) {
@@ -414,15 +414,14 @@ export class MapWorld {
   private processTerrain(x: number, y: number): Biome {
     const key = MapWorld.coordsToKey(x, y);
     const index = positionToIndex(x, y, Layer.TERRAIN);
-    // const heightVal = this.heightMap[key];
-    const terrain = this.terrainMap[key];
+    const terrain = this.terrainMap.get(index);
     const adjacentTerrain = this.terrainAdjacencyD2Map[index];
     // const moistureVal = this.moistureMap.getMoistureByKey(key);
 
     // check if any adjacent terrain is null- if so, set to ocean
     if (adjacentTerrain.some((terrain) => terrain == null)) {
       const newHeight = Biomes.Biomes.ocean.generationOptions.height.max - 0.1;
-      this.heightMap[key] = newHeight;
+      this.heightMap.set(index, newHeight);
       this.shiftHeight(x, y, Biomes.Biomes.ocean);
       this.shiftMoisture(x, y, Biomes.Biomes.ocean);
       this.shiftTemperature(x, y, Biomes.Biomes.ocean);
@@ -446,8 +445,7 @@ export class MapWorld {
   }
 
   private smoothBiomeTransitions(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
-    const biome = this.biomeMap[key];
+    const biome = this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
 
     // beach doesn't autotile with moistdirt, so add a layer of sandydirt, which does
     if (biome.id == Biomes.Biomes.beach.id) {
@@ -467,15 +465,15 @@ export class MapWorld {
   }
 
   private shiftHeight(x: number, y: number, newBiome: Biome) {
-    const key = MapWorld.coordsToKey(x, y);
-    const height = this.heightMap[key];
-    this.heightMap[key] = Biomes.shiftToBiome(
-      height,
-      newBiome.generationOptions.height
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const height = this.heightMap.get(index);
+    this.heightMap.set(
+      index,
+      Biomes.shiftToBiome(height, newBiome.generationOptions.height)
     );
-    this.heightLayerMap[key] = MapWorld.biomeHeightToLayer(
-      this.heightMap[key],
-      newBiome
+    this.heightLayerMap.set(
+      index,
+      MapWorld.biomeHeightToLayer(this.heightMap.get(index), newBiome)
     );
   }
 
@@ -498,8 +496,7 @@ export class MapWorld {
   }
 
   private addTemperatureTerrain(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
-    const biome = this.biomeMap[key];
+    const biome = this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
     const validTerrainTypes = [
       Biomes.Biomes.moistdirt,
       Biomes.Biomes.snowmoistdirt,
@@ -550,11 +547,13 @@ export class MapWorld {
 
   private addTemperatureFeatures(x: number, y: number): Biome {
     const key = MapWorld.coordsToKey(x, y);
-    const terrain = this.terrainMap[key];
-    const height = this.heightMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const terrain = this.terrainMap.get(index);
+    const height = this.heightMap.get(index);
     const temp = this.tempMap.tempMap[key];
     const moisture = this.moistureMap.moistureMap[key];
-    const biome = this.biomeMap[key];
+    // const biome = this.biomeMap[key];
+    const biome = this.biomeMap.get(index);
     const adjacentBiomes = this.biomeAdjacencyD2Map[key];
 
     // if (biome.id == Biomes.Biomes.snowydirt.id) {
@@ -577,9 +576,9 @@ export class MapWorld {
   }
 
   private addMidLayers(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
-    const height = this.heightMap[key];
-    const biome = this.biomeMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const height = this.heightMap.get(index);
+    const biome = this.biomeMap.get(index);
     const isMidHeight = Biomes.inRangeOf(
       height,
       Biomes.Biomes.hillsmid.generationOptions.height
@@ -602,9 +601,9 @@ export class MapWorld {
   }
 
   private addUpperLayers(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
-    const height = this.heightMap[key];
-    const biome = this.biomeMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const height = this.heightMap.get(index);
+    const biome = this.biomeMap.get(index);
     const isUpperHeight = Biomes.inRangeOf(
       height,
       Biomes.Biomes.hillshigh.generationOptions.height
@@ -630,9 +629,9 @@ export class MapWorld {
   }
 
   private addLowerLayers(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
-    const height = this.heightMap[key];
-    const biome = this.biomeMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const height = this.heightMap.get(index);
+    const biome = this.biomeMap.get(index);
     const isLowerHeight = Biomes.inRangeOf(
       height,
       Biomes.Biomes.valley.generationOptions.height
@@ -656,47 +655,11 @@ export class MapWorld {
     return biome;
   }
 
-  // private regenerateAdjacencyMap(map: "terrain" | "biome") {
-  //   for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
-  //     for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
-  //       const key = MapWorld.coordsToKey(x, y);
-  //       if (map === "terrain") {
-  //         this.terrainAdjacencyD1Map[key] = this.assignAdjacentBiomes(
-  //           x,
-  //           y,
-  //           this.terrainMap,
-  //           1
-  //         );
-  //         this.terrainAdjacencyD2Map[key] = this.assignAdjacentBiomes(
-  //           x,
-  //           y,
-  //           this.terrainMap,
-  //           2
-  //         );
-  //       } else if (map === "biome") {
-  //         this.biomeAdjacencyD1Map[key] = this.assignAdjacentBiomes(
-  //           x,
-  //           y,
-  //           this.biomeMap,
-  //           1
-  //         );
-  //         this.biomeAdjacencyD2Map[key] = this.assignAdjacentBiomes(
-  //           x,
-  //           y,
-  //           this.biomeMap,
-  //           2
-  //         );
-  //       }
-  //     }
-  //   }
-  // }
-
   private regenerateAdjacencyMap(
     map: "terrain" | "biome" | "height" | "heightLayer"
   ) {
     for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
       for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
-        const key = MapWorld.coordsToKey(x, y);
         const index = positionToIndex(x, y, Layer.TERRAIN);
         if (map === "terrain") {
           this.terrainAdjacencyD1Map[index] = this.assignAdjacentBiomes(
@@ -750,22 +713,19 @@ export class MapWorld {
   assignAdjacentBiomes(
     x: number,
     y: number,
-    map: { [key: string]: Biome },
+    map: Map<number, Biome>,
     distance = 1
   ): Biome[] {
-    const key = MapWorld.coordsToKey(x, y);
-    const heightVal = this.heightMap[key];
-    const terrain = this.terrainMap[key];
     const adjacentBiomes = [];
-    let pos: Point;
+    let index = -1;
     let biome: Biome;
     for (let xOffset = -distance; xOffset <= distance; xOffset++) {
       for (let yOffset = -distance; yOffset <= distance; yOffset++) {
         if (xOffset === 0 && yOffset === 0) {
           continue;
         }
-        pos = new Point(x + xOffset, y + yOffset);
-        biome = map[MapWorld.coordsToKey(pos.x, pos.y)];
+        index = positionToIndex(x + xOffset, y + yOffset, Layer.TERRAIN);
+        biome = map.get(index);
         adjacentBiomes.push(biome);
       }
     }
@@ -775,20 +735,19 @@ export class MapWorld {
   assignAdjacentHeights(
     x: number,
     y: number,
-    map: { [key: string]: number },
+    map: Map<number, number>,
     distance = 1
   ): number[] {
-    const key = MapWorld.coordsToKey(x, y);
     const adjacentHeights = [];
-    let pos: Point;
+    let index = -1;
     let height: number;
     for (let xOffset = -distance; xOffset <= distance; xOffset++) {
       for (let yOffset = -distance; yOffset <= distance; yOffset++) {
         if (xOffset === 0 && yOffset === 0) {
           continue;
         }
-        pos = new Point(x + xOffset, y + yOffset);
-        height = map[MapWorld.coordsToKey(pos.x, pos.y)];
+        index = positionToIndex(x + xOffset, y + yOffset, Layer.TERRAIN);
+        height = map.get(index);
         adjacentHeights.push(height);
       }
     }
@@ -798,20 +757,19 @@ export class MapWorld {
   assignAdjacentHeightLayers(
     x: number,
     y: number,
-    map: { [key: string]: HeightLayer },
+    map: Map<number, HeightLayer>,
     distance = 1
   ): HeightLayer[] {
-    const key = MapWorld.coordsToKey(x, y);
     const adjacentHeightLayers = [];
-    let pos: Point;
+    let index: number;
     let heightLayer: HeightLayer;
     for (let xOffset = -distance; xOffset <= distance; xOffset++) {
       for (let yOffset = -distance; yOffset <= distance; yOffset++) {
         if (xOffset === 0 && yOffset === 0) {
           continue;
         }
-        pos = new Point(x + xOffset, y + yOffset);
-        heightLayer = map[MapWorld.coordsToKey(pos.x, pos.y)];
+        index = positionToIndex(x + xOffset, y + yOffset, Layer.TERRAIN);
+        heightLayer = map.get(index);
         adjacentHeightLayers.push(heightLayer);
       }
     }
@@ -824,7 +782,6 @@ export class MapWorld {
     adjacencyMap: Biome[][],
     terrain: Biome[]
   ): boolean {
-    const key = MapWorld.coordsToKey(x, y);
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const adjacentTerrain = adjacencyMap[index];
     // console
@@ -836,14 +793,6 @@ export class MapWorld {
       }
     }
     return false;
-  }
-
-  getAdjacentBiomes(
-    x: number,
-    y: number,
-    adjacencyMap: { [key: string]: Biome[] }
-  ): Biome[] {
-    return adjacencyMap[MapWorld.coordsToKey(x, y)];
   }
 
   getAdjacent(x: number, y: number, adjacencyMap: any[][]): any[] {
@@ -858,7 +807,7 @@ export class MapWorld {
   ): boolean {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const adjacentTerrain = adjacencyMap[index];
-    if (x == 241 && y == 278) {
+    if (x == 95 && y == 91) {
       console.log("adjacentTerrain for " + x + ", " + y, adjacentTerrain);
     }
     for (let i = 0; i < adjacentTerrain.length; i++) {
@@ -870,10 +819,7 @@ export class MapWorld {
   }
 
   assignBiome(x: number, y: number): Biome {
-    const key = MapWorld.coordsToKey(x, y);
-    const heightVal = this.heightMap[key];
-    const moistureVal = this.moistureMap.getMoistureByKey(key);
-    const terrain = this.terrainMap[key];
+    const terrain = this.terrainMap.get(positionToIndex(x, y, Layer.TERRAIN));
     const maps = {
       height: this.heightMap,
       temperature: this.tempMap.tempMap,
@@ -975,19 +921,17 @@ export class MapWorld {
     }
   }
 
-  generateAutotileMap(rawMap: { [key: string]: Biome }) {
+  generateAutotileMap(rawMap: Map<number, Biome>) {
     // console.log("rawMap to start with: ", rawMap);
     this.autotileMap = Autotile.autotile(rawMap);
-    let autotileIndex;
     let biome: Biome;
     let biomeId: BiomeId;
     let season: Season;
     let tile: Tile;
     season = this.game.timeManager.season;
 
-    Object.keys(this.autotileMap).forEach((positionKey: string) => {
-      autotileIndex = this.autotileMap[positionKey];
-      biome = rawMap[positionKey];
+    for (const [index, autotileIndex] of this.autotileMap) {
+      biome = rawMap.get(index);
       biomeId = biome.id;
       if (!biome?.autotilePrefix) {
         // use the base tile rather than autotiling
@@ -1001,15 +945,14 @@ export class MapWorld {
           `AUTOTILE ERROR: ${biomeId} - ${season} - ${autotileIndex}`
         );
       }
-      const pos = MapWorld.keyToPoint(positionKey);
-      const index = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
       this.tileMap[index] = tile;
-    });
+    }
   }
 
   setTile(x: number, y: number, tile: Tile): void {
-    this.tileMap[positionToIndex(x, y, Layer.TERRAIN)] = tile;
-    this.dirtyTiles.push(positionToIndex(x, y, Layer.TERRAIN));
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    this.tileMap[index] = tile;
+    this.dirtyTiles.push(index);
   }
 
   // getRandomTilePositions(
@@ -1046,7 +989,6 @@ export class MapWorld {
   ): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
-    let key: string;
     // go through every tile in map
     // if isPlant- add that tile * ratio of tile size diff to buffer
     // for (let tileIndex in this.tileMap) {
@@ -1055,7 +997,6 @@ export class MapWorld {
       // DONT ADD UNNECESSARY CODE TO THE OUTER LOOP
       if (biomeTypes.includes(tile?.biomeId)) {
         let pos = indexToPosition(tileIndex, Layer.TERRAIN);
-        // let pos = MapWorld.keyToPoint(tileIndex);
         if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
           if (isPlant) {
             pos = Tile.translatePoint(pos, Layer.TERRAIN, Layer.PLANT);
@@ -1087,13 +1028,13 @@ export class MapWorld {
   }
 
   getBiome(x: number, y: number): Biome {
-    return this.biomeMap[MapWorld.coordsToKey(x, y)];
+    return this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
   }
 
   isPassable(x: number, y: number): boolean {
-    const key = MapWorld.coordsToKey(x, y);
-    const biome = this.biomeMap[key];
-    const autotile = this.autotileMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const biome = this.biomeMap.get(index);
+    const autotile = this.autotileMap.get(index);
     const isBorderTile = Autotile.isTileIndexAutoTileBorder(autotile);
     const impassibleBorderBiome = ImpassibleBorder.includes(biome?.id);
     let impassible = false;

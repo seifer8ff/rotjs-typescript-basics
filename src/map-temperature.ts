@@ -1,10 +1,11 @@
 import { Game } from "./game";
 import Simplex from "rot-js/lib/noise/simplex";
 import { LightManager } from "./light-manager";
-import { lerp, normalizeNoise } from "./misc-utility";
+import { lerp, normalizeNoise, positionToIndex } from "./misc-utility";
 import { MapWorld } from "./map-world";
 import { Biomes } from "./biomes";
 import Noise from "rot-js/lib/noise/noise";
+import { Layer } from "./renderer";
 
 export enum Climates {
   Scorching = "Scorching",
@@ -65,7 +66,8 @@ export class MapTemperature {
     noise: Noise
   ): number {
     const key = MapWorld.coordsToKey(x, y);
-    const terrainHeight = this.map.heightMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const terrainHeight = this.map.heightMap.get(index);
     const terrainAboveSeaLevel = this.map.seaLevel - terrainHeight;
     const magnetism = this.map.polesMap.magnetismMap[key];
     let heightModifier = terrainHeight;

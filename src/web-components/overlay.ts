@@ -3,6 +3,8 @@ import CloseIcon from "../shoelace/assets/icons/x.svg";
 import { SlIconButton } from "@shoelace-style/shoelace";
 import { Biome } from "../biomes";
 import { MapWorld } from "../map-world";
+import { positionToIndex } from "../misc-utility";
+import { Layer } from "../renderer";
 
 export class Overlay extends HTMLElement {
   public container: HTMLDivElement;
@@ -184,7 +186,7 @@ export class Overlay extends HTMLElement {
     width: number,
     height: number,
     label: string = "Color Overlay",
-    getData: () => { [key: string]: Biome }
+    getData: () => Map<number, Biome>
   ) {
     // check if overlay already exists
     for (let overlay of this.overlays) {
@@ -212,7 +214,8 @@ export class Overlay extends HTMLElement {
           const x = (i / 4) % canvas.width;
           const y = Math.floor(i / 4 / canvas.width);
           const key = `${x},${y}`;
-          const biome = biomeMap[key];
+          const index = positionToIndex(x, y, Layer.TERRAIN);
+          const biome = biomeMap.get(index);
           if (biome) {
             const color = biome.color;
             data[i] = parseInt(color.substr(1, 2), 16);

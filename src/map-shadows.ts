@@ -447,9 +447,8 @@ export class MapShadows {
     coordMap: [number, number][][],
     mapKey: string
   ): number {
-    const key = MapWorld.coordsToKey(x, y);
     const posIndex = positionToIndex(x, y, Layer.TERRAIN);
-    const heightLevel = this.map.heightLayerMap[key];
+    const heightLevel = this.map.heightLayerMap.get(posIndex);
 
     let lastRow;
     let lastHeightLevel;
@@ -459,7 +458,7 @@ export class MapShadows {
       lastRow = coordMap[row - i];
       const lastIndex = index - i;
       lastHeightLevel = lastRow
-        ? this.map.heightLayerMap[lastRow[lastIndex]]
+        ? this.map.heightLayerMap.get(lastRow[lastIndex])
         : heightLevel;
 
       dropoff = this.getHeightDropoff(heightLevel, lastHeightLevel);
@@ -477,9 +476,8 @@ export class MapShadows {
     y: number,
     adjacent: HeightLayer[]
   ): number {
-    const key = MapWorld.coordsToKey(x, y);
     const posIndex = positionToIndex(x, y, Layer.TERRAIN);
-    const heightLevel = this.map.heightLayerMap[key];
+    const heightLevel = this.map.heightLayerMap.get(posIndex);
     let dropoff = 0;
     for (let i = 0; i < adjacent.length; i++) {
       const adjacentHeightLayer = adjacent[i];
