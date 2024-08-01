@@ -62,7 +62,7 @@ export class MapMoisture {
       x,
       y,
       this.map.terrainAdjacencyD2Map,
-      [Biomes.Biomes.ocean]
+      [Biomes.Biomes.ocean.id]
     );
 
     let noiseX = x / width - 0.5;

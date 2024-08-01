@@ -29,8 +29,8 @@ import { GameSettings } from "./game-settings";
 
 export type MapType = ValueMap | BiomeMap | TileMap;
 export type ValueMap = Map<number, number>;
-export type BiomeMap = Map<number, Biome>;
-export type TileMap = Tile[];
+export type BiomeMap = Map<number, BiomeId>;
+export type TileMap = number[]; // map of tile Ids. Retrieve actual Tile from Tile.tiles
 
 export enum HeightLayer {
   Hole = "Hole",
@@ -68,11 +68,11 @@ export class MapWorld {
   public heightLayerAdjacencyD2Map: HeightLayer[][];
 
   //
-  public terrainAdjacencyD1Map: Biome[][]; // adjacency map with distance of 1 tile
-  public terrainAdjacencyD2Map: Biome[][];
+  public terrainAdjacencyD1Map: BiomeId[][]; // adjacency map with distance of 1 tile
+  public terrainAdjacencyD2Map: BiomeId[][];
 
-  public biomeAdjacencyD1Map: Biome[][]; // adjacency map with distance of 1 tile
-  public biomeAdjacencyD2Map: Biome[][];
+  public biomeAdjacencyD1Map: BiomeId[][]; // adjacency map with distance of 1 tile
+  public biomeAdjacencyD2Map: BiomeId[][];
   private dirtyTiles: number[];
   private landHeight: number;
   private valleyScaleFactor: number;
@@ -108,7 +108,10 @@ export class MapWorld {
     this.islandMask = 0.38;
   }
 
-  public static biomeHeightToLayer(height: number, biome?: Biome): HeightLayer {
+  public static biomeHeightToLayer(
+    height: number,
+    biomeId?: BiomeId
+  ): HeightLayer {
     // TODO: overhaul how valley/holes work. They probably should be below sealevel, but idk
 
     // if (height < Biomes.Biomes.valley.generationOptions.height.min) {
@@ -175,7 +178,7 @@ export class MapWorld {
         this.terrainMap.set(index, this.assignTerrain(x, y));
       }
     }
-    console.log("poles map", this.polesMap.magnetismMap);
+    // console.log("poles map", this.polesMap.magnetismMap);
     // generate the adjacency map for future passes
     this.regenerateAdjacencyMap("height");
     this.regenerateAdjacencyMap("heightLayer");
@@ -209,7 +212,7 @@ export class MapWorld {
       }
     }
 
-    const stats = getMapStats(Object.values(this.tempMap.tempMap), [
+    const stats = getMapStats(Array.from(this.tempMap.tempMap.values()), [
       { label: "over90", threshold: 0.9 },
       { label: "over80", threshold: 0.8 },
       { label: "over70", threshold: 0.7 },
@@ -236,7 +239,7 @@ export class MapWorld {
         isNegative: true,
       },
     ]);
-    console.log("temp map", stats, this.tempMap.tempMap);
+    console.log("temp map", stats);
     // assign biome map using climate maps
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
@@ -250,11 +253,6 @@ export class MapWorld {
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
         index = positionToIndex(x, y, Layer.TERRAIN);
-        if (x == 95 && y == 91) {
-          console.log("temp for 95,91", this.tempMap.getTempByIndex(index));
-          console.log("height for 95,91", this.heightMap.get(index));
-          console.log("biome for 95,91", this.biomeMap.get(index));
-        }
         this.biomeMap.set(index, this.addTemperatureTerrain(x, y));
         this.biomeMap.set(index, this.addMidLayers(x, y));
       }
@@ -288,16 +286,11 @@ export class MapWorld {
     if (GameSettings.options.toggles.enableClouds) {
       this.cloudMap.generateCloudMap();
     }
-    console.log("cloudMap", this.cloudMap.cloudMap);
-    console.log("moistureMap", this.moistureMap.moistureMap);
+    // console.log("cloudMap", this.cloudMap.cloudMap);
+    // console.log("moistureMap", this.moistureMap.moistureMap);
     if (GameSettings.options.toggles.enableShadows) {
       this.shadowMap.generateShadowMaps();
     }
-
-    console.log(
-      "about to gen autotilemap from biomeMap, 95,91: ",
-      this.biomeMap.get(positionToIndex(95, 91, Layer.TERRAIN))
-    );
 
     // finally, generate the tile map
     if (GameSettings.options.toggles.enableAutotile) {
@@ -322,17 +315,17 @@ export class MapWorld {
     );
   }
 
-  private generateBasetileMap(rawMap: Map<number, Biome>) {
-    for (const [index, biome] of rawMap) {
+  private generateBasetileMap(rawMap: Map<number, BiomeId>) {
+    for (const [index, biomeId] of rawMap) {
       const tile =
-        Tile.Tilesets[biome.id][this.game.timeManager.season][BaseTileKey];
+        Tile.Tilesets[biomeId][this.game.timeManager.season][BaseTileKey];
 
       if (!tile) {
         console.log(
-          `BASETILE ERROR: ${biome.id} - ${this.game.timeManager.season}`
+          `BASETILE ERROR: ${biomeId} - ${this.game.timeManager.season}`
         );
       }
-      this.tileMap[index] = tile;
+      this.tileMap[index] = tile.id;
     }
   }
 
@@ -379,14 +372,14 @@ export class MapWorld {
     return height;
   }
 
-  assignTerrain(x: number, y: number): Biome {
+  assignTerrain(x: number, y: number): BiomeId {
     // assign the high level terrain types
     // features will be placed within these terrain types for tiling transition purposes
     const heightVal = this.heightMap.get(positionToIndex(x, y, Layer.TERRAIN));
     if (
       Biomes.inRangeOf(heightVal, Biomes.Biomes.ocean.generationOptions.height)
     ) {
-      return Biomes.Biomes.ocean;
+      return Biomes.Biomes.ocean.id;
     }
 
     if (
@@ -395,7 +388,7 @@ export class MapWorld {
         Biomes.Biomes.moistdirt.generationOptions.height
       )
     ) {
-      return Biomes.Biomes.moistdirt;
+      return Biomes.Biomes.moistdirt.id;
     }
 
     if (
@@ -404,11 +397,11 @@ export class MapWorld {
         Biomes.Biomes.sandydirt.generationOptions.height
       )
     ) {
-      return Biomes.Biomes.sandydirt;
+      return Biomes.Biomes.sandydirt.id;
     }
   }
 
-  private processTerrain(x: number, y: number): Biome {
+  private processTerrain(x: number, y: number): BiomeId {
     const key = MapWorld.coordsToKey(x, y);
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const terrain = this.terrainMap.get(index);
@@ -419,58 +412,59 @@ export class MapWorld {
     if (adjacentTerrain.some((terrain) => terrain == null)) {
       const newHeight = Biomes.Biomes.ocean.generationOptions.height.max - 0.1;
       this.heightMap.set(index, newHeight);
-      this.shiftHeight(x, y, Biomes.Biomes.ocean);
+      this.shiftHeight(x, y, Biomes.Biomes.ocean.id);
       this.shiftMoisture(x, y, Biomes.Biomes.ocean);
       this.shiftTemperature(x, y, Biomes.Biomes.ocean);
-      return Biomes.Biomes.ocean;
+      return Biomes.Biomes.ocean.id;
     }
 
     // add a single tile thick border of sandydirt around moistdirt coasts to improve autotiling
-    if (terrain === Biomes.Biomes.moistdirt) {
+    if (terrain === Biomes.Biomes.moistdirt.id) {
       if (
         this.isAdjacentToBiome(x, y, this.terrainAdjacencyD2Map, [
-          Biomes.Biomes.ocean,
+          Biomes.Biomes.ocean.id,
         ])
       ) {
-        this.shiftHeight(x, y, Biomes.Biomes.sandydirt);
+        this.shiftHeight(x, y, Biomes.Biomes.sandydirt.id);
         this.shiftMoisture(x, y, Biomes.Biomes.sandydirt);
         this.shiftTemperature(x, y, Biomes.Biomes.sandydirt);
-        return Biomes.Biomes.sandydirt;
+        return Biomes.Biomes.sandydirt.id;
       }
     }
     return terrain;
   }
 
-  private smoothBiomeTransitions(x: number, y: number): Biome {
-    const biome = this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
+  private smoothBiomeTransitions(x: number, y: number): BiomeId {
+    const biomeId = this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
 
     // beach doesn't autotile with moistdirt, so add a layer of sandydirt, which does
-    if (biome.id == Biomes.Biomes.beach.id) {
+    if (biomeId == Biomes.Biomes.beach.id) {
       if (
         this.isAdjacentToBiome(x, y, this.terrainAdjacencyD1Map, [
-          Biomes.Biomes.moistdirt,
+          Biomes.Biomes.moistdirt.id,
         ])
       ) {
-        this.shiftHeight(x, y, Biomes.Biomes.sandydirt);
+        this.shiftHeight(x, y, Biomes.Biomes.sandydirt.id);
         this.shiftTemperature(x, y, Biomes.Biomes.sandydirt);
         this.shiftMoisture(x, y, Biomes.Biomes.sandydirt);
-        return Biomes.Biomes.sandydirt;
+        return Biomes.Biomes.sandydirt.id;
       }
     }
 
-    return biome;
+    return biomeId;
   }
 
-  private shiftHeight(x: number, y: number, newBiome: Biome) {
+  private shiftHeight(x: number, y: number, newBiomeId: BiomeId) {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const height = this.heightMap.get(index);
+    const newBiome = Biomes.Biomes[newBiomeId];
     this.heightMap.set(
       index,
       Biomes.shiftToBiome(height, newBiome.generationOptions.height)
     );
     this.heightLayerMap.set(
       index,
-      MapWorld.biomeHeightToLayer(this.heightMap.get(index), newBiome)
+      MapWorld.biomeHeightToLayer(this.heightMap.get(index), newBiomeId)
     );
   }
 
@@ -492,18 +486,18 @@ export class MapWorld {
     );
   }
 
-  private addTemperatureTerrain(x: number, y: number): Biome {
-    const biome = this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
+  private addTemperatureTerrain(x: number, y: number): BiomeId {
+    const biomeId = this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
     const validTerrainTypes = [
-      Biomes.Biomes.moistdirt,
-      Biomes.Biomes.snowmoistdirt,
+      Biomes.Biomes.moistdirt.id,
+      Biomes.Biomes.snowmoistdirt.id,
     ];
     const maps = {
       height: this.heightMap,
       temperature: this.tempMap.tempMap,
       moisture: this.moistureMap.moistureMap,
     };
-    if (biome.id == Biomes.Biomes.hillsmid.id) {
+    if (biomeId == Biomes.Biomes.hillsmid.id) {
       if (
         Biomes.inRangeOfAll(
           x,
@@ -518,16 +512,16 @@ export class MapWorld {
           Biomes.Biomes.snowhillshillsmid.generationOptions
         ) &&
         this.isSurroundedBy(x, y, this.biomeAdjacencyD1Map, [
-          Biomes.Biomes.hillsmid,
-          Biomes.Biomes.hillshigh,
+          Biomes.Biomes.hillsmid.id,
+          Biomes.Biomes.hillshigh.id,
         ])
       ) {
-        return Biomes.Biomes.snowhillshillsmid;
+        return Biomes.Biomes.snowhillshillsmid.id;
       }
     }
 
     if (
-      validTerrainTypes.includes(biome) &&
+      validTerrainTypes.includes(biomeId) &&
       Biomes.inRangeOfAll(
         x,
         y,
@@ -536,19 +530,19 @@ export class MapWorld {
       ) &&
       this.isSurroundedBy(x, y, this.biomeAdjacencyD1Map, validTerrainTypes)
     ) {
-      return Biomes.Biomes.snowmoistdirt;
+      return Biomes.Biomes.snowmoistdirt.id;
     }
 
-    return biome;
+    return biomeId;
   }
 
-  private addTemperatureFeatures(x: number, y: number): Biome {
+  private addTemperatureFeatures(x: number, y: number): BiomeId {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const terrain = this.terrainMap.get(index);
     const height = this.heightMap.get(index);
     const temp = this.tempMap.getTempByIndex(index);
     const moisture = this.moistureMap.getMoisture(x, y);
-    const biome = this.biomeMap.get(index);
+    const biomeId = this.biomeMap.get(index);
     const adjacentBiomes = this.biomeAdjacencyD2Map[index];
 
     // if (biome.id == Biomes.Biomes.snowydirt.id) {
@@ -567,87 +561,87 @@ export class MapWorld {
     //   }
     // }
 
-    return biome;
+    return biomeId;
   }
 
-  private addMidLayers(x: number, y: number): Biome {
+  private addMidLayers(x: number, y: number): BiomeId {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const height = this.heightMap.get(index);
-    const biome = this.biomeMap.get(index);
+    const biomeId = this.biomeMap.get(index);
     const isMidHeight = Biomes.inRangeOf(
       height,
       Biomes.Biomes.hillsmid.generationOptions.height
     );
-    const isMoistdirtBase = biome.id == Biomes.Biomes.moistdirt.id;
+    const isMoistdirtBase = biomeId == Biomes.Biomes.moistdirt.id;
     if (isMidHeight && isMoistdirtBase) {
       if (
         this.isSurroundedBy(x, y, this.biomeAdjacencyD1Map, [
-          Biomes.Biomes.moistdirt,
-          Biomes.Biomes.hillsmid,
+          Biomes.Biomes.moistdirt.id,
+          Biomes.Biomes.hillsmid.id,
         ])
       ) {
-        return Biomes.Biomes.hillsmid;
+        return Biomes.Biomes.hillsmid.id;
       }
     }
     if (isMidHeight) {
-      this.shiftHeight(x, y, biome);
+      this.shiftHeight(x, y, biomeId);
     }
-    return biome;
+    return biomeId;
   }
 
-  private addUpperLayers(x: number, y: number): Biome {
+  private addUpperLayers(x: number, y: number): BiomeId {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const height = this.heightMap.get(index);
-    const biome = this.biomeMap.get(index);
+    const biomeId = this.biomeMap.get(index);
     const isUpperHeight = Biomes.inRangeOf(
       height,
       Biomes.Biomes.hillshigh.generationOptions.height
     );
-    const isMidhillsBase = biome.id == Biomes.Biomes.hillsmid.id;
+    const isMidhillsBase = biomeId == Biomes.Biomes.hillsmid.id;
 
     if (isUpperHeight && isMidhillsBase) {
       // only add high hills if surrounded by mid hills
       if (
         this.isSurroundedBy(x, y, this.biomeAdjacencyD1Map, [
-          Biomes.Biomes.hillsmid,
-          Biomes.Biomes.hillshigh,
+          Biomes.Biomes.hillsmid.id,
+          Biomes.Biomes.hillshigh.id,
         ])
       ) {
-        this.shiftHeight(x, y, Biomes.Biomes.hillshigh);
-        return Biomes.Biomes.hillshigh;
+        this.shiftHeight(x, y, Biomes.Biomes.hillshigh.id);
+        return Biomes.Biomes.hillshigh.id;
       }
     }
     if (isUpperHeight) {
-      this.shiftHeight(x, y, biome);
+      this.shiftHeight(x, y, biomeId);
     }
-    return biome;
+    return biomeId;
   }
 
-  private addLowerLayers(x: number, y: number): Biome {
+  private addLowerLayers(x: number, y: number): BiomeId {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const height = this.heightMap.get(index);
-    const biome = this.biomeMap.get(index);
+    const biomeId = this.biomeMap.get(index);
     const isLowerHeight = Biomes.inRangeOf(
       height,
       Biomes.Biomes.valley.generationOptions.height
     );
-    const isMoistDirt = biome.id == Biomes.Biomes.moistdirt.id;
+    const isMoistDirt = biomeId == Biomes.Biomes.moistdirt.id;
     if (isLowerHeight && isMoistDirt) {
       if (
         this.isSurroundedBy(x, y, this.biomeAdjacencyD1Map, [
-          Biomes.Biomes.moistdirt,
-          Biomes.Biomes.valley,
+          Biomes.Biomes.moistdirt.id,
+          Biomes.Biomes.valley.id,
         ])
       ) {
-        return Biomes.Biomes.valley;
+        return Biomes.Biomes.valley.id;
       }
     }
 
     if (isLowerHeight) {
-      this.shiftHeight(x, y, biome);
+      this.shiftHeight(x, y, biomeId);
     }
 
-    return biome;
+    return biomeId;
   }
 
   private regenerateAdjacencyMap(
@@ -708,20 +702,20 @@ export class MapWorld {
   assignAdjacentBiomes(
     x: number,
     y: number,
-    map: Map<number, Biome>,
+    map: Map<number, BiomeId>,
     distance = 1
-  ): Biome[] {
-    const adjacentBiomes = [];
+  ): BiomeId[] {
+    const adjacentBiomes: BiomeId[] = [];
     let index = -1;
-    let biome: Biome;
+    let biomeId: BiomeId;
     for (let xOffset = -distance; xOffset <= distance; xOffset++) {
       for (let yOffset = -distance; yOffset <= distance; yOffset++) {
         if (xOffset === 0 && yOffset === 0) {
           continue;
         }
         index = positionToIndex(x + xOffset, y + yOffset, Layer.TERRAIN);
-        biome = map.get(index);
-        adjacentBiomes.push(biome);
+        biomeId = map.get(index);
+        adjacentBiomes.push(biomeId);
       }
     }
     return adjacentBiomes;
@@ -774,8 +768,8 @@ export class MapWorld {
   isAdjacentToBiome(
     x: number,
     y: number,
-    adjacencyMap: Biome[][],
-    terrain: Biome[]
+    adjacencyMap: BiomeId[][],
+    terrain: BiomeId[]
   ): boolean {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const adjacentTerrain = adjacencyMap[index];
@@ -797,14 +791,11 @@ export class MapWorld {
   isSurroundedBy(
     x: number,
     y: number,
-    adjacencyMap: Biome[][],
-    terrain: Biome[]
+    adjacencyMap: BiomeId[][],
+    terrain: BiomeId[]
   ): boolean {
     const index = positionToIndex(x, y, Layer.TERRAIN);
     const adjacentTerrain = adjacencyMap[index];
-    if (x == 95 && y == 91) {
-      console.log("adjacentTerrain for " + x + ", " + y, adjacentTerrain);
-    }
     for (let i = 0; i < adjacentTerrain.length; i++) {
       if (!terrain.includes(adjacentTerrain[i])) {
         return false;
@@ -813,7 +804,7 @@ export class MapWorld {
     return true;
   }
 
-  assignBiome(x: number, y: number): Biome {
+  assignBiome(x: number, y: number): BiomeId {
     const terrain = this.terrainMap.get(positionToIndex(x, y, Layer.TERRAIN));
     const maps = {
       height: this.heightMap,
@@ -821,7 +812,7 @@ export class MapWorld {
       moisture: this.moistureMap.moistureMap,
     };
 
-    if (terrain === Biomes.Biomes.ocean) {
+    if (terrain === Biomes.Biomes.ocean.id) {
       if (
         Biomes.inRangeOfAll(
           x,
@@ -830,21 +821,21 @@ export class MapWorld {
           Biomes.Biomes.oceandeep.generationOptions
         )
       ) {
-        return Biomes.Biomes.oceandeep;
+        return Biomes.Biomes.oceandeep.id;
       }
-      return Biomes.Biomes.ocean;
+      return Biomes.Biomes.ocean.id;
     }
 
-    if (terrain === Biomes.Biomes.sandydirt) {
+    if (terrain === Biomes.Biomes.sandydirt.id) {
       if (
         Biomes.inRangeOfAll(x, y, maps, Biomes.Biomes.beach.generationOptions)
       ) {
-        return Biomes.Biomes.beach;
+        return Biomes.Biomes.beach.id;
       }
-      return Biomes.Biomes.sandydirt;
+      return Biomes.Biomes.sandydirt.id;
     }
 
-    if (terrain === Biomes.Biomes.moistdirt) {
+    if (terrain === Biomes.Biomes.moistdirt.id) {
       if (
         Biomes.inRangeOfAll(
           x,
@@ -854,7 +845,7 @@ export class MapWorld {
         )
       ) {
         // later processing could turn this into hillshigh
-        return Biomes.Biomes.hillsmid;
+        return Biomes.Biomes.hillsmid.id;
       }
 
       if (
@@ -865,7 +856,7 @@ export class MapWorld {
           Biomes.Biomes.hillsmid.generationOptions
         )
       ) {
-        return Biomes.Biomes.hillsmid;
+        return Biomes.Biomes.hillsmid.id;
       }
 
       if (
@@ -876,13 +867,13 @@ export class MapWorld {
           Biomes.Biomes.hillslow.generationOptions
         )
       ) {
-        return Biomes.Biomes.hillslow;
+        return Biomes.Biomes.hillslow.id;
       }
 
       if (
         Biomes.inRangeOfAll(x, y, maps, Biomes.Biomes.swamp.generationOptions)
       ) {
-        return Biomes.Biomes.swamp;
+        return Biomes.Biomes.swamp.id;
       }
 
       if (
@@ -893,7 +884,7 @@ export class MapWorld {
           Biomes.Biomes.hillgrass.generationOptions
         )
       ) {
-        return Biomes.Biomes.hillgrass;
+        return Biomes.Biomes.hillgrass.id;
       }
 
       if (
@@ -904,19 +895,19 @@ export class MapWorld {
           Biomes.Biomes.shortgrass.generationOptions
         )
       ) {
-        return Biomes.Biomes.shortgrass;
+        return Biomes.Biomes.shortgrass.id;
       }
 
       if (
         Biomes.inRangeOfAll(x, y, maps, Biomes.Biomes.grass.generationOptions)
       ) {
-        return Biomes.Biomes.grass;
+        return Biomes.Biomes.grass.id;
       }
-      return Biomes.Biomes.moistdirt;
+      return Biomes.Biomes.moistdirt.id;
     }
   }
 
-  generateAutotileMap(rawMap: Map<number, Biome>) {
+  generateAutotileMap(rawMap: Map<number, BiomeId>) {
     // console.log("rawMap to start with: ", rawMap);
     this.autotileMap = Autotile.autotile(rawMap);
     let biome: Biome;
@@ -926,8 +917,8 @@ export class MapWorld {
     season = this.game.timeManager.season;
 
     for (const [index, autotileIndex] of this.autotileMap) {
-      biome = rawMap.get(index);
-      biomeId = biome.id;
+      biomeId = rawMap.get(index);
+      biome = Biomes.Biomes[biomeId];
       if (!biome?.autotilePrefix) {
         // use the base tile rather than autotiling
         tile = Tile.Tilesets[biomeId][season][BaseTileKey];
@@ -940,13 +931,13 @@ export class MapWorld {
           `AUTOTILE ERROR: ${biomeId} - ${season} - ${autotileIndex}`
         );
       }
-      this.tileMap[index] = tile;
+      this.tileMap[index] = tile.id;
     }
   }
 
   setTile(x: number, y: number, tile: Tile): void {
     const index = positionToIndex(x, y, Layer.TERRAIN);
-    this.tileMap[index] = tile;
+    this.tileMap[index] = tile.id;
     this.dirtyTiles.push(index);
   }
 
@@ -980,64 +971,75 @@ export class MapWorld {
     biomeTypes: BiomeId[],
     quantity: number = 1,
     onlyPassable = true,
-    isPlant: boolean = false
+    isPlant: boolean = false,
+    maxAttempts: number = 100
   ): Point[] {
-    let buffer: Point[] = [];
     let result: Point[] = [];
-    // go through every tile in map
-    // if isPlant- add that tile * ratio of tile size diff to buffer
-    // for (let tileIndex in this.tileMap) {
-    this.tileMap.forEach((tile, tileIndex) => {
-      // this goes through every single tile
-      // DONT ADD UNNECESSARY CODE TO THE OUTER LOOP
-      if (biomeTypes.includes(tile?.biomeId)) {
-        let pos = indexToPosition(tileIndex, Layer.TERRAIN);
+    const totalTiles = this.tileMap.length;
+    const desiredBiomesSet = new Set(biomeTypes);
+    let attempts = 0;
+
+    while (result.length < quantity && attempts < maxAttempts) {
+      // Randomly select a tile index in the map
+      const randomIndex = Math.floor(Math.random() * totalTiles);
+      const tileId = this.tileMap[randomIndex];
+      const tile = Tile.tiles[tileId];
+
+      // Check if the tile matches the desired biomes
+      if (desiredBiomesSet.has(tile?.biomeId)) {
+        let pos = indexToPosition(randomIndex, Layer.TERRAIN);
+
+        // Check if the position is passable if required
         if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
           if (isPlant) {
             pos = Tile.translatePoint(pos, Layer.TERRAIN, Layer.PLANT);
-            buffer.push(
+            result.push(
               pos,
               new Point(pos.x + 1, pos.y),
               new Point(pos.x, pos.y + 1),
               new Point(pos.x + 1, pos.y + 1)
+              // account for the smaller Plant layer grid size
             );
+
+            // If more than required positions are found, trim the result
+            if (result.length >= quantity) {
+              result = result.slice(0, quantity);
+              break;
+            }
           } else {
-            buffer.push(pos);
+            result.push(new Point(pos.x, pos.y));
           }
         }
       }
-    });
-
-    let index: number;
-    while (buffer.length > 0 && result.length < quantity) {
-      index = Math.floor(RNG.getUniform() * buffer.length);
-      const pos = buffer[index];
-      result.push(new Point(pos.x, pos.y));
-      // result.push(buffer.splice(index, 1)[0]);
+      attempts++;
     }
+
     return result;
   }
 
   getTile(x: number, y: number): Tile {
-    return this.tileMap[positionToIndex(x, y, Layer.TERRAIN)];
+    const tileId = this.tileMap[positionToIndex(x, y, Layer.TERRAIN)];
+    return Tile.tiles[tileId];
   }
 
   getBiome(x: number, y: number): Biome {
-    return this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN));
+    return Biomes.Biomes[
+      this.biomeMap.get(positionToIndex(x, y, Layer.TERRAIN))
+    ];
   }
 
   isPassable(x: number, y: number): boolean {
     const index = positionToIndex(x, y, Layer.TERRAIN);
-    const biome = this.biomeMap.get(index);
+    const biomeId = this.biomeMap.get(index);
     const autotile = this.autotileMap.get(index);
     const isBorderTile = Autotile.isTileIndexAutoTileBorder(autotile);
-    const impassibleBorderBiome = ImpassibleBorder.includes(biome?.id);
+    const impassibleBorderBiome = ImpassibleBorder.includes(biomeId);
     let impassible = false;
     if (impassibleBorderBiome && isBorderTile) {
       impassible = true;
     }
 
-    return biome && !impassible;
+    return biomeId && !impassible;
   }
 
   getTotalLight(x: number, y: number): number {
@@ -1072,11 +1074,15 @@ export class MapWorld {
   }
 
   draw(): void {
+    let tilePos: Point;
+    let tileId: number;
+    let tile: Tile;
     for (let tileIndex of this.dirtyTiles) {
-      const tilePos = indexToPosition(tileIndex, Layer.TERRAIN);
-      const tile = this.tileMap[tileIndex];
+      tilePos = indexToPosition(tileIndex, Layer.TERRAIN);
+      tileId = this.tileMap[tileIndex];
+      tile = Tile.tiles[tileId];
       this.game.renderer.removeFromScene(tileIndex, Layer.TERRAIN);
-      this.game.renderer.addTileIdToScene(tilePos, Layer.TERRAIN, tile.id);
+      this.game.renderer.addTileIdToScene(tilePos, Layer.TERRAIN, tileId);
     }
     // Clear the changed tiles after drawing them
     this.dirtyTiles = [];

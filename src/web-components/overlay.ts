@@ -1,7 +1,7 @@
 import "@shoelace-style/shoelace/dist/components/icon-button/icon-button.js";
 import CloseIcon from "../shoelace/assets/icons/x.svg";
 import { SlIconButton } from "@shoelace-style/shoelace";
-import { Biome } from "../biomes";
+import { Biome, BiomeId, Biomes } from "../biomes";
 import { MapWorld, ValueMap } from "../map-world";
 import { positionToIndex } from "../misc-utility";
 import { Layer } from "../renderer";
@@ -189,7 +189,7 @@ export class Overlay extends HTMLElement {
     width: number,
     height: number,
     label: string = "Color Overlay",
-    getData: () => Map<number, Biome>
+    getData: () => Map<number, BiomeId>
   ) {
     // check if overlay already exists
     for (let overlay of this.overlays) {
@@ -211,14 +211,19 @@ export class Overlay extends HTMLElement {
         const imageData = ctx.createImageData(canvas.width, canvas.height);
         const data = imageData.data;
         const biomeMap = getData();
+        let x;
+        let y;
+        let index;
+        let biome;
+        let biomeId;
 
         // set the color of each pixel to biome.color
         for (let i = 0; i < data.length; i += 4) {
-          const x = (i / 4) % canvas.width;
-          const y = Math.floor(i / 4 / canvas.width);
-          const key = `${x},${y}`;
-          const index = positionToIndex(x, y, Layer.TERRAIN);
-          const biome = biomeMap.get(index);
+          x = (i / 4) % canvas.width;
+          y = Math.floor(i / 4 / canvas.width);
+          index = positionToIndex(x, y, Layer.TERRAIN);
+          biomeId = biomeMap.get(index);
+          biome = Biomes.Biomes[biomeId];
           if (biome) {
             const color = biome.color;
             data[i] = parseInt(color.substr(1, 2), 16);

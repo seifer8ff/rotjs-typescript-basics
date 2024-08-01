@@ -3,6 +3,7 @@ import { Game } from "./game";
 import { Point } from "./point";
 import { Tile } from "./tile";
 import { Color } from "rot-js";
+import { Color as ColorType } from "rot-js/lib/color";
 import { MapWorld } from "./map-world";
 export enum Layer {
   TERRAIN = 1,
@@ -15,8 +16,9 @@ export enum Layer {
 import { CompositeTilemap } from "@pixi/tilemap";
 import { settings } from "@pixi/tilemap";
 import { GameSettings } from "./game-settings";
-import { positionToIndex } from "./misc-utility";
+import { inverseLerp, lerp, positionToIndex } from "./misc-utility";
 import { RGBAColor } from "./light-manager";
+import { clamp } from "rot-js/lib/util";
 
 export type Renderable =
   | PIXI.Sprite
@@ -365,19 +367,19 @@ export class Renderer {
     this.spriteIndexCache[index] = tileId;
   }
 
-  public tintObjectWithChildren(obj: Renderable, tint: string) {
+  public tintObjectWithChildren(obj: Renderable, tint: ColorType) {
     if (!("tint" in obj)) return;
     if (obj["tint"] === tint) return;
 
     if ("children" in obj) {
-      (obj["children"] as Renderable[]).forEach((child) =>
-        this.tintObjectWithChildren(child, tint)
-      );
+      (obj["children"] as Renderable[]).forEach((child) => {
+        this.tintObjectWithChildren(child, tint);
+      });
     }
 
     if (obj instanceof PIXI.ParticleContainer) return;
 
-    obj["tint"] = tint;
+    obj["tint"] = Color.toHex(tint);
   }
 
   // update a sprites position in the cache, to be rendered on the next render pass

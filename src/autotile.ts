@@ -1,4 +1,4 @@
-import { Biome, BiomeId } from "./biomes";
+import { Biome, BiomeId, Biomes } from "./biomes";
 import { indexToPosition, positionToIndex } from "./misc-utility";
 import { Layer } from "./renderer";
 import { BaseTileKey, Tile } from "./tile";
@@ -89,10 +89,10 @@ export class Autotile {
   }
 
   public static shouldAutoTile(
-    mapObject: Map<number, Biome>,
+    mapObject: Map<number, BiomeId>,
     x: number,
     y: number,
-    tileBiome: Biome
+    tileBiome: BiomeId
   ): boolean {
     const neighborPositions = [
       [x, y - 1], // north
@@ -135,13 +135,14 @@ export class Autotile {
   }
 
   public static autotileLookup(
-    mapObject: Map<number, Biome>,
+    mapObject: Map<number, BiomeId>,
     x_boundary: number,
     y_boundary: number,
     x: number,
     y: number,
-    tileBiome: Biome
+    tileBiomeId: BiomeId
   ): number {
+    const tileBiome = Biomes.Biomes[tileBiomeId];
     let sum = 0;
     let n = false;
     let e = false;
@@ -150,9 +151,9 @@ export class Autotile {
     let skipBiomes;
     let onlyBiomes;
     if (tileBiome.skipAutoTileTypes) {
-      skipBiomes = [tileBiome.id, ...tileBiome.skipAutoTileTypes];
+      skipBiomes = [tileBiomeId, ...tileBiome.skipAutoTileTypes];
     } else {
-      skipBiomes = [tileBiome.id];
+      skipBiomes = [tileBiomeId];
     }
     if (tileBiome.onlyAutoTileTypes) {
       onlyBiomes = tileBiome.onlyAutoTileTypes;
@@ -163,7 +164,7 @@ export class Autotile {
       y > 0 &&
       this.betterShouldAutotile(
         // mapObject[`${x},${y - 1}`].id,
-        mapObject.get(positionToIndex(x, y - 1, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x, y - 1, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -175,7 +176,7 @@ export class Autotile {
       x > 0 &&
       this.betterShouldAutotile(
         // mapObject[`${x - 1},${y}`].id,
-        mapObject.get(positionToIndex(x - 1, y, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x - 1, y, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -187,7 +188,7 @@ export class Autotile {
       x < x_boundary &&
       this.betterShouldAutotile(
         // mapObject[`${x + 1},${y}`].id,
-        mapObject.get(positionToIndex(x + 1, y, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x + 1, y, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -199,7 +200,7 @@ export class Autotile {
       y < y_boundary &&
       this.betterShouldAutotile(
         // mapObject[`${x},${y + 1}`].id,
-        mapObject.get(positionToIndex(x, y + 1, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x, y + 1, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -215,7 +216,7 @@ export class Autotile {
       x > 0 &&
       this.betterShouldAutotile(
         // mapObject[`${x - 1},${y - 1}`].id,
-        mapObject.get(positionToIndex(x - 1, y - 1, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x - 1, y - 1, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -228,7 +229,7 @@ export class Autotile {
       x < x_boundary &&
       this.betterShouldAutotile(
         // mapObject[`${x + 1},${y - 1}`].id,
-        mapObject.get(positionToIndex(x + 1, y - 1, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x + 1, y - 1, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -241,7 +242,7 @@ export class Autotile {
       x > 0 &&
       this.betterShouldAutotile(
         // mapObject[`${x - 1},${y + 1}`].id,
-        mapObject.get(positionToIndex(x - 1, y + 1, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x - 1, y + 1, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -254,7 +255,7 @@ export class Autotile {
       y < y_boundary &&
       this.betterShouldAutotile(
         // mapObject[`${x + 1},${y + 1}`].id,
-        mapObject.get(positionToIndex(x + 1, y + 1, Layer.TERRAIN)).id,
+        mapObject.get(positionToIndex(x + 1, y + 1, Layer.TERRAIN)),
         onlyBiomes,
         skipBiomes
       )
@@ -398,12 +399,12 @@ export class Autotile {
   //   return tiles;
   // }
 
-  public static autotile(mapObject: Map<number, Biome>): Map<number, number> {
-    console.log("autotile rawMapObj: ", mapObject);
+  public static autotile(mapObject: Map<number, BiomeId>): Map<number, number> {
+    // console.log("autotile rawMapObj: ", mapObject);
     // const tiles = {};
     const tiles = new Map<number, number>();
     const [maxX, maxY] = Array.from(mapObject).reduce(
-      (acc, [index, biome]) => {
+      (acc, [index, biomeId]) => {
         const pos = indexToPosition(index, Layer.TERRAIN);
         acc[0] = Math.max(acc[0], pos.x);
         acc[1] = Math.max(acc[1], pos.y);
@@ -430,7 +431,7 @@ export class Autotile {
       }
     }
 
-    console.log("autotiled map: ", tiles);
+    // console.log("autotiled map: ", tiles);
 
     return tiles;
   }

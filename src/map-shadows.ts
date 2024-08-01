@@ -20,6 +20,12 @@ export enum SunLevels {
   Dark = "Dark",
 }
 
+export enum SunDirection {
+  Sunup,
+  Sundown,
+  Topdown,
+}
+
 // export const TempMap = {
 //   [SunLevels.Bright]: {
 //     min: 0.85,
@@ -75,12 +81,11 @@ export class MapShadows {
   public ambientLightStrength: number;
   public sundownOffsetMap: [number, number][][];
   public sunupOffsetMap: [number, number][][];
-  public dropoffMaps: {
-    [direction: string]: number[][];
-  };
+  public sundownDropoffMap: Map<number, Map<number, number>>;
+  public sunupDropoffMap: Map<number, Map<number, number>>;
+  public topdownDropoffMap: Map<number, Map<number, number>>;
   private oldShadowLength: number;
   private oldPhase: LightPhase;
-  private testKey = `106,89`;
 
   constructor(private game: Game, private map: MapWorld) {
     this.shadowMap = [];
@@ -98,15 +103,14 @@ export class MapShadows {
     this.oldPhase = this.game.timeManager.lightPhase;
     this.sunupOffsetMap = [];
     this.sundownOffsetMap = [];
-    this.dropoffMaps = {};
-    this.dropoffMaps["sunup"] = [];
-    this.dropoffMaps["sundown"] = [];
-    this.dropoffMaps["topdown"] = [];
+    this.sundownDropoffMap = new Map();
+    this.sunupDropoffMap = new Map();
+    this.topdownDropoffMap = new Map();
     for (let i = 0; i < this.maxShadowLength + 1; i++) {
       // start with 0 instead of minShadowLength to account for special case shadow maps, like the topdown map
-      this.dropoffMaps["sunup"][i] = [];
-      this.dropoffMaps["sundown"][i] = [];
-      this.dropoffMaps["topdown"][i] = [];
+      this.sundownDropoffMap.set(i, new Map());
+      this.sunupDropoffMap.set(i, new Map());
+      this.topdownDropoffMap.set(i, new Map());
     }
   }
 
@@ -141,23 +145,10 @@ export class MapShadows {
     this.sunupOffsetMap = this.calcSunupMap();
     this.sundownOffsetMap = this.calcSundownMap();
     this.generateDropoffMaps();
-    console.log(
-      "about to update occlusion map, size",
-      GameSettings.options.gameSize,
-      GameSettings.options.gameSize.width,
-      GameSettings.options.gameSize.height
-    );
     this.updateOcclusionShadowMap(false);
     this.updateOcclusionShadowMap(true);
-    this.updateShadowMap(false, "sunup");
-    this.updateShadowMap(true, "sunup");
-    console.log(
-      "initial sunmap update done",
-      this.shadowMap,
-      this.targetShadowMap,
-      this.occlusionMap,
-      this.targetOcclusionMap
-    );
+    this.updateShadowMap(false, SunDirection.Sunup);
+    this.updateShadowMap(true, SunDirection.Sunup);
     this.interpolateShadowState(
       this.game.userInterface.camera.viewportTilesUnpadded
     );
@@ -176,7 +167,7 @@ export class MapShadows {
           i,
           j,
           this.sunupOffsetMap,
-          "sunup"
+          SunDirection.Sunup
         );
       }
     }
@@ -190,7 +181,7 @@ export class MapShadows {
           i,
           j,
           this.sundownOffsetMap,
-          "sundown"
+          SunDirection.Sundown
         );
       }
     }
@@ -219,7 +210,11 @@ export class MapShadows {
     for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
       for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
         const posIndex = positionToIndex(x, y, Layer.TERRAIN);
-        mapToUpdate[posIndex] = this.getCastShadowFor(x, y, "topdown");
+        mapToUpdate[posIndex] = this.getCastShadowFor(
+          x,
+          y,
+          SunDirection.Topdown
+        );
       }
     }
 
@@ -234,7 +229,7 @@ export class MapShadows {
     }
   }
 
-  public updateShadowMap(calculateTarget = true, dir: "sunup" | "sundown") {
+  public updateShadowMap(calculateTarget = true, dir: SunDirection) {
     let mapToUpdate = [];
     if (calculateTarget) {
       mapToUpdate = this.targetShadowMap;
@@ -242,7 +237,7 @@ export class MapShadows {
       mapToUpdate = this.shadowMap;
     }
     const offsetMap =
-      dir === "sunup" ? this.sunupOffsetMap : this.sundownOffsetMap;
+      dir === SunDirection.Sunup ? this.sunupOffsetMap : this.sundownOffsetMap; // only sunup and sundown maps need to be updated, as theyre dynamic
     for (let i = 0; i < offsetMap.length; i++) {
       for (let j = 0; j < offsetMap[i].length; j++) {
         const coords = offsetMap[i][j];
@@ -290,11 +285,11 @@ export class MapShadows {
     }
   }
 
-  private getShadowDir(): "sunup" | "sundown" {
+  private getShadowDir(): SunDirection {
     return this.game.timeManager.lightPhase === LightPhase.rising ||
       this.game.timeManager.lightPhase === LightPhase.peak
-      ? "sunup"
-      : "sundown";
+      ? SunDirection.Sunup
+      : SunDirection.Sundown;
   }
 
   private interpolateStrength() {
@@ -340,7 +335,6 @@ export class MapShadows {
     // smoothly transition between shadowMap and targetShadowMap over time
     let val: number;
     const progress = this.game.timeManager.turnAnimTimePercent;
-    // console.log(progress);
     let index: number;
     for (let i = 0; i < tileIndexes.length; i++) {
       index = tileIndexes[i];
@@ -445,27 +439,51 @@ export class MapShadows {
     row: number,
     index: number,
     coordMap: [number, number][][],
-    mapKey: string
+    mapKey: SunDirection
   ): number {
     const posIndex = positionToIndex(x, y, Layer.TERRAIN);
     const heightLevel = this.map.heightLayerMap.get(posIndex);
 
-    let lastRow;
-    let lastHeightLevel;
+    let lastPosIndex = -1;
+    let lastPos = [];
+    let lastRow: [number, number][];
+    let lastHeightLevel: HeightLayer;
     let dropoff = 0;
 
     for (let i = this.minShadowLength; i < this.maxShadowLength + 1; i++) {
       lastRow = coordMap[row - i];
       const lastIndex = index - i;
-      lastHeightLevel = lastRow
-        ? this.map.heightLayerMap.get(lastRow[lastIndex])
-        : heightLevel;
+      if (!lastRow || lastIndex < 0) {
+        lastHeightLevel = heightLevel;
+      } else {
+        lastPos = lastRow[lastIndex];
+        lastPosIndex = positionToIndex(lastPos[0], lastPos[1], Layer.TERRAIN);
+        lastHeightLevel = lastRow
+          ? this.map.heightLayerMap.get(lastPosIndex)
+          : heightLevel;
+      }
 
       dropoff = this.getHeightDropoff(heightLevel, lastHeightLevel);
-      if (this.dropoffMaps[mapKey][i] === undefined) {
-        this.dropoffMaps[mapKey][i] = [];
+      switch (mapKey) {
+        case SunDirection.Sunup:
+          if (this.sunupDropoffMap.get(i) === undefined) {
+            this.sunupDropoffMap.set(i, new Map());
+          }
+          this.sunupDropoffMap.get(i).set(posIndex, dropoff);
+          break;
+        case SunDirection.Sundown:
+          if (this.sundownDropoffMap.get(i) === undefined) {
+            this.sundownDropoffMap.set(i, new Map());
+          }
+          this.sundownDropoffMap.get(i).set(posIndex, dropoff);
+          break;
+        case SunDirection.Topdown:
+          if (this.topdownDropoffMap.get(i) === undefined) {
+            this.topdownDropoffMap.set(i, new Map());
+          }
+          this.topdownDropoffMap.get(i).set(posIndex, dropoff);
+          break;
       }
-      this.dropoffMaps[mapKey][i][posIndex] = dropoff;
     }
 
     return dropoff;
@@ -494,26 +512,32 @@ export class MapShadows {
       }
     }
     dropoff = Math.round(dropoff * 1000) / 1000;
-    this.dropoffMaps["topdown"][1][posIndex] = dropoff;
+    this.topdownDropoffMap.get(1).set(posIndex, dropoff);
 
     return dropoff;
   }
 
-  private getCastShadowFor(
-    x: number,
-    y: number,
-    dir: "sunup" | "sundown" | "topdown"
-  ): number {
+  private getCastShadowFor(x: number, y: number, dir: SunDirection): number {
     const posIndex = positionToIndex(x, y, Layer.TERRAIN);
     // if dir is topdown (sun overhead), use the topdown shadow map, aka shadowLength of 1
-    const map =
-      this.dropoffMaps[dir][dir === "topdown" ? "1" : this.shadowLength];
+    let map;
+    switch (dir) {
+      case SunDirection.Sunup:
+        map = this.sunupDropoffMap.get(this.shadowLength);
+        break;
+      case SunDirection.Sundown:
+        map = this.sundownDropoffMap.get(this.shadowLength);
+        break;
+      case SunDirection.Topdown:
+        map = this.topdownDropoffMap.get(1);
+        break;
+    }
     if (!map) {
       console.log("no map", this.shadowLength, dir, x, y, posIndex);
       return 0;
     }
     // if there is no dropoff, this tile gets full sun
-    const sunlight = map[posIndex] || this.ambientLightStrength;
+    const sunlight = map.get(posIndex) || this.ambientLightStrength;
 
     return sunlight;
   }

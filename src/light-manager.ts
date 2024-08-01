@@ -34,7 +34,7 @@ export type RGBAColor = [number, number, number, number]; // r,g,b,a [255, 255, 
 export class LightManager {
   public lightMap: ColorType[]; // final color of tile, taking into account all light sources
   private dynamicLightMap: ColorType[]; // x,y -> rgb color array
-  private readonly lightDefaults: { [key: string]: ColorType };
+  public readonly lightDefaults: { [key: string]: ColorType };
   private lightingFov: PreciseShadowcasting;
   private lightEmitters: Lighting;
   private lightEmitterById: { [id: string]: [number, number] };
@@ -54,6 +54,7 @@ export class LightManager {
       ambientDaylight: [100, 100, 100],
       ambientSunset: [250, 205, 160],
       ambientNightLight: [60, 60, 60],
+      shadow: [20, 20, 27], // shadow day or night
       torchBright: [235, 165, 30],
       torchDim: [200, 200, 30],
       fire: [240, 60, 60],
@@ -258,9 +259,8 @@ export class LightManager {
           highlight
         );
         if (colorArray) {
-          let tint = Color.toHex(colorArray);
           // tint the obj
-          this.game.renderer.tintObjectWithChildren(obj.sprite, tint);
+          this.game.renderer.tintObjectWithChildren(obj.sprite, colorArray);
         }
       }
     }

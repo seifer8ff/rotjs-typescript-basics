@@ -19,6 +19,7 @@ import { InitAssets } from "./assets";
 import { GameSettings } from "./game-settings";
 import { ManagerActors } from "./manager-actors";
 import { positionToIndex } from "./misc-utility";
+import { Biomes } from "./biomes";
 
 export class Game {
   public settings: GameSettings;
@@ -139,7 +140,7 @@ export class Game {
       temperaturePercent: this.map.tempMap.getTempByIndex(index),
       moisture: this.map.moistureMap.getMoistureByIndex(index),
       sunlight: this.map.getTotalLight(x, y),
-      biome: this.map.biomeMap.get(index),
+      biome: Biomes.Biomes[this.map.biomeMap.get(index)],
     };
   }
 
@@ -270,12 +271,10 @@ export class Game {
       //
       // important that this comes last
       // run a tint pass on all actors (entities, trees, etc)
-      this.map.lightManager.tintActors(this.actorManager.allActors, true);
-      this.map.lightManager.tintActors(
-        this.actorManager.trees,
-        false,
-        Layer.TREE
-      );
+      this.map.lightManager.tintActors(this.actorManager.actors, true);
+      for (const tree of this.actorManager.trees) {
+        tree.tintSelf();
+      }
     });
   }
 
