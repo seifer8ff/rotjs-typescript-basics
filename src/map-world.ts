@@ -1088,9 +1088,10 @@ export class MapWorld {
     this.dirtyTiles = [];
   }
 
-  onTileEnterViewport(positions: Point[]): void {
-    this.shadowMap.onEnter(positions);
-    this.cloudMap.onEnter(positions);
+  onTileEnterViewport(indexes: number[]): void {
+    this.shadowMap.onEnter(indexes);
+    this.cloudMap.onEnter(indexes);
+    this.lightManager.onEnter(indexes);
     // TODO: add a step to render tile
     // this will fix shadows not updating immediately when panning
   }

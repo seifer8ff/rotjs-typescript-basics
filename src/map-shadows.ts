@@ -123,12 +123,18 @@ export class MapShadows {
     for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
       for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
         index = positionToIndex(i, j, Layer.TERRAIN);
-        this.shadowMap[index] = 1;
         this.targetShadowMap[index] = 1;
         this.occlusionMap[index] = 1;
         this.targetOcclusionMap[index] = 1;
       }
     }
+    // only update the shadow map for the viewport tiles
+    // for (let posIndex of this.game.userInterface.camera.viewportTilesPadded) {
+    //   // this.shadowMap[posIndex] = 1;
+    //   this.targetShadowMap[posIndex] = 1;
+    //   this.occlusionMap[posIndex] = 1;
+    //   this.targetOcclusionMap[posIndex] = 1;
+    // }
   }
 
   public generateShadowMaps() {
@@ -196,6 +202,37 @@ export class MapShadows {
     }
   }
 
+  // public updateOcclusionShadowMap(calculateTarget: boolean = true) {
+  //   let mapToUpdate = [];
+  //   if (calculateTarget) {
+  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
+  //       mapToUpdate[index] = this.targetOcclusionMap[index];
+  //     }
+  //   } else {
+  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
+  //       mapToUpdate[index] = this.occlusionMap[index];
+  //     }
+  //   }
+  //   for (let index of this.game.userInterface.camera.viewportTilesPadded) {
+  //     const [x, y] = indexToXY(index, Layer.TERRAIN);
+  //     mapToUpdate[index] = mapToUpdate[index] = this.getCastShadowFor(
+  //       x,
+  //       y,
+  //       SunDirection.Topdown
+  //     );
+  //   }
+
+  //   if (!calculateTarget) {
+  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
+  //       this.occlusionMap[index] = mapToUpdate[index];
+  //     }
+  //   } else {
+  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
+  //       this.targetOcclusionMap[index] = mapToUpdate[index];
+  //     }
+  //   }
+  // }
+
   public updateOcclusionShadowMap(calculateTarget: boolean = true) {
     let mapToUpdate = [];
     if (calculateTarget) {
@@ -243,10 +280,21 @@ export class MapShadows {
         const coords = offsetMap[i][j];
         const x = coords[0];
         const y = coords[1];
-        mapToUpdate[positionToIndex(x, y, Layer.TERRAIN)] =
-          this.getCastShadowFor(x, y, dir);
+        if (this.game.userInterface.camera.inViewport(x, y)) {
+          mapToUpdate[positionToIndex(x, y, Layer.TERRAIN)] =
+            this.getCastShadowFor(x, y, dir);
+        }
       }
     }
+    // for (let i = 0; i < offsetMap.length; i++) {
+    //   for (let j = 0; j < offsetMap[i].length; j++) {
+    //     const coords = offsetMap[i][j];
+    //     const x = coords[0];
+    //     const y = coords[1];
+    //     mapToUpdate[positionToIndex(x, y, Layer.TERRAIN)] =
+    //       this.getCastShadowFor(x, y, dir);
+    //   }
+    // }
   }
 
   public turnUpdate() {
@@ -261,12 +309,11 @@ export class MapShadows {
 
   public renderUpdate(interpPercent: number) {
     if (!GameSettings.options.toggles.enableShadows) return;
-    if (!this.game.timeManager.isPaused) {
-      // move towards targetShadowMap from shadowMap every frame
-      this.interpolateShadowState(
-        this.game.userInterface.camera.viewportTilesUnpadded
-      );
-    }
+    // move towards targetShadowMap from shadowMap every frame
+    this.shadowMap = [];
+    this.interpolateShadowState(
+      this.game.userInterface.camera.viewportTilesPadded
+    );
   }
 
   private updateShadowDirection() {
@@ -546,17 +593,17 @@ export class MapShadows {
     this.shadowMap[positionToIndex(x, y, Layer.TERRAIN)] = sunlightAmount;
   }
 
-  public onEnter(positions: Point[]): void {
+  public onEnter(indexes: number[]): void {
     if (!GameSettings.options.toggles.enableShadows) {
       return;
     }
     // immediately update the shadow map when a tile enters the viewport
-    const dir = this.getShadowDir();
-    positions.forEach((pos) => {
-      const index = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
-      const lvl = this.getCastShadowFor(pos.x, pos.y, dir);
-      this.targetShadowMap[index] = lvl;
-      this.shadowMap[index] = lvl;
-    });
+    // const dir = this.getShadowDir();
+    // positions.forEach((pos) => {
+    //   const index = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
+    //   const lvl = this.getCastShadowFor(pos.x, pos.y, dir);
+    //   this.targetShadowMap[index] = lvl;
+    //   this.shadowMap[index] = lvl;
+    // });
   }
 }

@@ -612,20 +612,24 @@ export class Camera {
   };
 
   private updateViewport() {
-    const oldTiles = new Set(this.viewportTilesPadded);
+    // OLD VIEWPORT AND NEW VIEWPORT MUST MATCH (PADDED VS UNPADDED)
+    const oldTiles = new Set(this.viewportTilesUnpadded);
     const viewport = this.getViewport();
     this.viewportPadded = viewport.padded;
     this.viewportUnpadded = viewport.unpadded;
     this.viewportTilesPadded = this.getViewportTiles(true);
     this.viewportTilesUnpadded = this.getViewportTiles(false);
 
-    const enteredTiles: Point[] = [];
+    // const enteredTiles: Point[] = [];
+    const enteredTiles: number[] = [];
     let point: Point;
+    // OLD VIEWPORT AND NEW VIEWPORT MUST MATCH (PADDED VS UNPADDED)
     for (const tileIndex of this.viewportTilesUnpadded) {
       if (!oldTiles.has(tileIndex)) {
         point = indexToPosition(tileIndex, Layer.TERRAIN);
         if (this.game.map.isPointInMap(point)) {
-          enteredTiles.push(point);
+          // enteredTiles.push(point);
+          enteredTiles.push(tileIndex);
         }
       }
     }

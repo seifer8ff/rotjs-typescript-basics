@@ -400,4 +400,8 @@ export class Biomes {
   };
 
   constructor() {}
+
+  public static getBiome(id: BiomeId): Biome {
+    return Biomes.Biomes[id];
+  }
 }

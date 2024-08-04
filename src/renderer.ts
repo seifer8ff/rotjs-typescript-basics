@@ -368,6 +368,7 @@ export class Renderer {
   }
 
   public tintObjectWithChildren(obj: Renderable, tint: ColorType) {
+    if (!tint?.length) return;
     if (!("tint" in obj)) return;
     if (obj["tint"] === tint) return;
 
@@ -378,7 +379,12 @@ export class Renderer {
     }
 
     if (obj instanceof PIXI.ParticleContainer) return;
-
+    // try {
+    //   obj["tint"] = Color.toHex(tint);
+    // } catch (error) {
+    //   console.log("Error tinting object", obj, error);
+    //   console.log("tint", tint);
+    // }
     obj["tint"] = Color.toHex(tint);
   }
 

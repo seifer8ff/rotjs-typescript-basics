@@ -32,17 +32,19 @@ export const ShadowLight: BiomeId[] = ["grass", "valley"];
 export type RGBAColor = [number, number, number, number]; // r,g,b,a [255, 255, 255, 1]
 
 export class LightManager {
+  public static lightDefaults: { [key: string]: ColorType };
   public lightMap: ColorType[]; // final color of tile, taking into account all light sources
   private dynamicLightMap: ColorType[]; // x,y -> rgb color array
-  public readonly lightDefaults: { [key: string]: ColorType };
   private lightingFov: PreciseShadowcasting;
   private lightEmitters: Lighting;
   private lightEmitterById: { [id: string]: [number, number] };
   private ambientLight: ColorType;
   private targetAmbientLight: ColorType;
+  private worker: Worker;
+  // private workers: Worker[];
 
   constructor(private game: Game, private map: MapWorld) {
-    this.lightDefaults = {
+    LightManager.lightDefaults = {
       fullLight: [255, 255, 255],
       purple: [255, 0, 255],
       highLight: [240, 240, 240],
@@ -67,6 +69,33 @@ export class LightManager {
     };
     this.dynamicLightMap = [];
     this.lightEmitterById = {};
+    this.worker = new Worker(new URL("./light-worker.ts", import.meta.url));
+    this.worker.onmessage = (e) => this.updateLightmapFromWorker(e.data);
+    // this.workers = Array.from(
+    //   { length: 1 },
+    //   () => new Worker(new URL("./light-worker.ts", import.meta.url))
+    // );
+
+    // this.workers.forEach((worker) => {
+    //   worker.onmessage = (e) => {
+    //     const { data } = e;
+    //     if (data?.length) {
+    //       this.updateLightmapFromWorker(data);
+    //     }
+    //   };
+    // });
+  }
+
+  private updateLightmapFromWorker(data: ColorType[]) {
+    data.forEach((color, i) => {
+      if (!color.length) {
+        console.throttle(250).log("no color for index", i, color);
+      }
+      this.lightMap[i] = color;
+    });
+    // this.game.userInterface.camera.viewportTilesPadded.forEach((posIndex) => {
+    //   this.lightMap[posIndex] = data[posIndex];
+    // });
   }
 
   public init() {
@@ -106,18 +135,18 @@ export class LightManager {
     if (isDaytime) {
       if (phase === LightPhase.rising) {
         ambientLightToUpdate = Color.lerp(
-          this.lightDefaults.ambientDaylight,
-          this.lightDefaults.sunlight,
+          LightManager.lightDefaults.ambientDaylight,
+          LightManager.lightDefaults.sunlight,
           this.game.timeManager.remainingPhasePercent
         );
       } else if (phase === LightPhase.peak) {
-        ambientLightToUpdate = this.lightDefaults.sunlight;
+        ambientLightToUpdate = LightManager.lightDefaults.sunlight;
       } else {
         ambientLightToUpdate = multiColorLerp(
           [
-            this.lightDefaults.ambientDaylight,
-            this.lightDefaults.ambientSunset,
-            this.lightDefaults.sunlight,
+            LightManager.lightDefaults.ambientDaylight,
+            LightManager.lightDefaults.ambientSunset,
+            LightManager.lightDefaults.sunlight,
           ],
           this.game.timeManager.remainingPhasePercent
         );
@@ -126,20 +155,20 @@ export class LightManager {
       if (phase === LightPhase.rising) {
         ambientLightToUpdate = multiColorLerp(
           [
-            this.lightDefaults.ambientDaylight,
-            this.lightDefaults.ambientNightLight,
-            this.lightDefaults.moonlight,
+            LightManager.lightDefaults.ambientDaylight,
+            LightManager.lightDefaults.ambientNightLight,
+            LightManager.lightDefaults.moonlight,
           ],
           this.game.timeManager.remainingPhasePercent
         );
       } else if (phase === LightPhase.peak) {
-        ambientLightToUpdate = this.lightDefaults.moonlight;
+        ambientLightToUpdate = LightManager.lightDefaults.moonlight;
       } else {
         ambientLightToUpdate = multiColorLerp(
           [
-            this.lightDefaults.ambientDaylight,
-            this.lightDefaults.ambientNightLight,
-            this.lightDefaults.moonlight,
+            LightManager.lightDefaults.ambientDaylight,
+            LightManager.lightDefaults.ambientNightLight,
+            LightManager.lightDefaults.moonlight,
           ],
           this.game.timeManager.remainingPhasePercent
         );
@@ -184,15 +213,15 @@ export class LightManager {
   }
 
   public reflectivity(x: number, y: number) {
-    const key = MapWorld.coordsToKey(x, y);
-    const biome = this.map.biomeMap[key];
-    if (!biome) {
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const biomeId = this.map.biomeMap.get(index);
+    if (!biomeId) {
       return 0;
     }
-    const isBlocking = BlockLight.includes(biome.id);
-    const isWater = ReflectWaterLight.includes(biome.id);
-    const isReflectiveDirt = ReflectDirtLight.includes(biome.id);
-    const isShadowed = ShadowLight.includes(biome.id);
+    const isBlocking = BlockLight.includes(biomeId);
+    const isWater = ReflectWaterLight.includes(biomeId);
+    const isReflectiveDirt = ReflectDirtLight.includes(biomeId);
+    const isShadowed = ShadowLight.includes(biomeId);
     if (isBlocking) {
       return 0;
     }
@@ -236,7 +265,79 @@ export class LightManager {
   public renderUpdate(interpPercent: number) {
     // Interpolate the light state before computing the lighting
     this.interpolateAmbientLight();
-    this.calculateLightMap();
+    // const viewportTilesPadded =
+    //   this.game.userInterface.camera.viewportTilesPadded;
+    // console
+    //   .throttle(250)
+    //   .log("cloudMap length", this.map.cloudMap.cloudMap.length);
+    //
+    this.worker.postMessage({
+      type: "calculateLightMap",
+      data: {
+        viewportTiles: this.game.userInterface.camera.viewportTilesPadded,
+        dynamicLightMap: this.dynamicLightMap,
+        sunMap: this.map.shadowMap.shadowMap,
+        occlusionMap: this.map.shadowMap.occlusionMap,
+        cloudMap: this.map.cloudMap.cloudMap,
+        options: {
+          ambientLight: this.ambientLight,
+          isDaytime: this.game.timeManager.isDayTime,
+          lightPhase: this.game.timeManager.lightPhase,
+          ambientLightStrength: this.game.map.shadowMap.ambientLightStrength,
+          minCloudLevel: this.map.cloudMap.cloudMinLevel,
+          maxSunbeamLevel: this.map.cloudMap.sunbeamMaxLevel,
+          shadowStrength: this.game.map.shadowMap.shadowStrength,
+          ambientOcclusionShadowStrength:
+            this.game.map.shadowMap.ambientOcclusionShadowStrength,
+          cloudStrength: this.game.map.cloudMap.cloudStrength,
+          sunbeamStrength: this.game.map.cloudMap.sunbeamStrength,
+          remainingPhasePercent: this.game.timeManager.remainingPhasePercent,
+          lightDefaults: LightManager.lightDefaults,
+        },
+      },
+    });
+    //
+    // split the viewport into 4 quadrants and send to workers
+    // const viewportTilesPadded =
+    //   this.game.userInterface.camera.viewportTilesPadded;
+    // const splitTiles = viewportTilesPadded.reduce((acc, posIndex, i) => {
+    //   const workerIndex = i % this.workers.length;
+    //   if (!acc[workerIndex]) {
+    //     acc[workerIndex] = [];
+    //   }
+    //   acc[workerIndex].push(posIndex);
+    //   return acc;
+    // }, []);
+    // splitTiles.forEach((tiles, i) => {
+    //   this.workers[i].postMessage({
+    //     type: "calculateLightMap",
+    //     data: {
+    //       viewportTiles: tiles,
+    //       dynamicLightMap: this.dynamicLightMap,
+    //       sunMap: this.map.shadowMap.shadowMap,
+    //       occlusionMap: this.map.shadowMap.occlusionMap,
+    //       cloudMap: this.map.cloudMap.cloudMap,
+    //       options: {
+    //         ambientLight: this.ambientLight,
+    //         isDaytime: this.game.timeManager.isDayTime,
+    //         lightPhase: this.game.timeManager.lightPhase,
+    //         ambientLightStrength: this.game.map.shadowMap.ambientLightStrength,
+    //         minCloudLevel: this.map.cloudMap.cloudMinLevel,
+    //         maxSunbeamLevel: this.map.cloudMap.sunbeamMaxLevel,
+    //         shadowStrength: this.game.map.shadowMap.shadowStrength,
+    //         ambientOcclusionShadowStrength:
+    //           this.game.map.shadowMap.ambientOcclusionShadowStrength,
+    //         cloudStrength: this.game.map.cloudMap.cloudStrength,
+    //         sunbeamStrength: this.game.map.cloudMap.sunbeamStrength,
+    //         remainingPhasePercent: this.game.timeManager.remainingPhasePercent,
+    //         lightDefaults: LightManager.lightDefaults,
+    //       },
+    //     },
+    //   });
+    // });
+    //
+    // non-worker version
+    // this.calculateLightMap();
   }
 
   public tintActors(
@@ -258,7 +359,7 @@ export class LightManager {
           translatedY,
           highlight
         );
-        if (colorArray) {
+        if (colorArray?.length) {
           // tint the obj
           this.game.renderer.tintObjectWithChildren(obj.sprite, colorArray);
         }
@@ -323,7 +424,7 @@ export class LightManager {
           this.lightEmitters.setLight(
             actor.position.x,
             actor.position.y,
-            this.lightDefaults.torchBright
+            LightManager.lightDefaults.torchBright
           );
         }
       }
@@ -354,14 +455,30 @@ export class LightManager {
     });
   }
 
+  public getAmbientLight(): ColorType {
+    return this.ambientLight;
+  }
+
   public getLightFor(
     x: number,
     y: number,
     highlight: boolean = false
   ): ColorType {
+    // check if position is in viewport
+    if (!this.game.userInterface.camera.inViewport(x, y, false)) {
+      return this.ambientLight;
+    }
     let light = this.lightMap[positionToIndex(x, y, Layer.TERRAIN)];
-    if (light && highlight) {
-      light = Color.interpolate(light, this.lightDefaults.fullLight, 0.4);
+
+    if (light?.some((val) => !val)) {
+      light = this.ambientLight;
+    }
+    if (highlight) {
+      light = Color.interpolate(
+        light,
+        LightManager.lightDefaults.fullLight,
+        0.4
+      );
     }
     return light;
   }
@@ -391,9 +508,9 @@ export class LightManager {
     const isNight = this.game.timeManager.isNighttime;
     const isSettingPhase = phase === LightPhase.setting;
     let shadow = isSettingPhase
-      ? this.lightDefaults.shadowSunset
-      : this.lightDefaults.shadowSunrise;
-    let ambientOccShadow = this.lightDefaults.ambientOcc;
+      ? LightManager.lightDefaults.shadowSunset
+      : LightManager.lightDefaults.shadowSunrise;
+    let ambientOccShadow = LightManager.lightDefaults.ambientOcc;
     const shadowLevel = shadowMap[posIndex];
     const occlusionLevel = occlusionMap[posIndex];
     const isShadowed =
@@ -411,14 +528,14 @@ export class LightManager {
     const sunbeamStrength = this.game.map.cloudMap.sunbeamStrength;
     let cloudShadow = Color.multiply(
       isSettingPhase
-        ? this.lightDefaults.cloudShadowSetting
-        : this.lightDefaults.cloudShadow,
+        ? LightManager.lightDefaults.cloudShadowSetting
+        : LightManager.lightDefaults.cloudShadow,
       ambientLight
     );
     // const cloudShadow = Color.multiply(
     //   !isNight && isSettingPhase
-    //     ? this.lightDefaults.cloudShadowSetting
-    //     : this.lightDefaults.cloudShadow,
+    //     ? LightManager.lightDefaults.cloudShadowSetting
+    //     : LightManager.lightDefaults.cloudShadow,
     //   ambientLight
     // );
     // console.log(this.game.timeManager.remainingCyclePercent);
@@ -477,8 +594,10 @@ export class LightManager {
       // );
       light = Color.interpolate(
         light,
-        // this.lightDefaults.purple,
-        isNight ? this.lightDefaults.blueLight : this.lightDefaults.yellowLight,
+        // LightManager.lightDefaults.purple,
+        isNight
+          ? LightManager.lightDefaults.blueLight
+          : LightManager.lightDefaults.yellowLight,
         cloudStrength *
           ((this.map.cloudMap.sunbeamMaxLevel - cloudLevel) * sunbeamStrength)
       );
@@ -496,10 +615,39 @@ export class LightManager {
     if (highlight) {
       light = Color.interpolate(
         light,
-        this.game.map.lightManager.lightDefaults.fullLight,
+        LightManager.lightDefaults.fullLight,
         0.4
       );
     }
     return light;
+  }
+
+  public onEnter(indexes: number[]) {
+    // update lighting for tiles immediately
+    // this.worker.postMessage({
+    //   type: "calculateLightMap",
+    //   data: {
+    //     viewportTiles: indexes,
+    //     dynamicLightMap: this.dynamicLightMap,
+    //     sunMap: this.map.shadowMap.shadowMap,
+    //     occlusionMap: this.map.shadowMap.occlusionMap,
+    //     cloudMap: this.map.cloudMap.cloudMap,
+    //     options: {
+    //       ambientLight: this.ambientLight,
+    //       isDaytime: this.game.timeManager.isDayTime,
+    //       lightPhase: this.game.timeManager.lightPhase,
+    //       ambientLightStrength: this.game.map.shadowMap.ambientLightStrength,
+    //       minCloudLevel: this.map.cloudMap.cloudMinLevel,
+    //       maxSunbeamLevel: this.map.cloudMap.sunbeamMaxLevel,
+    //       shadowStrength: this.game.map.shadowMap.shadowStrength,
+    //       ambientOcclusionShadowStrength:
+    //         this.game.map.shadowMap.ambientOcclusionShadowStrength,
+    //       cloudStrength: this.game.map.cloudMap.cloudStrength,
+    //       sunbeamStrength: this.game.map.cloudMap.sunbeamStrength,
+    //       remainingPhasePercent: this.game.timeManager.remainingPhasePercent,
+    //       lightDefaults: LightManager.lightDefaults,
+    //     },
+    //   },
+    // });
   }
 }

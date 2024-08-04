@@ -43,14 +43,18 @@ export class MapClouds {
   public init() {
     this.cloudMap = [];
     this.targetCloudMap = [];
-    let posIndex: number;
-    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
-      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
-        posIndex = positionToIndex(i, j, Layer.TERRAIN);
-        this.cloudMap[posIndex] = 0;
-        this.targetCloudMap[posIndex] = 0;
-      }
+    for (let posIndex of this.game.userInterface.camera.viewportTilesUnpadded) {
+      this.cloudMap[posIndex] = 0;
+      this.targetCloudMap[posIndex] = 0;
     }
+    // let posIndex: number;
+    // for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
+    //   for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
+    //     posIndex = positionToIndex(i, j, Layer.TERRAIN);
+    //     this.cloudMap[posIndex] = 0;
+    //     this.targetCloudMap[posIndex] = 0;
+    //   }
+    // }
   }
 
   public generateCloudMap(): void {
@@ -59,19 +63,32 @@ export class MapClouds {
     this.updateCloudOffset();
     this.updateWindSpeed();
 
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
-        const posIndex = positionToIndex(x, y, Layer.TERRAIN);
-        this.cloudMap[posIndex] = this.generateCloudLevel(
-          x,
-          y,
-          width,
-          height,
-          this.game.noise
-        );
-        this.targetCloudMap[posIndex] = this.cloudMap[posIndex];
-      }
-    }
+    // for (let posIndex of this.game.userInterface.camera.viewportTilesUnpadded) {
+    //   const posXY = indexToXY(posIndex, Layer.TERRAIN);
+    //   this.cloudMap[posIndex] = this.generateCloudLevel(
+    //     posXY[0],
+    //     posXY[1],
+    //     width,
+    //     height,
+    //     this.game.noise
+    //   );
+    //   this.targetCloudMap[posIndex] = this.cloudMap[posIndex];
+    // }
+    // this.interpolateStrength();
+
+    // for (let x = 0; x < width; x++) {
+    //   for (let y = 0; y < height; y++) {
+    //     const posIndex = positionToIndex(x, y, Layer.TERRAIN);
+    //     this.cloudMap[posIndex] = this.generateCloudLevel(
+    //       x,
+    //       y,
+    //       width,
+    //       height,
+    //       this.game.noise
+    //     );
+    //     this.targetCloudMap[posIndex] = this.cloudMap[posIndex];
+    //   }
+    // }
     this.interpolateStrength();
   }
 
@@ -82,8 +99,8 @@ export class MapClouds {
     height: number,
     noise: Noise
   ): number {
-    const key = MapWorld.coordsToKey(x, y);
-    const biome = this.map.biomeMap[key];
+    const index = positionToIndex(x, y, Layer.TERRAIN);
+    const biomeID = this.map.biomeMap.get(index);
     let noiseX = x / width - 0.5;
     let noiseY = y / height - 0.5;
 
@@ -97,7 +114,7 @@ export class MapClouds {
     let cloudSize = 10;
     let cloudIntensity = 0.33;
 
-    switch (biome?.id) {
+    switch (biomeID) {
       case Biomes.Biomes.oceandeep.id:
         cloudSize = 2;
         cloudIntensity = 0.44;
@@ -200,6 +217,9 @@ export class MapClouds {
   }
 
   public calcCloudsFor(x: number, y: number): number {
+    if (!GameSettings.options.toggles.enableClouds) {
+      return 0;
+    }
     return this.generateCloudLevel(
       x,
       y,
@@ -216,19 +236,31 @@ export class MapClouds {
     }
     this.updateWindSpeed();
     this.updateCloudOffset();
-    const tileIndexes = this.game.userInterface.camera.viewportTilesUnpadded;
+    this.cloudMap = [];
+    const tileIndexes = this.game.userInterface.camera.viewportTilesPadded;
+    this.updateCloudMapForTiles(tileIndexes);
+  }
+
+  public renderUpdate(interPercent: number) {
+    this.interpolateStrength();
+    this.interpolateCloudState(
+      this.game.userInterface.camera.viewportTilesUnpadded
+    );
+  }
+
+  private updateCloudMapForTiles(tileIndexes: number[]) {
     let posIndex: number;
     let posXY: [number, number];
+    for (let i = 0; i < tileIndexes.length; i++) {
+      posIndex = tileIndexes[i];
+      this.cloudMap[posIndex] = this.targetCloudMap[posIndex];
+    }
+    this.targetCloudMap.length = 0;
     for (let i = 0; i < tileIndexes.length; i++) {
       posIndex = tileIndexes[i];
       posXY = indexToXY(posIndex, Layer.TERRAIN);
       this.targetCloudMap[posIndex] = this.calcCloudsFor(posXY[0], posXY[1]);
     }
-    this.interpolateStrength();
-  }
-
-  public renderUpdate(interPercent: number) {
-    this.interpolateCloudState();
   }
 
   private interpolateStrength() {
@@ -271,15 +303,13 @@ export class MapClouds {
     this.sunbeamStrength = Math.round(sunbeamStrength * 1000) / 1000;
   }
 
-  public interpolateCloudState() {
+  public interpolateCloudState(tileIndexes: number[]) {
     if (!GameSettings.options.toggles.enableClouds) {
       return;
     }
     let val: number;
-    let key: string;
     let posIndex: number;
     // only iterate through tiles in the viewport
-    const tileIndexes = this.game.userInterface.camera.viewportTilesUnpadded;
     for (let i = 0; i < tileIndexes.length; i++) {
       posIndex = tileIndexes[i];
       val = lerp(
@@ -299,17 +329,18 @@ export class MapClouds {
     return this.cloudMap[positionToIndex(x, y, Layer.TERRAIN)];
   }
 
-  onEnter(positions: Point[]): void {
+  onEnter(indexes: number[]): void {
     if (!GameSettings.options.toggles.enableClouds) {
       return;
     }
-    let posIndex: number;
-    let cloudVal: number;
-    positions.forEach((pos) => {
-      posIndex = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
-      cloudVal = this.calcCloudsFor(pos.x, pos.y);
-      this.cloudMap[posIndex] = cloudVal;
-      this.targetCloudMap[posIndex] = cloudVal;
-    });
+    if (indexes.length === 0) {
+      return;
+    }
+    let xy: [number, number];
+    for (let index of indexes) {
+      xy = indexToXY(index, Layer.TERRAIN);
+      this.targetCloudMap[index] = this.calcCloudsFor(xy[0], xy[1]);
+      this.cloudMap[index] = this.targetCloudMap[index];
+    }
   }
 }

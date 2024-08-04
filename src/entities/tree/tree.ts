@@ -23,6 +23,7 @@ import {
 import { GameSettings } from "../../game-settings";
 import { Color as ColorType } from "rot-js/lib/color";
 import { clamp } from "rot-js/lib/util";
+import { LightManager } from "../../light-manager";
 
 export interface Segment {
   position: Point;
@@ -733,6 +734,10 @@ export class Tree implements Actor {
       false
     );
     let color: ColorType = colorArray;
+    if (color === undefined) {
+      // position is outside of viewport
+      return;
+    }
 
     this.sprite.children.forEach((child: Renderable) => {
       const order: number = child["order"];
@@ -751,7 +756,7 @@ export class Tree implements Actor {
         );
         color = Color.interpolate(
           colorArray,
-          this.game.map.lightManager.lightDefaults.shadow,
+          LightManager.lightDefaults.shadow,
           darkenAmount
         );
       }
