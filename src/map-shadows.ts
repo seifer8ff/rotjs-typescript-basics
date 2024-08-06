@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { LightManager } from "./light-manager";
-import { lerp, positionToIndex } from "./misc-utility";
+import { indexToXY, lerp, positionToIndex } from "./misc-utility";
 import { HeightLayer, MapWorld } from "./map-world";
 import { Point } from "./point";
 import { GameSettings } from "./game-settings";
@@ -67,12 +67,13 @@ export const HeightDropoff = {
 //   HighHill: 1.5,
 // };
 
+// TODO: ENTIRE CLASS NEEDS TO BE REWORKED
+// CALCULATE SHADOWS REGULARLY, RATHER THAN THE ENTIRE MAP AT ONCE
 export class MapShadows {
   public lightManager: LightManager;
   public shadowMap: number[];
   public targetShadowMap: number[];
   public occlusionMap: number[];
-  public targetOcclusionMap: number[];
   public minShadowLength: number;
   public maxShadowLength: number;
   public shadowLength: number;
@@ -91,7 +92,6 @@ export class MapShadows {
     this.shadowMap = [];
     this.targetShadowMap = [];
     this.occlusionMap = [];
-    this.targetOcclusionMap = [];
 
     this.shadowStrength = 1;
     this.ambientOcclusionShadowStrength = 1;
@@ -118,23 +118,11 @@ export class MapShadows {
     this.shadowMap = [];
     this.targetShadowMap = [];
     this.occlusionMap = [];
-    this.targetOcclusionMap = [];
-    let index: number;
-    for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
-      for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
-        index = positionToIndex(i, j, Layer.TERRAIN);
-        this.targetShadowMap[index] = 1;
-        this.occlusionMap[index] = 1;
-        this.targetOcclusionMap[index] = 1;
-      }
-    }
     // only update the shadow map for the viewport tiles
-    // for (let posIndex of this.game.userInterface.camera.viewportTilesPadded) {
-    //   // this.shadowMap[posIndex] = 1;
-    //   this.targetShadowMap[posIndex] = 1;
-    //   this.occlusionMap[posIndex] = 1;
-    //   this.targetOcclusionMap[posIndex] = 1;
-    // }
+    for (let posIndex of this.game.userInterface.camera.viewportTilesPadded) {
+      this.targetShadowMap[posIndex] = 1;
+      this.occlusionMap[posIndex] = 1;
+    }
   }
 
   public generateShadowMaps() {
@@ -148,11 +136,11 @@ export class MapShadows {
     // const sortedCoordMap = this.sortByHeight(this.map.biomeMap);
 
     // this.sortedCoordMap = this.orientMapReverse(); // working properly
+    const tileIndexes = this.game.userInterface.camera.viewportTilesPadded;
     this.sunupOffsetMap = this.calcSunupMap();
     this.sundownOffsetMap = this.calcSundownMap();
     this.generateDropoffMaps();
-    this.updateOcclusionShadowMap(false);
-    this.updateOcclusionShadowMap(true);
+    this.updateOcclusionShadowMap(tileIndexes);
     this.updateShadowMap(false, SunDirection.Sunup);
     this.updateShadowMap(true, SunDirection.Sunup);
     this.interpolateShadowState(
@@ -202,67 +190,17 @@ export class MapShadows {
     }
   }
 
-  // public updateOcclusionShadowMap(calculateTarget: boolean = true) {
-  //   let mapToUpdate = [];
-  //   if (calculateTarget) {
-  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
-  //       mapToUpdate[index] = this.targetOcclusionMap[index];
-  //     }
-  //   } else {
-  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
-  //       mapToUpdate[index] = this.occlusionMap[index];
-  //     }
-  //   }
-  //   for (let index of this.game.userInterface.camera.viewportTilesPadded) {
-  //     const [x, y] = indexToXY(index, Layer.TERRAIN);
-  //     mapToUpdate[index] = mapToUpdate[index] = this.getCastShadowFor(
-  //       x,
-  //       y,
-  //       SunDirection.Topdown
-  //     );
-  //   }
-
-  //   if (!calculateTarget) {
-  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
-  //       this.occlusionMap[index] = mapToUpdate[index];
-  //     }
-  //   } else {
-  //     for (let index of this.game.userInterface.camera.viewportTilesPadded) {
-  //       this.targetOcclusionMap[index] = mapToUpdate[index];
-  //     }
-  //   }
-  // }
-
-  public updateOcclusionShadowMap(calculateTarget: boolean = true) {
-    let mapToUpdate = [];
-    if (calculateTarget) {
-      for (let index in this.targetOcclusionMap) {
-        mapToUpdate[index] = this.targetOcclusionMap[index];
-      }
-    } else {
-      for (let index in this.occlusionMap) {
-        mapToUpdate[index] = this.occlusionMap[index];
-      }
-    }
-    for (let x = 0; x < GameSettings.options.gameSize.width; x++) {
-      for (let y = 0; y < GameSettings.options.gameSize.height; y++) {
-        const posIndex = positionToIndex(x, y, Layer.TERRAIN);
-        mapToUpdate[posIndex] = this.getCastShadowFor(
-          x,
-          y,
-          SunDirection.Topdown
-        );
-      }
-    }
-
-    if (!calculateTarget) {
-      for (let index in this.occlusionMap) {
-        this.occlusionMap[index] = mapToUpdate[index];
-      }
-    } else {
-      for (let index in this.targetOcclusionMap) {
-        this.targetOcclusionMap[index] = mapToUpdate[index];
-      }
+  public updateOcclusionShadowMap(tileIndexes: number[]) {
+    let posIndex: number;
+    let posXY: [number, number];
+    for (let i = 0; i < tileIndexes.length; i++) {
+      posIndex = tileIndexes[i];
+      posXY = indexToXY(posIndex, Layer.TERRAIN);
+      this.occlusionMap[posIndex] = this.getCastShadowFor(
+        posXY[0],
+        posXY[1],
+        SunDirection.Topdown
+      );
     }
   }
 
@@ -310,7 +248,6 @@ export class MapShadows {
   public renderUpdate(interpPercent: number) {
     if (!GameSettings.options.toggles.enableShadows) return;
     // move towards targetShadowMap from shadowMap every frame
-    this.shadowMap = [];
     this.interpolateShadowState(
       this.game.userInterface.camera.viewportTilesPadded
     );
@@ -589,7 +526,11 @@ export class MapShadows {
     return sunlight;
   }
 
-  setShadow(x: number, y: number, sunlightAmount: number): void {
+  get(x: number, y: number): number {
+    return this.shadowMap[positionToIndex(x, y, Layer.TERRAIN)];
+  }
+
+  set(x: number, y: number, sunlightAmount: number): void {
     this.shadowMap[positionToIndex(x, y, Layer.TERRAIN)] = sunlightAmount;
   }
 
@@ -597,13 +538,16 @@ export class MapShadows {
     if (!GameSettings.options.toggles.enableShadows) {
       return;
     }
+    // occlusion maps are static, so just update it on enter
+    this.updateOcclusionShadowMap(indexes);
     // immediately update the shadow map when a tile enters the viewport
-    // const dir = this.getShadowDir();
-    // positions.forEach((pos) => {
-    //   const index = positionToIndex(pos.x, pos.y, Layer.TERRAIN);
-    //   const lvl = this.getCastShadowFor(pos.x, pos.y, dir);
-    //   this.targetShadowMap[index] = lvl;
-    //   this.shadowMap[index] = lvl;
-    // });
+    const dir = this.getShadowDir();
+    let xy: [number, number];
+    for (let index of indexes) {
+      xy = indexToXY(index, Layer.TERRAIN);
+      const lvl = this.getCastShadowFor(xy[0], xy[1], dir);
+      this.targetShadowMap[index] = lvl;
+      this.shadowMap[index] = lvl;
+    }
   }
 }

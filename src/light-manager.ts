@@ -18,6 +18,7 @@ import { GameSettings } from "./game-settings";
 import { Layer, Renderable } from "./renderer";
 import { Point } from "./point";
 import { Actor } from "./entities/actor";
+import { Buffer } from "buffer";
 
 export const BlockLight: BiomeId[] = [
   "hillslow",
@@ -41,7 +42,6 @@ export class LightManager {
   private ambientLight: ColorType;
   private targetAmbientLight: ColorType;
   private worker: Worker;
-  // private workers: Worker[];
 
   constructor(private game: Game, private map: MapWorld) {
     LightManager.lightDefaults = {
@@ -67,35 +67,23 @@ export class LightManager {
       shadowSunset: [200, 60, 40],
       shadowSunrise: [30, 30, 42], // blue
     };
-    this.dynamicLightMap = [];
     this.lightEmitterById = {};
-    this.worker = new Worker(new URL("./light-worker.ts", import.meta.url));
-    this.worker.onmessage = (e) => this.updateLightmapFromWorker(e.data);
-    // this.workers = Array.from(
-    //   { length: 1 },
-    //   () => new Worker(new URL("./light-worker.ts", import.meta.url))
-    // );
-
-    // this.workers.forEach((worker) => {
-    //   worker.onmessage = (e) => {
-    //     const { data } = e;
-    //     if (data?.length) {
-    //       this.updateLightmapFromWorker(data);
-    //     }
-    //   };
+    // this.worker = new Worker(new URL("./light-worker.ts", import.meta.url));
+    // this.worker.postMessage({
+    //   type: "init",
+    //   data: {
+    //     lightDefaults: LightManager.lightDefaults,
+    //   },
     // });
   }
 
-  private updateLightmapFromWorker(data: ColorType[]) {
-    data.forEach((color, i) => {
+  private updateLightmapFromWorker(lightData: [number, ColorType][]) {
+    lightData.forEach(([index, color], i) => {
       if (!color.length) {
         console.throttle(250).log("no color for index", i, color);
       }
-      this.lightMap[i] = color;
+      this.set(index, color);
     });
-    // this.game.userInterface.camera.viewportTilesPadded.forEach((posIndex) => {
-    //   this.lightMap[posIndex] = data[posIndex];
-    // });
   }
 
   public init() {
@@ -199,7 +187,7 @@ export class LightManager {
   }
 
   public clearDynamicLightMap() {
-    this.dynamicLightMap = [];
+    this.dynamicLightMap.length = 0;
   }
 
   public clearLightMap() {
@@ -207,7 +195,7 @@ export class LightManager {
     for (let i = 0; i < GameSettings.options.gameSize.width; i++) {
       for (let j = 0; j < GameSettings.options.gameSize.height; j++) {
         posIndex = positionToIndex(i, j, Layer.TERRAIN);
-        this.lightMap[posIndex] = this.ambientLight;
+        this.set(posIndex, this.ambientLight);
       }
     }
   }
@@ -265,79 +253,7 @@ export class LightManager {
   public renderUpdate(interpPercent: number) {
     // Interpolate the light state before computing the lighting
     this.interpolateAmbientLight();
-    // const viewportTilesPadded =
-    //   this.game.userInterface.camera.viewportTilesPadded;
-    // console
-    //   .throttle(250)
-    //   .log("cloudMap length", this.map.cloudMap.cloudMap.length);
-    //
-    this.worker.postMessage({
-      type: "calculateLightMap",
-      data: {
-        viewportTiles: this.game.userInterface.camera.viewportTilesPadded,
-        dynamicLightMap: this.dynamicLightMap,
-        sunMap: this.map.shadowMap.shadowMap,
-        occlusionMap: this.map.shadowMap.occlusionMap,
-        cloudMap: this.map.cloudMap.cloudMap,
-        options: {
-          ambientLight: this.ambientLight,
-          isDaytime: this.game.timeManager.isDayTime,
-          lightPhase: this.game.timeManager.lightPhase,
-          ambientLightStrength: this.game.map.shadowMap.ambientLightStrength,
-          minCloudLevel: this.map.cloudMap.cloudMinLevel,
-          maxSunbeamLevel: this.map.cloudMap.sunbeamMaxLevel,
-          shadowStrength: this.game.map.shadowMap.shadowStrength,
-          ambientOcclusionShadowStrength:
-            this.game.map.shadowMap.ambientOcclusionShadowStrength,
-          cloudStrength: this.game.map.cloudMap.cloudStrength,
-          sunbeamStrength: this.game.map.cloudMap.sunbeamStrength,
-          remainingPhasePercent: this.game.timeManager.remainingPhasePercent,
-          lightDefaults: LightManager.lightDefaults,
-        },
-      },
-    });
-    //
-    // split the viewport into 4 quadrants and send to workers
-    // const viewportTilesPadded =
-    //   this.game.userInterface.camera.viewportTilesPadded;
-    // const splitTiles = viewportTilesPadded.reduce((acc, posIndex, i) => {
-    //   const workerIndex = i % this.workers.length;
-    //   if (!acc[workerIndex]) {
-    //     acc[workerIndex] = [];
-    //   }
-    //   acc[workerIndex].push(posIndex);
-    //   return acc;
-    // }, []);
-    // splitTiles.forEach((tiles, i) => {
-    //   this.workers[i].postMessage({
-    //     type: "calculateLightMap",
-    //     data: {
-    //       viewportTiles: tiles,
-    //       dynamicLightMap: this.dynamicLightMap,
-    //       sunMap: this.map.shadowMap.shadowMap,
-    //       occlusionMap: this.map.shadowMap.occlusionMap,
-    //       cloudMap: this.map.cloudMap.cloudMap,
-    //       options: {
-    //         ambientLight: this.ambientLight,
-    //         isDaytime: this.game.timeManager.isDayTime,
-    //         lightPhase: this.game.timeManager.lightPhase,
-    //         ambientLightStrength: this.game.map.shadowMap.ambientLightStrength,
-    //         minCloudLevel: this.map.cloudMap.cloudMinLevel,
-    //         maxSunbeamLevel: this.map.cloudMap.sunbeamMaxLevel,
-    //         shadowStrength: this.game.map.shadowMap.shadowStrength,
-    //         ambientOcclusionShadowStrength:
-    //           this.game.map.shadowMap.ambientOcclusionShadowStrength,
-    //         cloudStrength: this.game.map.cloudMap.cloudStrength,
-    //         sunbeamStrength: this.game.map.cloudMap.sunbeamStrength,
-    //         remainingPhasePercent: this.game.timeManager.remainingPhasePercent,
-    //         lightDefaults: LightManager.lightDefaults,
-    //       },
-    //     },
-    //   });
-    // });
-    //
-    // non-worker version
-    // this.calculateLightMap();
+    this.calculateLightMap(this.game.userInterface.camera.viewportTilesPadded);
   }
 
   public tintActors(
@@ -431,28 +347,31 @@ export class LightManager {
     }
   }
 
-  public calculateLightMap() {
-    const lightMap = this.dynamicLightMap;
+  public calculateLightMap(tiles: number[]) {
+    const dynamicLightMap = this.dynamicLightMap;
     const sunMap = this.map.shadowMap.shadowMap;
     const occlusionMap = this.map.shadowMap.occlusionMap;
     const cloudMap = this.map.cloudMap.cloudMap;
-    const viewportTiles = this.game.userInterface.camera.viewportTilesPadded;
-    let pos: [number, number];
+    let dynamicLightValue: ColorType;
+    let sunValue: number;
+    let occlusionValue: number;
+    let cloudValue: number;
+    let light: ColorType;
 
-    // this.finalLightMap = [];
-    viewportTiles.forEach((posIndex) => {
-      // console.throttle(500).log("posIndex", posIndex);
-      pos = indexToXY(posIndex, Layer.TERRAIN);
-      this.lightMap[posIndex] = this.calculateLightFor(
-        pos[0],
-        pos[1],
-        lightMap,
-        sunMap,
-        occlusionMap,
-        cloudMap,
+    for (let posIndex of tiles) {
+      dynamicLightValue = dynamicLightMap[posIndex];
+      sunValue = sunMap[posIndex];
+      occlusionValue = occlusionMap[posIndex];
+      cloudValue = cloudMap[posIndex];
+      light = this.calculateLight(
+        dynamicLightValue,
+        sunValue,
+        occlusionValue,
+        cloudValue,
         false
       );
-    });
+      this.set(posIndex, light);
+    }
   }
 
   public getAmbientLight(): ColorType {
@@ -468,11 +387,8 @@ export class LightManager {
     if (!this.game.userInterface.camera.inViewport(x, y, false)) {
       return this.ambientLight;
     }
-    let light = this.lightMap[positionToIndex(x, y, Layer.TERRAIN)];
+    let light = this.get(positionToIndex(x, y, Layer.TERRAIN));
 
-    if (light?.some((val) => !val)) {
-      light = this.ambientLight;
-    }
     if (highlight) {
       light = Color.interpolate(
         light,
@@ -492,16 +408,13 @@ export class LightManager {
     return [light[0], light[1], light[2], 1];
   }
 
-  public calculateLightFor(
-    x: number,
-    y: number,
-    lightMap: ColorType[] = null, // x,y -> color based on light sources
-    shadowMap: number[] = null, // x,y -> number based on sun position
-    occlusionMap: number[] = null, // x,y -> number based on occlusion
-    cloudMap: number[] = null, // x,y -> number based on cloud cover
+  public calculateLight(
+    lightMap: ColorType = null, // x,y -> color based on light sources
+    shadowMap: number = null, // x,y -> number based on sun position
+    occlusionMap: number = null, // x,y -> number based on occlusion
+    cloudMap: number = null, // x,y -> number based on cloud cover
     highlight: boolean = false
   ): ColorType {
-    const posIndex = positionToIndex(x, y, Layer.TERRAIN);
     const ambientLight = this.ambientLight;
     const isDaytime = this.game.timeManager.isDayTime;
     const phase = this.game.timeManager.lightPhase;
@@ -511,15 +424,11 @@ export class LightManager {
       ? LightManager.lightDefaults.shadowSunset
       : LightManager.lightDefaults.shadowSunrise;
     let ambientOccShadow = LightManager.lightDefaults.ambientOcc;
-    const shadowLevel = shadowMap[posIndex];
-    const occlusionLevel = occlusionMap[posIndex];
     const isShadowed =
-      Math.abs(shadowLevel - this.game.map.shadowMap.ambientLightStrength) >
-      0.01;
-    const isOccluded = occlusionLevel !== 1;
-    const cloudLevel = cloudMap[posIndex];
-    const isClouded = cloudLevel > this.map.cloudMap.cloudMinLevel;
-    const isCloudClear = cloudLevel < this.map.cloudMap.sunbeamMaxLevel;
+      Math.abs(shadowMap - this.game.map.shadowMap.ambientLightStrength) > 0.01;
+    const isOccluded = occlusionMap !== 1;
+    const isClouded = cloudMap > this.map.cloudMap.cloudMinLevel;
+    const isCloudClear = cloudMap < this.map.cloudMap.sunbeamMaxLevel;
 
     const shadowStrength = this.game.map.shadowMap.shadowStrength;
     let ambOccShadowStrength =
@@ -550,24 +459,23 @@ export class LightManager {
     }
 
     let light = ambientLight;
-    let lightMapValue = lightMap[posIndex];
 
-    if (lightMapValue != undefined) {
+    if (lightMap != undefined) {
       // override shadows light if there is a light source
-      light = Color.add(light, lightMapValue);
+      light = Color.add(light, lightMap);
     } else {
       if (isOccluded) {
         light = Color.interpolate(
           light,
           ambientOccShadow,
-          (1 - occlusionLevel) * ambOccShadowStrength
+          (1 - occlusionMap) * ambOccShadowStrength
         );
       }
       if (isShadowed && isDaytime) {
         light = Color.interpolate(
           light,
           shadow,
-          (1 - shadowLevel) * shadowStrength
+          (1 - shadowMap) * shadowStrength
         );
       }
     }
@@ -580,7 +488,7 @@ export class LightManager {
       light = Color.interpolate(
         light,
         cloudShadow,
-        1 - cloudStrength * (1 - (cloudLevel - this.map.cloudMap.cloudMinLevel))
+        1 - cloudStrength * (1 - (cloudMap - this.map.cloudMap.cloudMinLevel))
       );
     }
 
@@ -599,7 +507,7 @@ export class LightManager {
           ? LightManager.lightDefaults.blueLight
           : LightManager.lightDefaults.yellowLight,
         cloudStrength *
-          ((this.map.cloudMap.sunbeamMaxLevel - cloudLevel) * sunbeamStrength)
+          ((this.map.cloudMap.sunbeamMaxLevel - cloudMap) * sunbeamStrength)
       );
 
       // light = Color.interpolate(
@@ -622,32 +530,13 @@ export class LightManager {
     return light;
   }
 
-  public onEnter(indexes: number[]) {
-    // update lighting for tiles immediately
-    // this.worker.postMessage({
-    //   type: "calculateLightMap",
-    //   data: {
-    //     viewportTiles: indexes,
-    //     dynamicLightMap: this.dynamicLightMap,
-    //     sunMap: this.map.shadowMap.shadowMap,
-    //     occlusionMap: this.map.shadowMap.occlusionMap,
-    //     cloudMap: this.map.cloudMap.cloudMap,
-    //     options: {
-    //       ambientLight: this.ambientLight,
-    //       isDaytime: this.game.timeManager.isDayTime,
-    //       lightPhase: this.game.timeManager.lightPhase,
-    //       ambientLightStrength: this.game.map.shadowMap.ambientLightStrength,
-    //       minCloudLevel: this.map.cloudMap.cloudMinLevel,
-    //       maxSunbeamLevel: this.map.cloudMap.sunbeamMaxLevel,
-    //       shadowStrength: this.game.map.shadowMap.shadowStrength,
-    //       ambientOcclusionShadowStrength:
-    //         this.game.map.shadowMap.ambientOcclusionShadowStrength,
-    //       cloudStrength: this.game.map.cloudMap.cloudStrength,
-    //       sunbeamStrength: this.game.map.cloudMap.sunbeamStrength,
-    //       remainingPhasePercent: this.game.timeManager.remainingPhasePercent,
-    //       lightDefaults: LightManager.lightDefaults,
-    //     },
-    //   },
-    // });
+  public get(index: number): ColorType {
+    return this.lightMap[index];
   }
+
+  public set(index: number, color: ColorType) {
+    this.lightMap[index] = color;
+  }
+
+  public onEnter(indexes: number[]) {}
 }

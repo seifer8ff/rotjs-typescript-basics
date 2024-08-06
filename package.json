@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.14.0",
+    "buffer": "^6.0.3",
     "console-extras": "github:unconed/console-extras.js",
     "gamestats.js": "^1.0.7",
     "lindenmayer": "^1.5.4",

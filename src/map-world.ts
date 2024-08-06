@@ -283,9 +283,6 @@ export class MapWorld {
     this.regenerateAdjacencyMap("biome");
     this.regenerateAdjacencyMap("height");
     this.regenerateAdjacencyMap("heightLayer");
-    if (GameSettings.options.toggles.enableClouds) {
-      this.cloudMap.generateCloudMap();
-    }
     // console.log("cloudMap", this.cloudMap.cloudMap);
     // console.log("moistureMap", this.moistureMap.moistureMap);
     if (GameSettings.options.toggles.enableShadows) {
@@ -1046,15 +1043,14 @@ export class MapWorld {
     const posIndex = positionToIndex(x, y, Layer.TERRAIN);
     const lightFromShadows = this.shadowMap.shadowMap[posIndex];
     const lightFromOcc = this.shadowMap.occlusionMap[posIndex];
-    const cloudLevel = this.cloudMap.cloudMap[posIndex];
+    const cloudLevel = this.cloudMap.get(posIndex);
     let lightFromClouds = 1;
     if (cloudLevel > this.cloudMap.cloudMinLevel) {
       // reduce the light by the amount of cloud cover
-      lightFromClouds =
-        1 - (this.cloudMap.cloudMap[posIndex] - this.cloudMap.cloudMinLevel);
+      lightFromClouds = 1 - (cloudLevel - this.cloudMap.cloudMinLevel);
     } else if (cloudLevel < this.cloudMap.sunbeamMaxLevel) {
       // increase light by how much sunbeam there is
-      lightFromClouds = 1 + this.cloudMap.cloudMap[posIndex];
+      lightFromClouds = 1 + cloudLevel;
     }
     // console.throttle(250).log("lightFromClouds", lightFromClouds, cloudLevel);
     let ambientLight = 1;

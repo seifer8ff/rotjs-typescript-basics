@@ -147,9 +147,16 @@ export function keyToIndex(key: string, layer: Layer): number {
   return positionToIndex(parseInt(x), parseInt(y), layer);
 }
 
-export function positionToIndex(x: number, y: number, layer: Layer): number {
-  const widthInTiles = GameSettings.options.gameSize.width;
-  const heightInTiles = GameSettings.options.gameSize.height;
+export function positionToIndex(
+  x: number,
+  y: number,
+  layer: Layer,
+  width: number = GameSettings.options.gameSize.width,
+  height: number = GameSettings.options.gameSize.height
+  // optional width and height params for web workers that can't access GameSettings
+): number {
+  const widthInTiles = width;
+  const heightInTiles = height;
   const denseWidthInTiles = widthInTiles * Tile.tileDensityRatio;
   const denseHeightInTiles = heightInTiles * Tile.tileDensityRatio;
   // Calculate the total number of tiles for each layer
@@ -162,9 +169,14 @@ export function positionToIndex(x: number, y: number, layer: Layer): number {
   return layerOffset + (y * denseWidthInTiles + x);
 }
 
-export function indexToPosition(index: number, layer: Layer): Point {
-  const widthInTiles = GameSettings.options.gameSize.width;
-  const heightInTiles = GameSettings.options.gameSize.height;
+export function indexToPosition(
+  index: number,
+  layer: Layer,
+  width: number = GameSettings.options.gameSize.width,
+  height: number = GameSettings.options.gameSize.height
+): Point {
+  const widthInTiles = width;
+  const heightInTiles = height;
   const denseWidthInTiles = widthInTiles * Tile.tileDensityRatio;
   const denseHeightInTiles = heightInTiles * Tile.tileDensityRatio;
   // Calculate the total number of tiles for each layer
@@ -180,9 +192,14 @@ export function indexToPosition(index: number, layer: Layer): Point {
   return new Point(x, y);
 }
 
-export function indexToXY(index: number, layer: Layer): [number, number] {
-  const widthInTiles = GameSettings.options.gameSize.width;
-  const heightInTiles = GameSettings.options.gameSize.height;
+export function indexToXY(
+  index: number,
+  layer: Layer,
+  width: number = GameSettings.options.gameSize.width,
+  height: number = GameSettings.options.gameSize.height
+): [number, number] {
+  const widthInTiles = width;
+  const heightInTiles = height;
   const denseWidthInTiles = widthInTiles * Tile.tileDensityRatio;
   const denseHeightInTiles = heightInTiles * Tile.tileDensityRatio;
   // Calculate the total number of tiles for each layer

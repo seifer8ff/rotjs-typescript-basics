@@ -1,26 +1,49 @@
 import { Color as ColorType } from "rot-js/lib/color";
-import { indexToXY, positionToIndex } from "./misc-utility";
-import { Layer } from "./renderer";
-import { LightManager } from "./light-manager";
 import { Color } from "rot-js";
 import { LightPhase } from "./map-shadows";
 
-console.log("--------  -- - - - - ---- ---test");
+console.log("spawned light worker");
+
+let lightDefaults: {
+  shadowSunset: ColorType;
+  shadowSunrise: ColorType;
+  ambientOcc: ColorType;
+  cloudShadow: ColorType;
+  cloudShadowSetting: ColorType;
+  blueLight: ColorType;
+  yellowLight: ColorType;
+  fullLight: ColorType;
+};
+
+const init = (e: MessageEvent) => {
+  console.log("e.data", e.data.data);
+  lightDefaults = e.data.data.lightDefaults;
+};
 
 onmessage = (e) => {
+  const type = e.data.type;
+  if (type === "init") {
+    init(e);
+    return;
+  }
+
   const {
-    viewportTiles,
+    x,
+    y,
+    posIndex,
     dynamicLightMap,
     sunMap,
     occlusionMap,
     cloudMap,
     options,
   }: {
-    viewportTiles: number[];
-    dynamicLightMap: ColorType[];
-    sunMap: number[];
-    occlusionMap: number[];
-    cloudMap: number[];
+    x: number;
+    y: number;
+    posIndex: number;
+    dynamicLightMap: ColorType;
+    sunMap: number;
+    occlusionMap: number;
+    cloudMap: number;
     options: {
       ambientLight: ColorType;
       isDaytime: boolean;
@@ -34,13 +57,23 @@ onmessage = (e) => {
       sunbeamStrength: number;
       remainingPhasePercent: number;
       lightDefaults: {
-        [key: string]: ColorType;
+        shadowSunset: ColorType;
+        shadowSunrise: ColorType;
+        ambientOcc: ColorType;
+        cloudShadow: ColorType;
+        cloudShadowSetting: ColorType;
+        blueLight: ColorType;
+        yellowLight: ColorType;
+        fullLight: ColorType;
       };
     };
   } = e?.data.data;
-  if (viewportTiles) {
-    const lightMap = calculateLightMap(
-      viewportTiles,
+  Object.assign(options, { lightDefaults });
+  if (posIndex) {
+    const lightColor = calculateLightForPositions(
+      x,
+      y,
+      posIndex,
       dynamicLightMap,
       sunMap,
       occlusionMap,
@@ -48,62 +81,18 @@ onmessage = (e) => {
       options
     );
 
-    postMessage(lightMap);
+    postMessage([[posIndex, lightColor]]);
   }
 };
 
-const calculateLightMap = (
-  viewportTiles: number[],
-  dynamicLightMap: ColorType[],
-  sunMap: number[],
-  occlusionMap: number[],
-  cloudMap: number[],
-  options: {
-    ambientLight: ColorType;
-    isDaytime: boolean;
-    lightPhase: LightPhase;
-    ambientLightStrength: number;
-    minCloudLevel: number;
-    maxSunbeamLevel: number;
-    shadowStrength: number;
-    ambientOcclusionShadowStrength: number;
-    cloudStrength: number;
-    sunbeamStrength: number;
-    remainingPhasePercent: number;
-    lightDefaults: {
-      [key: string]: ColorType;
-    };
-  }
-) => {
-  let pos: [number, number];
-  if (!viewportTiles) {
-    return [];
-  }
-  const lightMap = [];
-
-  viewportTiles.forEach((posIndex) => {
-    pos = indexToXY(posIndex, Layer.TERRAIN);
-    lightMap[posIndex] = calculateLightFor(
-      pos[0],
-      pos[1],
-      dynamicLightMap,
-      sunMap,
-      occlusionMap,
-      cloudMap,
-      options,
-      false
-    );
-  });
-  return lightMap;
-};
-
-const calculateLightFor = (
+const calculateLightForPositions = (
   x: number,
   y: number,
-  lightMap: ColorType[], // x,y -> color based on light sources
-  shadowMap: number[], // x,y -> number based on sun position
-  occlusionMap: number[], // x,y -> number based on occlusion
-  cloudMap: number[], // x,y -> number based on cloud cover
+  posIndex: number,
+  dynamicLightMap: ColorType,
+  sunMap: number,
+  occlusionMap: number,
+  cloudMap: number,
   options: {
     ambientLight: ColorType;
     isDaytime: boolean;
@@ -117,29 +106,70 @@ const calculateLightFor = (
     sunbeamStrength: number;
     remainingPhasePercent: number;
     lightDefaults: {
-      [key: string]: ColorType;
+      shadowSunset: ColorType;
+      shadowSunrise: ColorType;
+      ambientOcc: ColorType;
+      cloudShadow: ColorType;
+      cloudShadowSetting: ColorType;
+      blueLight: ColorType;
+      yellowLight: ColorType;
+      fullLight: ColorType;
+    };
+  }
+): ColorType => {
+  if (!posIndex) {
+    return options.ambientLight;
+  }
+  const lightColor: ColorType = calculateLight(
+    dynamicLightMap,
+    sunMap,
+    occlusionMap,
+    cloudMap,
+    options
+  );
+  return lightColor;
+};
+
+const calculateLight = (
+  lightMap: ColorType, // x,y -> color based on light sources
+  shadowMap: number, // x,y -> number based on sun position
+  occlusionMap: number, // x,y -> number based on occlusion
+  cloudMap: number, // x,y -> number based on cloud cover
+  options: {
+    ambientLight: ColorType;
+    isDaytime: boolean;
+    lightPhase: LightPhase;
+    ambientLightStrength: number;
+    minCloudLevel: number;
+    maxSunbeamLevel: number;
+    shadowStrength: number;
+    ambientOcclusionShadowStrength: number;
+    cloudStrength: number;
+    sunbeamStrength: number;
+    remainingPhasePercent: number;
+    lightDefaults: {
+      shadowSunset: ColorType;
+      shadowSunrise: ColorType;
+      ambientOcc: ColorType;
+      cloudShadow: ColorType;
+      cloudShadowSetting: ColorType;
+      blueLight: ColorType;
+      yellowLight: ColorType;
+      fullLight: ColorType;
     };
   },
   highlight: boolean = false
 ): ColorType => {
-  const posIndex = positionToIndex(x, y, Layer.TERRAIN);
-  const ambientLight = options.ambientLight;
-  const isDaytime = options.isDaytime;
-  const phase = options.lightPhase;
   const isNight = !options.isDaytime;
-  const isSettingPhase = phase === LightPhase.setting;
+  const isSettingPhase = options.lightPhase === LightPhase.setting;
   let shadow = isSettingPhase
     ? options.lightDefaults.shadowSunset
     : options.lightDefaults.shadowSunrise;
   let ambientOccShadow = options.lightDefaults.ambientOcc;
-  const shadowLevel = shadowMap[posIndex];
-  const occlusionLevel = occlusionMap[posIndex];
-  const isShadowed =
-    Math.abs(shadowLevel - options.ambientLightStrength) > 0.01;
-  const isOccluded = occlusionLevel !== 1;
-  const cloudLevel = cloudMap[posIndex];
-  const isClouded = cloudLevel > options.minCloudLevel;
-  const isCloudClear = cloudLevel < options.maxSunbeamLevel;
+  const isShadowed = Math.abs(shadowMap - options.ambientLightStrength) > 0.01;
+  const isOccluded = occlusionMap !== 1;
+  const isClouded = cloudMap > options.minCloudLevel;
+  const isCloudClear = cloudMap < options.maxSunbeamLevel;
 
   const shadowStrength = options.shadowStrength;
   let ambOccShadowStrength = options.ambientOcclusionShadowStrength;
@@ -149,7 +179,7 @@ const calculateLightFor = (
     isSettingPhase
       ? options.lightDefaults.cloudShadowSetting
       : options.lightDefaults.cloudShadow,
-    ambientLight
+    options.ambientLight
   );
   // const cloudShadow = Color.multiply(
   //   !isNight && isSettingPhase
@@ -163,43 +193,42 @@ const calculateLightFor = (
 
     cloudShadow = Color.interpolate(
       cloudShadow,
-      ambientLight,
+      options.ambientLight,
       1 - options.remainingPhasePercent
     );
   }
 
-  let light = ambientLight;
-  let lightMapValue = lightMap[posIndex];
+  let light = options.ambientLight;
 
-  if (lightMapValue != undefined) {
+  if (lightMap != undefined) {
     // override shadows light if there is a light source
-    light = Color.add(light, lightMapValue);
+    light = Color.add(light, lightMap);
   } else {
     if (isOccluded) {
       light = Color.interpolate(
         light,
         ambientOccShadow,
-        (1 - occlusionLevel) * ambOccShadowStrength
+        (1 - occlusionMap) * ambOccShadowStrength
       );
     }
-    if (isShadowed && isDaytime) {
+    if (isShadowed && options.isDaytime) {
       light = Color.interpolate(
         light,
         shadow,
-        (1 - shadowLevel) * shadowStrength
+        (1 - shadowMap) * shadowStrength
       );
     }
   }
-  light = Color.multiply(ambientLight, light);
+  light = Color.multiply(options.ambientLight, light);
 
-  if (isClouded && isDaytime) {
+  if (isClouded && options.isDaytime) {
     //darken the light very slightly based on cloudStrength
     // 1 - cloudLevel to darken the areas where cloud level is high.
     // cloudLevel - cloudMinLevel to only darken clouds where the cloud level is above a certain threshold.
     light = Color.interpolate(
       light,
       cloudShadow,
-      1 - cloudStrength * (1 - (cloudLevel - options.minCloudLevel))
+      1 - cloudStrength * (1 - (cloudMap - options.minCloudLevel))
     );
   }
 
@@ -208,7 +237,7 @@ const calculateLightFor = (
     // light = Color.interpolate(ambientOccShadow, light, shadowStrength * 0.9);
     // light = Color.interpolate(
     //   light,
-    //   this.game.map.options.lightDefaults.purple,
+    //   this.game.map.options.purple,
     //   cloudStrength * cloudLevel
     // );
     light = Color.interpolate(
@@ -217,14 +246,14 @@ const calculateLightFor = (
       isNight
         ? options.lightDefaults.blueLight
         : options.lightDefaults.yellowLight,
-      cloudStrength * ((options.maxSunbeamLevel - cloudLevel) * sunbeamStrength)
+      cloudStrength * ((options.maxSunbeamLevel - cloudMap) * sunbeamStrength)
     );
 
     // light = Color.interpolate(
     //   light,
     //   isNight
-    //     ? this.game.map.options.lightDefaults.blueLight
-    //     : this.game.map.options.lightDefaults.yellowLight,
+    //     ? this.game.map.options.blueLight
+    //     : this.game.map.options.yellowLight,
     //   cloudStrength *
     //     ((0.25 - cloudLevel) * 1)
     // );
