@@ -150,11 +150,16 @@ export class Renderer {
     chunkIndex: number = -1,
     tint: RGBAColor | string | undefined = undefined
   ) {
+    // need to convert tileX, tileY to the correct index for the layer
     let index = positionToIndex(tileX, tileY, layer);
+
     if (index < 0) {
       // invalid index returned
       return;
     }
+    // if (layer === Layer.PLANT && tileX % 2 !== 0) {
+    //   console.throttle(20).log(tileX, tileY, index);
+    // }
     let tileID: number;
     let tile: Tile;
     let displayObj: Renderable;
@@ -189,14 +194,21 @@ export class Renderer {
       }
       case Layer.PLANT: {
         tileID = this.spriteIndexCache[index];
+
         if (tileID === -1) {
           return;
         }
         tile = Tile.tiles[tileID];
+        // if (tileX % 2 !== 0) {
+        //   console.throttle(20).log(tileID, index, tile);
+        // }
 
         if (!tile) {
           return;
         }
+        // if (tileX > 500) {
+        //   console.log("!!!! ---- should render", tileX);
+        // }
         this.plantLayer[chunkIndex].tile(
           tile.spritePath,
           Math.floor(tileX * Tile.denseSize - Tile.size / 2), // half size as layer is scaled up by 2
@@ -281,11 +293,9 @@ export class Renderer {
           if (layer === Layer.PLANT || layer === Layer.TREE) {
             tileX = Tile.translate(x, Layer.TERRAIN, Layer.PLANT);
             tileY = Tile.translate(y, Layer.TERRAIN, Layer.PLANT);
-            for (let i = 0; i < Tile.tileDensityRatio / 2; i++) {
-              for (let j = 0; j < Tile.tileDensityRatio / 2; j++) {
-                tileX = tileX + i;
-                tileY = tileY + j;
-                this.renderLayer(layer, tileX, tileY, chunkIndex, tint);
+            for (let i = 0; i < Tile.tileDensityRatio; i++) {
+              for (let j = 0; j < Tile.tileDensityRatio; j++) {
+                this.renderLayer(layer, tileX + i, tileY + j, chunkIndex, tint);
               }
             }
           } else {

@@ -3,15 +3,7 @@ import { Actor } from "./entities/actor";
 
 import { Game } from "./game";
 import { Layer } from "./renderer";
-import {
-  generateId,
-  indexToPosition,
-  lerp,
-  lerpEaseIn,
-  lerpEaseInOut,
-  lerpEaseOut,
-  positionToIndex,
-} from "./misc-utility";
+import { generateId } from "./misc-utility";
 import { Point } from "./point";
 import { GameSettings } from "./game-settings";
 import { BiomeId, Biomes } from "./biomes";
@@ -27,6 +19,9 @@ import {
   TreeSpeciesID,
 } from "./entities/tree/tree-species";
 import { Shrub } from "./entities/shrub";
+import { Query, World } from "miniplex";
+import { ComponentType, EntityBase } from "./entities/entity";
+import { EntityBuilder } from "./entity-builder";
 
 export class ManagerActors {
   public allActors: Actor[]; // all actors, including actor, trees, and anything else not tilemap based
@@ -37,6 +32,10 @@ export class ManagerActors {
   private waterBiomes: BiomeId[];
   private airBiomes: BiomeId[];
   private shrubBiomes: BiomeId[];
+  private world: World<EntityBase>;
+
+  // queries
+  private allShrubs: Query<EntityBase>;
 
   constructor(private game: Game) {
     this.allActors = [];
@@ -54,9 +53,11 @@ export class ManagerActors {
     this.waterBiomes = [Biomes.Biomes.ocean.id, Biomes.Biomes.oceandeep.id];
     this.airBiomes = [...this.landBiomes, Biomes.Biomes.ocean.id];
     this.shrubBiomes = [Biomes.Biomes.moistdirt.id];
+    this.world = new World<EntityBase>();
+    this.allShrubs = this.world
+      .with(ComponentType.subType)
+      .where(({ subType }) => subType === TileSubType.Shrub);
   }
-
-  public start() {}
 
   public addInitialActors(): void {
     this.addAnimals();
@@ -150,7 +151,7 @@ export class ManagerActors {
       this.spawnTree(Tree, TreeSpecies.treeSpecies[type]);
     }
     for (let i = 0; i < GameSettings.options.spawn.inputs.shrubCount; i++) {
-      this.spawnShrub(Shrub);
+      this.spawnShrub();
     }
   }
 
@@ -228,12 +229,29 @@ export class ManagerActors {
     return actor;
   }
 
-  private spawnShrub<ShrubWithSubtype extends Shrub>(classType: {
-    new (game: Game, pos: Point): ShrubWithSubtype;
-    subType?: TileSubType;
-  }): Shrub {
+  // private spawnShrub<ShrubWithSubtype extends Shrub>(classType: {
+  //   new (game: Game, pos: Point): ShrubWithSubtype;
+  //   subType?: TileSubType;
+  // }): Shrub {
+  //   let pos: Point;
+  //   let actor: Shrub;
+  //   pos = this.game.map.getRandomTilePositions(
+  //     this.shrubBiomes,
+  //     1,
+  //     true,
+  //     true
+  //   )[0];
+  //   if (pos) {
+  //     actor = new classType(this.game, pos);
+  //     this.shrubs.push(actor);
+  //     actor.draw();
+  //   }
+  //   return actor;
+  // }
+
+  private spawnShrub(): EntityBase {
     let pos: Point;
-    let actor: Shrub;
+    let actor: EntityBase;
     pos = this.game.map.getRandomTilePositions(
       this.shrubBiomes,
       1,
@@ -241,10 +259,26 @@ export class ManagerActors {
       true
     )[0];
     if (pos) {
-      actor = new classType(this.game, pos);
-      this.shrubs.push(actor);
-      actor.draw();
+      console.log("shrubPos", pos);
+      // actor = new EntityBuilder(this.world)
+      //   .addPosition(pos.x, pos.y)
+      //   .addName("Shrub")
+      //   .build();
+      // builder method is too heavyweight, especially for adding components during runtime
+      actor = this.world.add({
+        id: generateId(),
+        position: pos,
+        // name: "Shrub",
+        tile: Tile.shrub.id,
+        subType: TileSubType.Shrub,
+        type: TileType.Plant,
+      });
+      this.world.addComponent(actor, ComponentType.name, "Shrub");
     }
     return actor;
+  }
+
+  public getShrubs(): Query<EntityBase> {
+    return this.allShrubs;
   }
 }

@@ -282,8 +282,8 @@ export class Game {
     for (let tree of this.actorManager.trees) {
       tree.draw();
     }
-    for (let shrub of this.actorManager.shrubs) {
-      shrub.draw();
+    for (const { tile, position } of this.actorManager.getShrubs()) {
+      this.renderer.addTileIdToScene(position, Layer.PLANT, tile);
     }
   }
 

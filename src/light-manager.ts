@@ -4,19 +4,11 @@ import PreciseShadowcasting from "rot-js/lib/fov/precise-shadowcasting";
 import { MapWorld } from "./map-world";
 import { Color as ColorType } from "rot-js/lib/color";
 import { Tile } from "./tile";
-import { Viewport } from "./camera";
-import {
-  indexToPosition,
-  indexToXY,
-  multiColorLerp,
-  positionToIndex,
-} from "./misc-utility";
-import { Autotile } from "./autotile";
+import { multiColorLerp, positionToIndex } from "./misc-utility";
 import { BiomeId } from "./biomes";
 import { LightPhase } from "./map-shadows";
 import { GameSettings } from "./game-settings";
-import { Layer, Renderable } from "./renderer";
-import { Point } from "./point";
+import { Layer } from "./renderer";
 import { Actor } from "./entities/actor";
 import { Buffer } from "buffer";
 

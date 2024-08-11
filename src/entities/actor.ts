@@ -4,23 +4,22 @@ import { Action } from "../actions/action";
 import { PointerTarget } from "../camera";
 import { Renderable } from "../renderer";
 
-export interface Actor {
+export type Actor = {
   id: number;
   name?: string;
   position: Point;
   tile: Tile;
   type: TileType;
   subType: TileSubType;
-  action: Action; // intermediary action to take to reach goal action
-  goal: Action; // end goal action of the actor
+  action: Action;
+  goal: Action;
   sprite: Renderable;
-
   draw(): void; // render self to cache/screen
   plan(): void;
   act(): Promise<any>;
   updateFacing?(moveVector: [number, number]): void;
   getDescription(): DescriptionBlock[];
-}
+};
 
 export interface DescriptionBlock {
   icon: string;

@@ -182,8 +182,6 @@ export function indexToPosition(
   // Calculate the total number of tiles for each layer
   const totalLayerTiles = widthInTiles * heightInTiles;
   const totalDenseLayerTiles = denseWidthInTiles * denseHeightInTiles;
-
-  // Define base offsets for each layer
   const layerOffset = (layer - 1) * totalDenseLayerTiles;
 
   index -= layerOffset;

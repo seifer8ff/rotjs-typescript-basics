@@ -10,7 +10,6 @@ import {
   getMapStats,
   getScaledNoise,
   indexToPosition,
-  keyToIndex,
   lerp,
   positionToIndex,
 } from "./misc-utility";
@@ -26,6 +25,7 @@ import Noise from "rot-js/lib/noise/noise";
 import { clamp } from "rot-js/lib/util";
 import { Assets, Sprite, Texture } from "pixi.js";
 import { GameSettings } from "./game-settings";
+import { shuffle } from "lodash";
 
 export type MapType = ValueMap | BiomeMap | TileMap;
 export type ValueMap = Map<number, number>;
@@ -938,32 +938,6 @@ export class MapWorld {
     this.dirtyTiles.push(index);
   }
 
-  // getRandomTilePositions(
-  //   biomeType: BiomeId,
-  //   quantity: number = 1,
-  //   onlyPassable = true
-  // ): Point[] {
-  //   let buffer: Point[] = [];
-  //   let result: Point[] = [];
-  //   for (let key in this.tileMap) {
-  //     // this goes through every single tile
-  //     // DONT ADD UNNECESSARY CODE TO THE OUTER LOOP
-  //     if (this.tileMap[key].biomeId === biomeType) {
-  //       const pos = MapWorld.keyToPoint(key);
-  //       if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
-  //         buffer.push(pos);
-  //       }
-  //     }
-  //   }
-
-  //   let index: number;
-  //   while (buffer.length > 0 && result.length < quantity) {
-  //     index = Math.floor(RNG.getUniform() * buffer.length);
-  //     result.push(buffer.splice(index, 1)[0]);
-  //   }
-  //   return result;
-  // }
-
   getRandomTilePositions(
     biomeTypes: BiomeId[],
     quantity: number = 1,
@@ -972,46 +946,44 @@ export class MapWorld {
     maxAttempts: number = 100
   ): Point[] {
     let result: Point[] = [];
-    const totalTiles = this.tileMap.length;
+    let randPos: Point;
+    let randPositions: Point[];
     const desiredBiomesSet = new Set(biomeTypes);
     let attempts = 0;
 
     while (result.length < quantity && attempts < maxAttempts) {
-      // Randomly select a tile index in the map
-      const randomIndex = Math.floor(Math.random() * totalTiles);
-      const tileId = this.tileMap[randomIndex];
-      const tile = Tile.tiles[tileId];
+      randPositions = [];
+      randPos = new Point(
+        Math.floor(Math.random() * GameSettings.options.gameSize.width),
+        Math.floor(Math.random() * GameSettings.options.gameSize.height)
+      );
 
-      // Check if the tile matches the desired biomes
-      if (desiredBiomesSet.has(tile?.biomeId)) {
-        let pos = indexToPosition(randomIndex, Layer.TERRAIN);
-
-        // Check if the position is passable if required
-        if (!onlyPassable || (onlyPassable && this.isPassable(pos.x, pos.y))) {
-          if (isPlant) {
-            pos = Tile.translatePoint(pos, Layer.TERRAIN, Layer.PLANT);
-            result.push(
-              pos,
-              new Point(pos.x + 1, pos.y),
-              new Point(pos.x, pos.y + 1),
-              new Point(pos.x + 1, pos.y + 1)
-              // account for the smaller Plant layer grid size
-            );
-
-            // If more than required positions are found, trim the result
-            if (result.length >= quantity) {
-              result = result.slice(0, quantity);
-              break;
+      if (desiredBiomesSet.has(this.getBiome(randPos.x, randPos.y).id)) {
+        randPositions.push(randPos);
+        for (let pos of randPositions) {
+          if (
+            !onlyPassable ||
+            (onlyPassable && this.isPassable(pos.x, pos.y))
+          ) {
+            // plants have a dense tile grid, so add all possible dense points
+            // TODO: check if all dense points are passable before adding
+            if (isPlant) {
+              pos = Tile.translatePoint(pos, Layer.TERRAIN, Layer.PLANT);
+              for (let x = 0; x < Tile.tileDensityRatio; x++) {
+                for (let y = 0; y < Tile.tileDensityRatio; y++) {
+                  result.push(new Point(pos.x + x, pos.y + y));
+                }
+              }
+            } else {
+              result.push(pos);
             }
-          } else {
-            result.push(new Point(pos.x, pos.y));
           }
         }
       }
       attempts++;
     }
 
-    return result;
+    return shuffle(result);
   }
 
   getTile(x: number, y: number): Tile {
