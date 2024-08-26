@@ -58,9 +58,9 @@ export class Renderer {
     this.plantLayer.forEach((layer) => {
       layer.zIndex = 35;
     });
-    this.treeLayer.zIndex = 45;
+    this.treeLayer.zIndex = 55;
     this.treeLayer.sortableChildren = true;
-    this.entityLayer.zIndex = 55;
+    this.entityLayer.zIndex = 45;
     this.uiLayer.zIndex = 10;
   }
 

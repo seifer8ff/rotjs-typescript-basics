@@ -12,7 +12,7 @@ import { TileStats } from "./web-components/tile-info";
 import Simplex from "rot-js/lib/noise/simplex";
 import Noise from "rot-js/lib/noise/noise";
 import { ManagerAnimation } from "./manager-animation";
-import { Ticker } from "pixi.js";
+import { ParticleContainer, Sprite, Ticker } from "pixi.js";
 import * as MainLoop from "mainloop.js";
 
 import { InitAssets } from "./assets";
@@ -20,6 +20,9 @@ import { GameSettings } from "./game-settings";
 import { ManagerActors } from "./manager-actors";
 import { positionToIndex } from "./misc-utility";
 import { Biomes } from "./biomes";
+import { TreeSpecies } from "./entities/tree/tree-species";
+import { SystemTreeRenderer } from "./system-tree-renderer";
+import { ManagerCollision } from "./manager-collision";
 
 export class Game {
   public settings: GameSettings;
@@ -31,6 +34,7 @@ export class Game {
   public renderer: Renderer;
   public animManager: ManagerAnimation;
   public actorManager: ManagerActors;
+  public collisionManager: ManagerCollision;
   public timeManager: TimeManager;
   public userInterface: UserInterface;
   public nameGenerator: GeneratorNames;
@@ -68,6 +72,7 @@ export class Game {
     this.nameGenerator = new GeneratorNames(this);
     this.renderer = new Renderer(this);
     this.actorManager = new ManagerActors(this);
+    this.collisionManager = new ManagerCollision(this);
   }
 
   public async Init(): Promise<boolean> {
@@ -87,45 +92,6 @@ export class Game {
       .setDraw(this.renderLoop.bind(this))
       .setEnd(this.endLoop.bind(this))
       .start();
-  }
-
-  isMapBlocked(x: number, y: number): boolean {
-    return !this.map.isPassable(x, y);
-  }
-
-  isOccupiedByActor(x: number, y: number): boolean {
-    return this.actorManager.actors.some(
-      (actor) => actor.position.x === x && actor.position.y === y
-    );
-  }
-
-  isOccupiedBySelf(x: number, y: number, actor: Actor): boolean {
-    return actor.position.x === x && actor.position.y === y;
-  }
-
-  isBlocked(x: number, y: number): boolean {
-    return (
-      this.isMapBlocked(x, y) ||
-      this.isOccupiedByTree(x, y) ||
-      this.isOccupiedByActor(x, y)
-    );
-  }
-
-  isOccupiedByTree(x: number, y: number): boolean {
-    return this.actorManager.trees.some(
-      (plant) => plant.position.x === x && plant.position.y === y
-    );
-  }
-
-  isOccupiedByPlant(x: number, y: number): boolean {
-    return (
-      this.actorManager.trees.some(
-        (plant) => plant.position.x === x && plant.position.y === y
-      ) ||
-      this.actorManager.shrubs.some(
-        (plant) => plant.position.x === x && plant.position.y === y
-      )
-    );
   }
 
   getTerrainTileAt(x: number, y: number): Tile {
@@ -247,12 +213,13 @@ export class Game {
           }
         })
       );
+
       // console.log("promises done");
       // clear cache for dynamic layers:
       // - terrain layer's cache is handled at lower level by marking tiles as dirty
       // - entity layer's cache is handled at lower level to allow lerp animations
       this.renderer.clearCache(Layer.PLANT);
-      this.renderer.clearCache(Layer.TREE);
+      // this.renderer.clearCache(Layer.TREE);
       // this.renderer.clearCache(Layer.UI);
 
       this.map.lightManager.turnUpdate();
@@ -272,15 +239,27 @@ export class Game {
       // important that this comes last
       // run a tint pass on all actors (entities, trees, etc)
       this.map.lightManager.tintActors(this.actorManager.actors, true);
-      for (const tree of this.actorManager.trees) {
-        tree.tintSelf();
+
+      for (const tree of this.actorManager.getTrees()) {
+        this.actorManager.treeManager.growTree(tree);
+        this.actorManager.treeManager.drawTree(tree);
+        SystemTreeRenderer.tintTree(
+          tree.position,
+          tree.renderable as ParticleContainer,
+          this.map.lightManager
+        );
       }
     });
   }
 
   private drawPlants(): void {
-    for (let tree of this.actorManager.trees) {
-      tree.draw();
+    // for (let tree of this.actorManager.trees) {
+    //   tree.draw();
+    // }
+    for (const { renderable, position } of this.actorManager.getTrees()) {
+      if (renderable) {
+        this.renderer.addToScene(position, Layer.TREE, renderable);
+      }
     }
     for (const { tile, position } of this.actorManager.getShrubs()) {
       this.renderer.addTileIdToScene(position, Layer.PLANT, tile);

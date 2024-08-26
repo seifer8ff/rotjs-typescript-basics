@@ -22,26 +22,27 @@ import { Shrub } from "./entities/shrub";
 import { Query, World } from "miniplex";
 import { ComponentType, EntityBase } from "./entities/entity";
 import { EntityBuilder } from "./entity-builder";
+import { Sprite } from "pixi.js";
+import { ManagerTrees } from "./manager-trees";
 
 export class ManagerActors {
   public allActors: Actor[]; // all actors, including actor, trees, and anything else not tilemap based
   public actors: Actor[];
-  public trees: Tree[];
-  public shrubs: Shrub[]; // not considered an actor as tilemap based
   private landBiomes: BiomeId[];
   private waterBiomes: BiomeId[];
   private airBiomes: BiomeId[];
   private shrubBiomes: BiomeId[];
   private world: World<EntityBase>;
+  public treeManager: ManagerTrees;
 
   // queries
   private allShrubs: Query<EntityBase>;
+  private allTrees: Query<EntityBase>;
+  private allColliders: Query<EntityBase>;
 
   constructor(private game: Game) {
     this.allActors = [];
     this.actors = [];
-    this.trees = [];
-    this.shrubs = [];
     this.landBiomes = [
       Biomes.Biomes.moistdirt.id,
       Biomes.Biomes.hillsmid.id,
@@ -57,6 +58,13 @@ export class ManagerActors {
     this.allShrubs = this.world
       .with(ComponentType.subType)
       .where(({ subType }) => subType === TileSubType.Shrub);
+    this.allTrees = this.world
+      .with(ComponentType.subType)
+      .where(({ subType }) => subType === TileSubType.Tree);
+    this.allColliders = this.world
+      .with(ComponentType.position)
+      .with(ComponentType.collider);
+    this.treeManager = new ManagerTrees(this.game, this.world);
   }
 
   public addInitialActors(): void {
@@ -82,14 +90,14 @@ export class ManagerActors {
   }
 
   public getRandomTreePositions(
-    species: TreeSpeciesID,
+    speciesId: TreeSpeciesID,
     quantity: number = 1
   ): Point[] {
     let buffer: Point[] = [];
     let result: Point[] = [];
-    for (let tree of this.trees) {
-      if (tree.species.id === species) {
-        buffer.push(tree.position);
+    for (const { species, position } of this.getTrees()) {
+      if (species === speciesId) {
+        buffer.push(position);
       }
     }
 
@@ -141,14 +149,18 @@ export class ManagerActors {
     for (let i = 0; i < GameSettings.options.spawn.inputs.treeCount; i++) {
       let type: TreeSpeciesID;
       type =
-        i < quarter
-          ? TreeSpeciesEnum.PINE
-          : i < quarter * 2
-          ? TreeSpeciesEnum.BIRCH
-          : i < quarter * 3
-          ? TreeSpeciesEnum.COTTONCANDY
-          : TreeSpeciesEnum.MAPLE;
-      this.spawnTree(Tree, TreeSpecies.treeSpecies[type]);
+        RNG.getUniform() < 0.5 ? TreeSpeciesEnum.PINE : TreeSpeciesEnum.BIRCH;
+      // type =
+      //   i < quarter
+      //     ? TreeSpeciesEnum.PINE
+      //     : i < quarter * 2
+      //     ? TreeSpeciesEnum.BIRCH
+      //     : i < quarter * 3
+      //     ? TreeSpeciesEnum.COTTONCANDY
+      //     : TreeSpeciesEnum.MAPLE;
+      // this.spawnTree(Tree, TreeSpecies.treeSpecies[type]);
+      // this.spawnTree(TreeSpecies.treeSpecies[type]);
+      this.treeManager.spawn(TreeSpecies.treeSpecies[type]);
     }
     for (let i = 0; i < GameSettings.options.spawn.inputs.shrubCount; i++) {
       this.spawnShrub();
@@ -185,69 +197,17 @@ export class ManagerActors {
       this.actors.push(actor);
       this.allActors.push(actor);
       this.game.timeManager.addToSchedule(actor, true);
+      this.game.collisionManager.occupyTile(
+        pos.x,
+        pos.y,
+        Layer.ENTITY,
+        actor.id
+      );
       actor.draw();
     }
 
     return actor;
   }
-
-  private spawnTree<TreeWithSubtype extends Tree>(
-    classType: {
-      new (game: Game, pos: Point, species: TreeSpecies): TreeWithSubtype;
-      subType?: TileSubType;
-    },
-    species: TreeSpecies
-  ): Tree {
-    let pos: Point;
-    let actor: Tree;
-    let biomes: BiomeId[];
-    switch (species.id) {
-      case TreeSpeciesEnum.PINE:
-        biomes = [Biomes.Biomes.moistdirt.id];
-        break;
-      case TreeSpeciesEnum.BIRCH:
-        biomes = [Biomes.Biomes.hillsmid.id, Biomes.Biomes.hillshigh.id];
-        break;
-      case TreeSpeciesEnum.COTTONCANDY:
-        biomes = [Biomes.Biomes.valley.id];
-        break;
-      case TreeSpeciesEnum.MAPLE:
-        biomes = [Biomes.Biomes.snowhillshillsmid.id];
-        break;
-      default:
-        biomes = [Biomes.Biomes.moistdirt.id];
-        break;
-    }
-    pos = this.game.map.getRandomTilePositions(biomes, 1, true, true)[0];
-    if (pos) {
-      actor = new classType(this.game, pos, species);
-      this.trees.push(actor);
-      this.allActors.push(actor);
-      this.game.timeManager.addToSchedule(actor, true);
-      actor.draw();
-    }
-    return actor;
-  }
-
-  // private spawnShrub<ShrubWithSubtype extends Shrub>(classType: {
-  //   new (game: Game, pos: Point): ShrubWithSubtype;
-  //   subType?: TileSubType;
-  // }): Shrub {
-  //   let pos: Point;
-  //   let actor: Shrub;
-  //   pos = this.game.map.getRandomTilePositions(
-  //     this.shrubBiomes,
-  //     1,
-  //     true,
-  //     true
-  //   )[0];
-  //   if (pos) {
-  //     actor = new classType(this.game, pos);
-  //     this.shrubs.push(actor);
-  //     actor.draw();
-  //   }
-  //   return actor;
-  // }
 
   private spawnShrub(): EntityBase {
     let pos: Point;
@@ -259,12 +219,6 @@ export class ManagerActors {
       true
     )[0];
     if (pos) {
-      console.log("shrubPos", pos);
-      // actor = new EntityBuilder(this.world)
-      //   .addPosition(pos.x, pos.y)
-      //   .addName("Shrub")
-      //   .build();
-      // builder method is too heavyweight, especially for adding components during runtime
       actor = this.world.add({
         id: generateId(),
         position: pos,
@@ -280,5 +234,13 @@ export class ManagerActors {
 
   public getShrubs(): Query<EntityBase> {
     return this.allShrubs;
+  }
+
+  public getTrees(): Query<EntityBase> {
+    return this.allTrees;
+  }
+
+  public getColliders(): Query<EntityBase> {
+    return this.allColliders;
   }
 }

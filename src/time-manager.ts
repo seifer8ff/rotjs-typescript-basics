@@ -3,6 +3,7 @@ import { Actor } from "./entities/actor";
 import Action from "rot-js/lib/scheduler/action";
 import { LightPhase } from "./map-shadows";
 import { GameSettings } from "./game-settings";
+import { EntityBase } from "./entities/entity";
 
 export enum Season {
   Spring = "spring",
@@ -75,7 +76,7 @@ export class TimeManager {
   }
 
   public addToSchedule(
-    actor: Actor,
+    actor: Actor | EntityBase,
     repeat: boolean,
     initialTimeDelay?: number
   ): Action {

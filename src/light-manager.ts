@@ -167,11 +167,12 @@ export class LightManager {
     if (!tile) {
       return false;
     }
-    if (!this.map.isPassable(x, y)) {
+
+    if (this.game.collisionManager.isMapBlocked(x, y)) {
       return false;
     }
 
-    if (this.game.isOccupiedByTree(x, y)) {
+    if (this.game.collisionManager.isBlockedOnLayer(x, y, Layer.TREE)) {
       return false;
     }
 

@@ -104,13 +104,14 @@ export class SharkBlue implements Actor {
   }
 
   private isGoalReachable(goal: Action): boolean {
-    const isSelfBlocked = this.game.isOccupiedBySelf(
+    const isSelfBlocked = this.game.collisionManager.isOccupiedBySelf(
       goal.targetPos.x,
       goal.targetPos.y,
       this
     );
     return (
-      isSelfBlocked || !this.game.isBlocked(goal.targetPos.x, goal.targetPos.y)
+      isSelfBlocked ||
+      !this.game.collisionManager.isBlocked(goal.targetPos.x, goal.targetPos.y)
     );
   }
 
@@ -120,9 +121,6 @@ export class SharkBlue implements Actor {
       ? this.position?.equals(this.goal?.targetPos)
       : false;
     let hasPath = this.path?.length > 0;
-    const isOccupied = hasPath
-      ? this.game.isOccupiedByActor(this.path[0].x, this.path[0].y)
-      : false;
 
     if (!hasGoal) {
       // find new goal
@@ -173,11 +171,12 @@ export class SharkBlue implements Actor {
       (biome?.id === Biomes.Biomes.ocean.id ||
         biome?.id === Biomes.Biomes.oceandeep.id);
     const isBlocked =
-      this.game.isOccupiedByActor(x, y) || this.game.isOccupiedByTree(x, y);
+      this.game.collisionManager.isBlockedOnLayer(x, y, Layer.ENTITY) ||
+      this.game.collisionManager.isBlockedOnLayer(x, y, Layer.PLANT);
     return (
       inRange &&
       isOcean &&
-      (!isBlocked || this.game.isOccupiedBySelf(x, y, this))
+      (!isBlocked || this.game.collisionManager.isOccupiedBySelf(x, y, this))
     );
   }
 

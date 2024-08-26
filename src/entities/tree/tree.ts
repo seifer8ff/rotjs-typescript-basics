@@ -149,8 +149,8 @@ export class Tree implements Actor {
       this.species.maxBranchesPerSegmentRange
     );
     this.leavesPerBranch = this.getRandFrom(
-      this.species.leavesPerBranchMin,
-      this.species.leavesPerBranchRange
+      this.species.leavesPerSegmentMin,
+      this.species.leavesPerSegmentRange
     );
     this.leafAlpha = this.species.maxLeafAlpha;
     this.curve = 80 + RNG.getUniform() * 20; // close to 90 degrees from ground
@@ -197,7 +197,7 @@ export class Tree implements Actor {
     this.curve +=
       RNG.getUniform() * this.species.branchCurveAngle * this.curveDir; // set new curve dir
     this.branchOrder++;
-    this.trunkSegmentWidth *= this.species.trunkWidthDegrade;
+    this.trunkSegmentWidth *= this.species.trunkSegmentWidthDegrade;
     if (this.trunkSegmentWidth < this.species.branchSegmentWidthMin)
       this.trunkSegmentWidth = this.species.branchSegmentWidthMin;
     if (length < this.species.branchSegmentHeightMin)
@@ -222,7 +222,7 @@ export class Tree implements Actor {
         this.treeTrunk.segments[this.treeTrunk.segments.length - 1];
       let width = lastSegment.width;
       let length = lastSegment.length;
-      width *= this.species.trunkWidthDegrade;
+      width *= this.species.trunkSegmentWidthDegrade;
       if (width < this.species.branchSegmentWidthMin)
         width = this.species.branchSegmentWidthMin;
       if (length < this.species.branchSegmentHeightMin)
@@ -440,7 +440,7 @@ export class Tree implements Actor {
             0.3
           );
           this.branchOrder++;
-          this.branchChance += this.species.branchChanceGrow; // grow branch chance every time tree grows
+          this.branchChance += this.species.branchChanceDegrade; // grow branch chance every time tree grows
           this.curveDir = RNG.getUniform() > 0.5 ? 1 : -1; // reset curve dir
           this.curve +=
             RNG.getUniform() * this.species.branchCurveAngle * this.curveDir; // set new curve dir
@@ -618,7 +618,7 @@ export class Tree implements Actor {
     const maxLeaves =
       this.leavesPerBranch *
       this.treeBranches.length *
-      this.species.leavesPerBranchDensity;
+      this.species.leafDensity;
 
     for (let i = 0; i < leafsPerGrowth; i++) {
       if (this.leafSprites.length >= maxLeaves) {
@@ -676,12 +676,11 @@ export class Tree implements Actor {
     const maxLeaves =
       this.treeBranches.length *
       this.leavesPerBranch *
-      this.species.leavesPerBranchDensity;
+      this.species.leafDensity;
     const timeScale = this.game.timeManager.timeScale;
     // fudged nextLeafCount calc, but doesn't really matter
     const nextLeafCount =
-      this.leafSprites.length +
-      this.leavesPerBranch * this.species.leavesPerBranchDensity;
+      this.leafSprites.length + this.leavesPerBranch * this.species.leafDensity;
     const deadLeafCount = 3;
     let newAlpha = 1;
     let newScale = 1;

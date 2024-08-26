@@ -123,7 +123,18 @@ export function getScaledNoise(noise: Noise, x: number, y: number): number {
 }
 
 export function generateId(): number {
-  return Date.now() + RNG.getUniformInt(0, 100000);
+  // TODO: ensure uniqueness
+  const maxInt32 = 2_147_483_647;
+
+  // Ensure the result is always within the Int32 range
+  const id = Date.now() + RNG.getUniformInt(0, 1000);
+
+  // If the generated ID exceeds the maxInt32, wrap it around
+  return id > maxInt32 ? id % maxInt32 : id;
+}
+
+export function getNumberFromRange(min: number, range: number): number {
+  return min + RNG.getUniform() * range;
 }
 
 export function getItemFromRange<T>(

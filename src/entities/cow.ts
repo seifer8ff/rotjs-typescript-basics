@@ -116,13 +116,14 @@ export class Cow implements Actor {
   }
 
   private isGoalReachable(goal: Action): boolean {
-    const isSelfBlocked = this.game.isOccupiedBySelf(
+    const isSelfBlocked = this.game.collisionManager.isOccupiedBySelf(
       goal.targetPos.x,
       goal.targetPos.y,
       this
     );
     return (
-      isSelfBlocked || !this.game.isBlocked(goal.targetPos.x, goal.targetPos.y)
+      isSelfBlocked ||
+      !this.game.collisionManager.isBlocked(goal.targetPos.x, goal.targetPos.y)
     );
   }
 
@@ -132,9 +133,6 @@ export class Cow implements Actor {
       ? this.position?.equals(this.goal?.targetPos)
       : false;
     let hasPath = this.path?.length > 0;
-    const isOccupied = hasPath
-      ? this.game.isOccupiedByActor(this.path[0].x, this.path[0].y)
-      : false;
 
     if (!hasGoal) {
       // find new goal
@@ -180,7 +178,8 @@ export class Cow implements Actor {
     const inRange = distanceFromTarget <= this.range;
     return (
       inRange &&
-      (!this.game.isBlocked(x, y) || this.game.isOccupiedBySelf(x, y, this))
+      (!this.game.collisionManager.isBlocked(x, y) ||
+        this.game.collisionManager.isOccupiedBySelf(x, y, this))
     );
   }
 

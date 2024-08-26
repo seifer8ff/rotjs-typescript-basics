@@ -3,6 +3,9 @@ import { positionToIndex } from "./misc-utility";
 import { Layer } from "./renderer";
 
 export const ImpassibleBorder: BiomeId[] = [
+  // actors cannot move into or out of these biomes
+  // without additional movement or abilities
+  // for now, totally impassible
   "ocean",
   "oceandeep",
   "hillslow",

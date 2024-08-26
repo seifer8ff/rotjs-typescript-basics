@@ -51,6 +51,12 @@ export class MoveAction implements Action {
           oldPos,
           newPos,
           () => {
+            // clear the old position in the collision manager
+            this.game.collisionManager.clearEntityTile(
+              this.actor.position.x,
+              this.actor.position.y,
+              Layer.ENTITY
+            );
             // update the position of the sprite in the renderer's cache
             // keeps the renderer's representation of the map in sync with the game
             // otherwise, renderer will think sprite is still at old position
@@ -61,10 +67,23 @@ export class MoveAction implements Action {
             );
             // keep actor's position in sync with target position
             this.actor.position = new Point(this.targetPos.x, this.targetPos.y);
+            // update collision
+            this.game.collisionManager.occupyTile(
+              this.targetPos.x,
+              this.targetPos.y,
+              Layer.ENTITY,
+              this.actor.id
+            );
           },
           this.actor
         );
       } else {
+        // update collision
+        this.game.collisionManager.clearEntityTile(
+          this.actor.position.x,
+          this.actor.position.y,
+          Layer.ENTITY
+        );
         // if no lerp, just update the sprite cache position
         this.game.renderer.updateSpriteCachePosition(
           this.actor.position,
