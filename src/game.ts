@@ -240,27 +240,51 @@ export class Game {
       // run a tint pass on all actors (entities, trees, etc)
       this.map.lightManager.tintActors(this.actorManager.actors, true);
 
-      for (const tree of this.actorManager.getTrees()) {
-        this.actorManager.treeManager.growTree(tree);
-        this.actorManager.treeManager.drawTree(tree);
-        SystemTreeRenderer.tintTree(
-          tree.position,
-          tree.renderable as ParticleContainer,
-          this.map.lightManager
-        );
-      }
+      this.drawTrees();
     });
+  }
+
+  private drawTrees(): void {
+    const viewport = this.userInterface.camera.viewportPadded;
+    const halfWidth = viewport.width / 2;
+    const halfHeight = viewport.height / 2;
+
+    const viewportLeft = viewport.center.x - halfWidth;
+    const viewportRight = viewport.center.x + halfWidth;
+    const viewportTop = viewport.center.y - halfHeight;
+    const viewportBottom = viewport.center.y + halfHeight;
+
+    this.renderer.clearSceneLayer(Layer.TREE);
+
+    for (const tree of this.actorManager.getTrees()) {
+      let { x, y } = tree.position;
+      x = Tile.translate(x, Layer.TREE, Layer.TERRAIN);
+      y = Tile.translate(y, Layer.TREE, Layer.TERRAIN);
+
+      // for now, grow all trees
+      // later, implement turn-based growth
+      this.actorManager.treeManager.growTree(tree);
+      // Check if the tree is within the viewport boundaries
+      if (
+        x >= viewportLeft &&
+        x <= viewportRight &&
+        y >= viewportTop &&
+        y <= viewportBottom
+      ) {
+        this.actorManager.treeManager.drawTree(tree);
+      }
+    }
   }
 
   private drawPlants(): void {
     // for (let tree of this.actorManager.trees) {
     //   tree.draw();
     // }
-    for (const { renderable, position } of this.actorManager.getTrees()) {
-      if (renderable) {
-        this.renderer.addToScene(position, Layer.TREE, renderable);
-      }
-    }
+    // for (const { renderable, position } of this.actorManager.getTrees()) {
+    //   if (renderable) {
+    //     this.renderer.addToScene(position, Layer.TREE, renderable);
+    //   }
+    // }
     for (const { tile, position } of this.actorManager.getShrubs()) {
       this.renderer.addTileIdToScene(position, Layer.PLANT, tile);
     }
@@ -316,7 +340,7 @@ export class Game {
       );
       viewportInTiles = this.userInterface.camera.viewportUnpadded;
       this.renderer.renderChunkedLayers(
-        [Layer.UI, Layer.PLANT, Layer.ENTITY, Layer.TREE, Layer.UI],
+        [Layer.UI, Layer.PLANT, Layer.ENTITY, Layer.UI],
         viewportInTiles.width,
         viewportInTiles.height,
         viewportInTiles.center

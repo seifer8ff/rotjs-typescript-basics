@@ -10,6 +10,7 @@ import {
 } from "./misc-utility";
 import { RNG } from "rot-js";
 import { Segment, TreeBranch } from "./manager-trees";
+import { SystemTreeRenderer } from "./system-tree-renderer";
 
 // handle spawning, updating, and rendering of tree branches
 export class SystemBranches {
@@ -48,78 +49,23 @@ export class SystemBranches {
     // or add one branch to a single existing branch
     if (trunkSegments?.length < trunkSegmentCount) {
       let lastSegment = trunkSegments[trunkSegments.length - 1];
-      let width: number;
-      let length: number;
-      let x1: number;
-      let y1: number;
-      let segmentOrder: number;
 
       if (!lastSegment) {
-        width = tree.trunkSegmentWidth;
-        length = tree.trunkSegmentHeight;
-        x1 = 0;
-        y1 = -1; // offset by 1 pixel to hide any seams between trunk and base
-        segmentOrder = 0;
-      } else {
-        width = lastSegment.width;
-        length = lastSegment.length;
-        x1 = lastSegment.x2;
-        y1 = lastSegment.y2;
-        segmentOrder = lastSegment.segmentOrder + 1;
+        lastSegment = {
+          position: new Point(0, 0),
+          curve: tree.curve,
+          length: tree.trunkSegmentHeight,
+          width: tree.trunkSegmentWidth,
+          segmentOrder: 0,
+        };
       }
-      tree.curveDirection = SystemBranches.resetCurveDir();
-      tree.curve = SystemBranches.getCurveAtSegment(
-        tree.curve,
-        tree.curveDirection,
+      let newSegment = SystemBranches.addSegment(
+        tree.trunk,
+        lastSegment,
+        tree,
         species
       );
-      width *= species.trunkSegmentWidthDegrade;
-      if (width < tree.trunkSegmentWidth) width = tree.trunkSegmentWidth;
-      if (length < tree.trunkSegmentHeight) length = tree.trunkSegmentHeight;
-      let x2 = x1 + SystemBranches.lengthdir_x(length, tree.curve);
-      let y2 = y1 - SystemBranches.lengthdir_y(length, tree.curve);
-      let newSegment: Segment = {
-        position: new Point(x1, y1),
-        x1: x1,
-        y1: y1,
-        x2: x2,
-        y2: y2,
-        curve: tree.curve,
-        length: length,
-        width: width,
-        segmentOrder,
-      };
-      tree.trunk.segments.push(newSegment);
-      return true;
-    }
-    return false;
-  }
-
-  public static growBranch(
-    growthStep: number,
-    branch: TreeBranch,
-    tree: EntityBase,
-    species: TreeSpecies
-  ): boolean {
-    const maxSegmentCount = branch.isTrunk
-      ? species.trunkSegmentCount
-      : species.branchSegmentCount;
-    if (branch.segments.length < maxSegmentCount) {
-      let lastSegment = branch.segments[branch.segments.length - 1];
-      tree.curve = SystemBranches.getCurveAtSegment(
-        lastSegment.curve,
-        tree.curveDirection,
-        species
-      );
-      let newSegment = SystemBranches.addSegment(lastSegment, tree, species);
-      branch.segments.push(newSegment);
-      tree.curveDirection = SystemBranches.resetCurveDir();
-      tree.curve = SystemBranches.getCurveAtSegment(
-        tree.curve,
-        tree.curveDirection,
-        species
-      );
-      return true;
+      return newSegment !== null;
     }
     return false;
   }
@@ -150,7 +96,6 @@ export class SystemBranches {
         tree,
         species
       );
-      // branch.doneBranching = branch.branchCount > tree.branchesPerSegment;
       if (newBranch) {
         tree.branches.push(newBranch);
         return true;
@@ -197,7 +142,43 @@ export class SystemBranches {
     return false;
   }
 
+  public static growBranch(
+    growthStep: number,
+    branch: TreeBranch,
+    tree: EntityBase,
+    species: TreeSpecies
+  ): boolean {
+    const maxSegmentCount = branch.isTrunk
+      ? species.trunkSegmentCount
+      : species.branchSegmentCount;
+    if (!branch.doneExtending && branch.segments.length < maxSegmentCount) {
+      let lastSegment = branch.segments[branch.segments.length - 1];
+      tree.curve = SystemBranches.getCurveAtSegment(
+        lastSegment.curve,
+        tree.curveDirection,
+        species
+      );
+      let newSegment = SystemBranches.addSegment(
+        branch,
+        lastSegment,
+        tree,
+        species
+      );
+      if (newSegment) {
+        tree.curveDirection = SystemBranches.resetCurveDir();
+        tree.curve = SystemBranches.getCurveAtSegment(
+          tree.curve,
+          tree.curveDirection,
+          species
+        );
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static addSegment(
+    branch: TreeBranch,
     lastSegment: Segment,
     tree: EntityBase,
     species: TreeSpecies
@@ -207,32 +188,30 @@ export class SystemBranches {
     }
     let width = lastSegment.width;
     let length = lastSegment.length;
-    let x1 = lastSegment.x2;
-    let y1 = lastSegment.y2;
     let segmentOrder = lastSegment.segmentOrder + 1;
-    width *= species.branchSegmentWidthDegrade;
-    if (width < tree.branchSegmentWidth) width = tree.branchSegmentWidth;
-    if (length < tree.branchSegmentHeight) length = tree.branchSegmentHeight;
-    // tree.curveDirection = this.resetCurveDir();
-    // tree.curve = this.getCurveAtFork(
-    //   lastSegment.curve,
-    //   tree.curveDirection, // reset in step above
-    //   species
-    // );
-    let x2 = x1 + SystemBranches.lengthdir_x(length, tree.curve);
-    let y2 = y1 - SystemBranches.lengthdir_y(length, tree.curve);
+    if (branch.isTrunk) {
+      width *= species.trunkSegmentWidthDegrade;
+      if (width < tree.trunkSegmentWidth) width = tree.trunkSegmentWidth;
+      if (length < tree.trunkSegmentHeight) length = tree.trunkSegmentHeight;
+    } else {
+      width *= species.branchSegmentWidthDegrade;
+      if (width < tree.branchSegmentWidth) width = tree.branchSegmentWidth;
+      if (length < tree.branchSegmentHeight) length = tree.branchSegmentHeight;
+    }
+    let newPos = new Point(
+      lastSegment.position.x + SystemBranches.lengthdir_x(length, tree.curve),
+      lastSegment.position.y - SystemBranches.lengthdir_y(length, tree.curve)
+    );
     let newSegment: Segment = {
-      position: new Point(x1, y1),
-      x1: x1,
-      y1: y1,
-      x2: x2,
-      y2: y2,
+      position: newPos,
       curve: tree.curve,
       length: length,
       width: width,
       segmentOrder,
+      leafCount: 0,
     };
     tree.totalSegments++;
+    branch.segments.push(newSegment);
     return newSegment;
   }
 
@@ -280,15 +259,16 @@ export class SystemBranches {
       tree.curveDirection, // reset in step above
       species
     );
-    let newSegment = SystemBranches.addSegment(lastSegment, tree, species);
+
     let newBranch: TreeBranch = {
       id: generateId(),
-      segments: [newSegment],
+      segments: [],
       doneExtending: false,
       doneBranching: false,
       branchOrder: 0,
       branchCount: 0,
     };
+    SystemBranches.addSegment(newBranch, lastSegment, tree, species);
     newBranch.doneBranching =
       RNG.getUniform() > tree.branchChance && tree.branchChance <= 0;
     tree.curveDirection = SystemBranches.resetCurveDir(); // reset curve dir

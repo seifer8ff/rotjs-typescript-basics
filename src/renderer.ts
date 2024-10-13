@@ -23,7 +23,8 @@ import { clamp } from "rot-js/lib/util";
 export type Renderable =
   | PIXI.Sprite
   | PIXI.AnimatedSprite
-  | PIXI.ParticleContainer;
+  | PIXI.ParticleContainer
+  | CompositeTilemap;
 
 export class Renderer {
   public chunkCountPerSide = 3; // must be ODD number
@@ -108,6 +109,8 @@ export class Renderer {
           break;
         case Layer.PLANT:
           clearPlantLayer = true;
+          break;
+        case Layer.TREE:
           break;
         default:
           this.clearSceneLayer(layer);
@@ -225,6 +228,7 @@ export class Renderer {
         if (!displayObj) {
           return;
         }
+        // console.log("tree displayObj", displayObj);
 
         // displayObj.zIndex = GameSettings.options.gameSize.height * ratio - y;
         this.treeLayer.addChild(displayObj as PIXI.DisplayObject);
@@ -368,8 +372,15 @@ export class Renderer {
       (displayObj as PIXI.Sprite).tint = initialTint || "0xFFFFFF";
     }
 
-    let index = positionToIndex(position.x, position.y, layer);
-    this.spriteCache.set(index, displayObj);
+    switch (layer) {
+      case Layer.TREE:
+        this.treeLayer.addChild(displayObj as PIXI.DisplayObject);
+        break;
+      default:
+        let index = positionToIndex(position.x, position.y, layer);
+        this.spriteCache.set(index, displayObj);
+        break;
+    }
   }
 
   addTileIdToScene(position: Point, layer: Layer, tileId: number): void {
@@ -503,7 +514,10 @@ export class Renderer {
         break;
       }
       case Layer.TREE: {
-        this.treeLayer.removeChildren();
+        // this.treeLayer.removeChildren();
+        this.treeLayer.children.forEach((child) => {
+          (child as CompositeTilemap).clear();
+        });
         break;
       }
       case Layer.ENTITY: {

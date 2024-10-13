@@ -5,24 +5,23 @@ import { BiomeId, Biomes } from "./biomes";
 import { Point } from "./point";
 import { World } from "miniplex";
 import { generateId, getNumberFromRange } from "./misc-utility";
-import { TileSubType, TileType } from "./tile";
+import { Tile, TileSubType, TileType } from "./tile";
 import { SystemBranches } from "./system-branches";
 import { SystemLeaves } from "./system-leaves";
 import { SystemTreeRenderer } from "./system-tree-renderer";
 import { Layer } from "./renderer";
+import { Texture } from "pixi.js";
+import { CompositeTilemap } from "@pixi/tilemap";
+import { Color } from "rot-js";
 
 export interface Segment {
   position: Point;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
   curve: number;
   length: number;
   width: number;
   segmentOrder: number; // resets to 0 for each branch
-  rendered?: boolean;
-  leavesRendered?: boolean;
+  overrideTexture?: Texture; // allows for custom textures on segments, like the trunk base
+  leafCount?: number;
 }
 
 export interface TreeBranch {
@@ -33,6 +32,18 @@ export interface TreeBranch {
   branchOrder: number;
   branchCount: number; // how many times does this branch, branch
   isTrunk?: boolean;
+}
+
+export interface TreeTrunkBase {
+  trunkBaseTextureIndex: number;
+}
+
+export interface Leaf {
+  branchId: number;
+  position: Point;
+  rotation: number;
+  alpha: number;
+  underCanopy: boolean;
 }
 
 export class ManagerTrees {
@@ -75,12 +86,7 @@ export class ManagerTrees {
         subType: TileSubType.Tree,
         type: TileType.Plant,
         species: species.id,
-        renderable: SystemTreeRenderer.generateBaseSprite(
-          this.game,
-          pos,
-          species,
-          trunkBaseTextureIndex
-        ),
+        renderable: SystemTreeRenderer.generateBaseRenderable(this.game, pos),
         growthStep: 0,
         trunk: {
           id: generateId(),
@@ -91,6 +97,7 @@ export class ManagerTrees {
           branchCount: 0,
           isTrunk: true,
         },
+        trunkBaseTextureIndex: trunkBaseTextureIndex,
         trunkTextureIndex: trunkTextureIndex,
         branchTextureIndex: SystemTreeRenderer.getRandomTrunkTexture(species),
         trunkSegmentWidth: getNumberFromRange(
@@ -112,6 +119,11 @@ export class ManagerTrees {
         actor.id
       );
       this.game.timeManager.addToSchedule(actor, true);
+      this.game.renderer.addToScene(
+        actor.position,
+        Layer.TREE,
+        actor.renderable
+      );
     }
     return actor;
   }
@@ -128,6 +140,7 @@ export class ManagerTrees {
       growSuccess = SystemBranches.growBranches(0, tree);
     }
     if (tree.trunk.segments.length) {
+      SystemLeaves.growLeaves(0, tree);
     }
     return growSuccess;
   }
@@ -139,25 +152,45 @@ export class ManagerTrees {
       branches,
       leaves,
       species,
+      trunkBaseTextureIndex,
       trunkTextureIndex,
       branchTextureIndex,
-      leavesPerSegment,
-      leafSize,
-      leafDensity,
+      leafTextureIndex,
+      position,
     } = tree;
     const treeSpecies = TreeSpecies.treeSpecies[species];
+    const translatedX = Tile.translate(position.x, Layer.TREE, Layer.TERRAIN);
+    const translatedY = Tile.translate(position.y, Layer.TREE, Layer.TERRAIN);
+    const colorArray = this.game.map.lightManager.getLightFor(
+      translatedX,
+      translatedY,
+      false
+    );
+
     SystemTreeRenderer.renderTrunk(
       trunk,
+      renderable as CompositeTilemap,
+      treeSpecies,
+      trunkBaseTextureIndex,
+      trunkTextureIndex,
+      colorArray
+    );
+
+    SystemTreeRenderer.renderUnderCanopy(
+      branches,
+      leaves,
       renderable,
       treeSpecies,
-      trunkTextureIndex
+      leafTextureIndex,
+      colorArray
     );
 
     SystemTreeRenderer.renderBranches(
       branches,
       renderable,
       treeSpecies,
-      branchTextureIndex
+      branchTextureIndex,
+      colorArray
     );
 
     SystemTreeRenderer.renderLeaves(
@@ -165,9 +198,57 @@ export class ManagerTrees {
       leaves,
       renderable,
       treeSpecies,
-      leavesPerSegment,
-      leafSize,
-      leafDensity
+      leafTextureIndex,
+      colorArray
     );
   }
 }
+
+// public tintSelf(): void {
+//   let translatedX = Tile.translate(
+//     this.position.x,
+//     Layer.TREE,
+//     Layer.TERRAIN
+//   );
+//   let translatedY = Tile.translate(
+//     this.position.y,
+//     Layer.TREE,
+//     Layer.TERRAIN
+//   );
+//   let colorArray = this.game.map.lightManager.getLightFor(
+//     translatedX,
+//     translatedY,
+//     false
+//   );
+//   let color: ColorType = colorArray;
+//   if (color === undefined) {
+//     // position is outside of viewport
+//     return;
+//   }
+
+//   this.sprite.children.forEach((child: Renderable) => {
+//     const order: number = child["order"];
+//     if (order !== undefined) {
+//       // TODO: improve this logic
+//       // Should instead be applied to all segments with a smooth gradient
+//       // and ensure it darkens more at the base
+//       const darkenAmount = clamp(
+//         inverseLerp(
+//           order, // calculated from branchOrder + segmentOrder / 10
+//           1.4, // how far up the tree to darken
+//           0
+//         ),
+//         0,
+//         this.canopyDarkenAmount // how much to darken the base of the tree
+//       );
+//       color = Color.interpolate(
+//         colorArray,
+//         LightManager.lightDefaults.shadow,
+//         darkenAmount
+//       );
+//     }
+//     if (child["tint"] !== undefined) {
+//       (child as any).tint = Color.toHex(color);
+//     }
+//   });
+// }

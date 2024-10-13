@@ -243,11 +243,11 @@ export class TreeSpecies {
     this.leavesPerSegmentMin =
       options.leavesPerSegmentMin !== undefined
         ? options.leavesPerSegmentMin
-        : 4; // minimum number of leaves per segment
+        : 1; // minimum number of leaves per segment
     this.leavesPerSegmentRange =
       options.leavesPerSegmentRange !== undefined
         ? options.leavesPerSegmentRange
-        : 3; // random range added to leaf count
+        : 2; // random range added to leaf count
     this.maxLeafAlpha =
       options.maxLeafAlpha !== undefined ? options.maxLeafAlpha : 1; // maximum opacity of leaves
     this.minLeafAlpha =
@@ -385,7 +385,7 @@ export class TreeSpecies {
         branchCurveAngle: 5,
         branchForkMin: 10,
         branchForkRange: 5,
-        leafDistance: 1.8,
+        leafDistance: 2.3,
         // leavesPerSegmentMin: 6,
         // leavesPerSegmentRange: 3,
         // leafDensity: 1.3,

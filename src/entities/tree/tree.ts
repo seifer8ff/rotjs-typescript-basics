@@ -759,7 +759,9 @@ export class Tree implements Actor {
           darkenAmount
         );
       }
-      child.tint = Color.toHex(color);
+      if (child["tint"] !== undefined) {
+        (child as any).tint = Color.toHex(color);
+      }
     });
   }
 

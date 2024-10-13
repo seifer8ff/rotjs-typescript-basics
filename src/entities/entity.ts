@@ -4,9 +4,8 @@ import { Action } from "../actions/action";
 import { PointerTarget } from "../camera";
 import { Renderable } from "../renderer";
 import { TreeSpeciesID } from "./tree/tree-species";
-import { Segment, TreeBranch } from "../manager-trees";
+import { Leaf, Segment, TreeBranch } from "../manager-trees";
 import { Sprite, Texture } from "pixi.js";
-import { Leaf } from "../system-leaves";
 
 export interface WithID {
   id: number;
@@ -49,6 +48,7 @@ export interface WithTrunk {
   curve?: number;
   curveDirection?: number;
   trunkTextureIndex?: number;
+  trunkBaseTextureIndex?: number;
 }
 
 export interface WithBranches {
@@ -64,7 +64,8 @@ export interface WithBranches {
 }
 
 export interface WithLeaves {
-  leaves?: Map<number, Sprite[]>; // branch ID -> leaf sprite []
+  leaves?: Map<number, Leaf[]>; // branch ID -> leaf sprite []
+  leafTextureIndex?: number;
   leavesPerSegment?: number;
   leafSize?: number;
   leafDistance?: number;

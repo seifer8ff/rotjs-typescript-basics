@@ -3,13 +3,10 @@ import { TreeSpecies } from "./entities/tree/tree-species";
 import { getItemFromRange, getNumberFromRange } from "./misc-utility";
 import { RNG } from "rot-js";
 import { Sprite } from "pixi.js";
-import { Segment } from "./manager-trees";
+import { Leaf, Segment, TreeBranch } from "./manager-trees";
 import { SystemBranches } from "./system-branches";
-
-export interface Leaf {
-  branchId: number;
-  sprite: Sprite;
-}
+import { Point } from "./point";
+import { SystemTreeRenderer } from "./system-tree-renderer";
 
 // handle spawning, updating, and rendering of tree leaves
 export class SystemLeaves {
@@ -19,7 +16,8 @@ export class SystemLeaves {
 
   public static add(species: TreeSpecies): EntityBase {
     let added: EntityBase = {
-      leaves: new Map<number, Sprite[]>(),
+      leaves: new Map<number, Leaf[]>(),
+      leafTextureIndex: SystemTreeRenderer.getRandomLeafTexture(species),
       leafDistance: species.leafDistance,
       leafSize: getNumberFromRange(species.leafMinSize, species.leafSizeRange),
       leavesPerSegment: getNumberFromRange(
@@ -31,41 +29,105 @@ export class SystemLeaves {
     return added;
   }
 
-  public static addLeaves(
-    segment: Segment,
-    leaves: Sprite[],
+  public static growLeaves(growthStep: number, tree: EntityBase): void {
+    let currentLeaves: Leaf[] = [];
+    let newLeaves: Leaf[] = [];
+    let branch: TreeBranch;
+    let species: TreeSpecies = TreeSpecies.treeSpecies[tree.species];
+    let maxBranchLeafCount: number;
+    for (let i = 0; i < tree.branches.length; i++) {
+      branch = tree.branches[i];
+      currentLeaves = [];
+      maxBranchLeafCount =
+        branch.segments.length * tree.leavesPerSegment * tree.leafDensity;
+
+      if (tree.leaves.has(branch.id)) {
+        currentLeaves = tree.leaves.get(branch.id);
+      }
+
+      if (currentLeaves.length < maxBranchLeafCount) {
+        newLeaves = SystemLeaves.addLeavesToBranch(
+          branch,
+          tree.leavesPerSegment,
+          tree.leafSize,
+          tree.leafDensity,
+          species
+        );
+        currentLeaves.push(...newLeaves);
+        tree.leaves.set(branch.id, currentLeaves);
+      }
+      // console.log("total leaves", tree.leaves);
+    }
+  }
+
+  public static addLeavesToBranch(
+    branch: TreeBranch,
     leavesPerSegment: number,
     leafSize: number,
     leafDensity: number,
     species: TreeSpecies
-  ): Sprite[] {
-    let leaf: Sprite;
+  ): Leaf[] {
+    let segment: Segment;
+    let newLeaves: Leaf[] = [];
+    for (let i = 0; i < branch.segments.length; i++) {
+      segment = branch.segments[i];
+      if (segment.leafCount < leavesPerSegment) {
+        newLeaves.push(
+          ...SystemLeaves.addLeaves(
+            branch,
+            segment,
+            leavesPerSegment,
+            leafSize,
+            leafDensity,
+            species
+          )
+        );
+      }
+    }
+    return newLeaves;
+  }
+
+  public static addLeaves(
+    branch: TreeBranch,
+    segment: Segment,
+    leavesPerSegment: number,
+    leafSize: number,
+    leafDensity: number,
+    species: TreeSpecies
+  ): Leaf[] {
+    let leaves: Leaf[] = [];
+    let leaf: Leaf;
     let angle: number;
     let distance: number;
     let rotation: number;
     let leafCount: number = Math.round(leavesPerSegment * leafDensity);
+    leafCount -= segment.leafCount || 0;
     const initialRotation = RNG.getUniform() * 360;
 
     for (let i: number = 0; i < leafCount; i++) {
-      leaf = new Sprite(getItemFromRange(species.textureSet.leaf));
       angle = RNG.getUniform() * species.leafCoverageAngle;
       // increase the distance by the number of branches
       distance =
         RNG.getUniform() * species.branchSegmentCount * species.leafDistance;
       rotation =
         angle + RNG.getUniform() * 2 * initialRotation - initialRotation;
-      leaf.anchor.set(0.5);
-      leaf.position.set(
-        segment.x2 + SystemBranches.lengthdir_x(distance, angle),
-        segment.y2 - SystemBranches.lengthdir_y(distance, angle)
-      );
-      leaf.rotation = rotation;
-      leaf.width = leafSize;
-      leaf.height = leafSize;
+      leaf = {
+        branchId: branch.id,
+        position: new Point(
+          segment.position.x + SystemBranches.lengthdir_x(distance, angle),
+          segment.position.y - SystemBranches.lengthdir_y(distance, angle)
+        ),
+        rotation: rotation,
+        alpha: RNG.getUniform() > 0.4 ? 1 : 0.3,
+        underCanopy: RNG.getUniform() > 0.12,
+      };
+      // leaf.width = leafSize;
+      // leaf.height = leafSize;
 
       leaves.push(leaf);
     }
-    segment.leavesRendered = true;
+    segment.leafCount = leaves.length;
+    // segment.leavesRendered = true;
     return leaves;
   }
 }
